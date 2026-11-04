@@ -1,153 +1,148 @@
 <script setup lang="ts">
-import { useIntervalFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
-import type { ChatClient as TwitchChatClient } from '@twurple/chat'
-import { withQuery } from 'ufo'
-import { useHead } from '#imports'
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import type { ComponentPublicInstance } from 'vue'
+import { useIntervalFn, useResizeObserver, useTimeoutFn } from "@vueuse/core";
+import type { ChatClient as TwitchChatClient } from "@twurple/chat";
+import { withQuery } from "ufo";
 
 const props = defineProps<{
-  user: string
-}>()
+  user: string;
+}>();
 
 interface Tile {
-  column: number
-  row: number
+  column: number;
+  row: number;
 }
 
 interface ActiveUser {
-  login: string
-  displayName: string
-  activity: number
-  lastActivity: number
-  lastMessage: string
-  lastMessageAt: number
-  danceAction: AvatarDanceAction | null
+  login: string;
+  displayName: string;
+  activity: number;
+  lastActivity: number;
+  lastMessage: string;
+  lastMessageAt: number;
+  danceAction: AvatarDanceAction | null;
 }
 
 interface AvatarElements {
-  shadow: HTMLElement | null
-  image: HTMLImageElement | null
-  label: HTMLElement | null
-  popoverAnchor: HTMLElement | null
-  labelWidth: number
-  labelHeight: number
+  shadow: HTMLElement | null;
+  image: HTMLImageElement | null;
+  label: HTMLElement | null;
+  popoverAnchor: HTMLElement | null;
+  labelWidth: number;
+  labelHeight: number;
 }
 
-type AvatarElementRef = Element | ComponentPublicInstance | null
-type AvatarPart = 'shadow' | 'image' | 'label' | 'popoverAnchor'
-type AvatarDanceAction = 'dance1' | 'dance2' | 'dance3' | 'dance4'
-type AvatarAction = 'std' | 'wlk' | AvatarDanceAction
+type AvatarElementRef = Element | ComponentPublicInstance | null;
+type AvatarPart = "shadow" | "image" | "label" | "popoverAnchor";
+type AvatarDanceAction = "dance1" | "dance2" | "dance3" | "dance4";
+type AvatarAction = "std" | "wlk" | AvatarDanceAction;
 
 interface AvatarState {
-  login: string
-  displayName: string
-  activity: number
-  current: Tile | null
-  visual: Tile | null
-  destination: Tile | null
-  direction: number
-  action: AvatarAction
-  danceAction: AvatarDanceAction | null
-  gesture: 'std' | 'spk'
-  currentImage: string
-  imageWidth: number
-  imageHeight: number
-  bubbleMessage: string
-  bubbleVisible: boolean
-  shadowRef: (element: AvatarElementRef) => void
-  imageRef: (element: AvatarElementRef) => void
-  labelRef: (element: AvatarElementRef) => void
-  popoverAnchorRef: (element: AvatarElementRef) => void
-  isWalking: boolean
-  nextStep: Tile | null
-  animationStartedAt: number | null
-  movementVersion: number
-  randomTimer: number | null
-  waitTimer: number | null
-  bubbleTimer: number | null
-  gestureTimer: number | null
-  speechVersion: number
-  removed: boolean
+  login: string;
+  displayName: string;
+  activity: number;
+  current: Tile | null;
+  visual: Tile | null;
+  destination: Tile | null;
+  direction: number;
+  action: AvatarAction;
+  danceAction: AvatarDanceAction | null;
+  gesture: "std" | "spk";
+  currentImage: string;
+  imageWidth: number;
+  imageHeight: number;
+  bubbleMessage: string;
+  bubbleVisible: boolean;
+  shadowRef: (element: AvatarElementRef) => void;
+  imageRef: (element: AvatarElementRef) => void;
+  labelRef: (element: AvatarElementRef) => void;
+  popoverAnchorRef: (element: AvatarElementRef) => void;
+  isWalking: boolean;
+  nextStep: Tile | null;
+  animationStartedAt: number | null;
+  movementVersion: number;
+  randomTimer: number | null;
+  waitTimer: number | null;
+  bubbleTimer: number | null;
+  gestureTimer: number | null;
+  speechVersion: number;
+  removed: boolean;
 }
 
-const imageEndpoint = 'https://habbohistory.com/habbo-imaging/avatarimage.webp'
-const figure = 'hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80'
+const imageEndpoint = "https://habbohistory.com/habbo-imaging/avatarimage.webp";
+const figure = "hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80";
 const danceHeadDirectionOverrides: Partial<Record<number, number>> = {
   3: 2,
   4: 5,
   6: 5,
-  7: 0,
-}
-const tileWidth = 76
-const tileHeight = tileWidth / 2
-const stepDuration = 320
-const chatChannel = props.user.toLowerCase()
-const maxAvatars = 50
-const inactiveTimeout = 15 * 60 * 1000
+  7: 0
+};
+const tileWidth = 76;
+const tileHeight = tileWidth / 2;
+const stepDuration = 320;
+const chatChannel = props.user.toLowerCase();
+const maxAvatars = 50;
+const inactiveTimeout = 15 * 60 * 1000;
 const knownChatBots = new Set([
-  'ankhbot',
-  'blerp',
-  'botisimo',
-  'botrix',
-  'coebot',
-  'commanderroot',
-  'deepbot',
-  'fossabot',
-  'mixitup',
-  'moobot',
-  'nightbot',
-  'phantombot',
-  'pretzel_rocks',
-  'sery_bot',
-  'soundalerts',
-  'streamcaptain',
-  'streamcord',
-  'streamelements',
-  'streamlabs',
-  'streamlabscharity',
-  'twitchat',
-  'wizebot',
-])
+  "ankhbot",
+  "blerp",
+  "botisimo",
+  "botrix",
+  "coebot",
+  "commanderroot",
+  "deepbot",
+  "fossabot",
+  "mixitup",
+  "moobot",
+  "nightbot",
+  "phantombot",
+  "pretzel_rocks",
+  "sery_bot",
+  "soundalerts",
+  "streamcaptain",
+  "streamcord",
+  "streamelements",
+  "streamlabs",
+  "streamlabscharity",
+  "twitchat",
+  "wizebot"
+]);
 
-const room = ref<HTMLDivElement | null>(null)
-const status = ref('Conectando al chat de Twitch…')
-const avatars = ref<AvatarState[]>([])
-const movingAvatars = new Set<AvatarState>()
-const activeUsers = new Map<string, ActiveUser>()
-const avatarsByUser = new Map<string, AvatarState>()
-const avatarElements = new Map<string, AvatarElements>()
+const room = ref<HTMLDivElement | null>(null);
+const status = ref("Conectando al chat de Twitch…");
+const avatars = ref<AvatarState[]>([]);
+const movingAvatars = new Set<AvatarState>();
+const activeUsers = new Map<string, ActiveUser>();
+const avatarsByUser = new Map<string, AvatarState>();
+const avatarElements = new Map<string, AvatarElements>();
 const preloadedImages = new Map<string, {
-  image: HTMLImageElement
-  promise: Promise<HTMLImageElement | null>
-}>()
+  image: HTMLImageElement;
+  promise: Promise<HTMLImageElement | null>;
+}>();
 
-let columns = 0
-let rows = 0
-let roomWidth = 0
-let roomHeight = 0
-let originX = 0
-let originY = 0
-let chatClient: TwitchChatClient | null = null
-let chatConnected = false
-let isUnmounting = false
-let animationFrame: number | null = null
+let columns = 0;
+let rows = 0;
+let roomWidth = 0;
+let roomHeight = 0;
+let originX = 0;
+let originY = 0;
+let chatClient: TwitchChatClient | null = null;
+let chatConnected = false;
+let isUnmounting = false;
+let animationFrame: number | null = null;
 
 useHead({
-  title: 'Widget de sala Habbo',
-  link: [{ rel: 'preconnect', href: 'https://habbohistory.com' }],
+  title: "Widget de sala Habbo",
+  link: [{ rel: "preconnect", href: "https://habbohistory.com" }],
   htmlAttrs: {
-    class: 'overflow-hidden bg-transparent',
+    class: "overflow-hidden bg-transparent"
   },
   bodyAttrs: {
-    class: 'm-0 overflow-hidden bg-transparent',
-  },
-})
+    class: "m-0 overflow-hidden bg-transparent"
+  }
+});
 
-function imageUrl(direction: number, action: AvatarState['action'], gesture = 'std') {
-  const headDirection = action === 'dance3' || action === 'dance4'
-    ? danceHeadDirectionOverrides[direction] ?? direction
-    : direction
+function imageUrl (direction: number, action: AvatarState["action"], gesture = "std") {
+  const headDirection = action === "dance3" || action === "dance4" ? danceHeadDirectionOverrides[direction] ?? direction : direction;
 
   return withQuery(imageEndpoint, {
     figure,
@@ -155,347 +150,343 @@ function imageUrl(direction: number, action: AvatarState['action'], gesture = 's
     head_direction: headDirection,
     gesture,
     action,
-    size: 'm',
-    format: 'webp',
+    size: "m",
+    format: "webp",
     rv: 55,
-    animv: 28,
-  })
+    animv: 28
+  });
 }
 
-function preloadAvatar(
+function preloadAvatar (
   direction: number,
-  action: AvatarState['action'],
-  gesture = 'std',
+  action: AvatarState["action"],
+  gesture = "std"
 ): Promise<HTMLImageElement | null> {
-  const url = imageUrl(direction, action, gesture)
-  const cached = preloadedImages.get(url)
-  if (cached) return cached.promise
+  const url = imageUrl(direction, action, gesture);
+  const cached = preloadedImages.get(url);
+  if (cached) return cached.promise;
 
-  const image = new Image()
+  const image = new Image();
   const promise = new Promise<HTMLImageElement | null>((resolve) => {
-    image.addEventListener('load', () => resolve(image), { once: true })
-    image.addEventListener('error', () => {
-      preloadedImages.delete(url)
-      console.warn('No se pudo precargar la animación del avatar.')
-      resolve(null)
-    }, { once: true })
-  })
-  preloadedImages.set(url, { image, promise })
-  image.src = url
-  return promise
+    image.addEventListener("load", () => resolve(image), { once: true });
+    image.addEventListener("error", () => {
+      preloadedImages.delete(url);
+      console.warn("No se pudo precargar la animación del avatar.");
+      resolve(null);
+    }, { once: true });
+  });
+  preloadedImages.set(url, { image, promise });
+  image.src = url;
+  return promise;
 }
 
-async function preloadAllWalkAnimations() {
-  let nextDirection = 0
+async function preloadAllWalkAnimations () {
+  let nextDirection = 0;
   const loadNext = async () => {
     while (nextDirection < 8) {
-      const directionToLoad = nextDirection++
-      await preloadAvatar(directionToLoad, 'wlk')
+      const directionToLoad = nextDirection++;
+      await preloadAvatar(directionToLoad, "wlk");
     }
-  }
-  await Promise.all([loadNext(), loadNext()])
+  };
+  await Promise.all([loadNext(), loadNext()]);
 }
 
-async function updateAvatar(
+async function updateAvatar (
   avatar: AvatarState,
   direction: number,
   action: AvatarAction,
-  gesture = avatar.gesture,
+  gesture = avatar.gesture
 ): Promise<void> {
-  avatar.direction = direction
-  avatar.action = avatar.danceAction ?? action
-  avatar.gesture = gesture
-  const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture)
+  avatar.direction = direction;
+  avatar.action = avatar.danceAction ?? action;
+  avatar.gesture = gesture;
+  const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture);
 
   if (nextImage === avatar.currentImage && avatar.imageWidth > 0) {
-    placeHabbo(avatar)
-    return
+    placeHabbo(avatar);
+    return;
   }
 
-  avatar.currentImage = nextImage
-  const image = await preloadAvatar(avatar.direction, avatar.action, avatar.gesture)
-  if (avatar.removed) return
+  avatar.currentImage = nextImage;
+  const image = await preloadAvatar(avatar.direction, avatar.action, avatar.gesture);
+  if (avatar.removed) return;
 
-  const latestImage = imageUrl(avatar.direction, avatar.action, avatar.gesture)
+  const latestImage = imageUrl(avatar.direction, avatar.action, avatar.gesture);
   if (nextImage !== latestImage) {
-    await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture)
-    return
+    await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture);
+    return;
   }
-  if (!image) throw new Error('No se pudo cargar la imagen del avatar.')
+  if (!image) throw new Error("No se pudo cargar la imagen del avatar.");
 
-  avatar.imageWidth = image.naturalWidth * 1.08
-  avatar.imageHeight = image.naturalHeight * 1.08
-  await nextTick()
-  if (avatar.removed) return
+  avatar.imageWidth = image.naturalWidth * 1.08;
+  avatar.imageHeight = image.naturalHeight * 1.08;
+  await nextTick();
+  if (avatar.removed) return;
   if (nextImage !== avatar.currentImage) {
-    await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture)
-    return
+    await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture);
+    return;
   }
-  placeHabbo(avatar)
+  placeHabbo(avatar);
 }
 
-function positionFor(column: number, row: number) {
+function positionFor (column: number, row: number) {
   return {
     x: originX + (column - row) * tileWidth / 2,
-    y: originY + (column + row) * tileHeight / 2,
-  }
+    y: originY + (column + row) * tileHeight / 2
+  };
 }
 
-function isRoomTile(tile: Tile) {
+function isRoomTile (tile: Tile) {
   if (
-    tile.column < 0 || tile.column >= columns ||
-    tile.row < 0 || tile.row >= rows
-  ) return false
-  const point = positionFor(tile.column, tile.row)
-  const horizontalMargin = Math.min(40, roomWidth * 0.04)
-  return point.x >= horizontalMargin && point.x <= roomWidth - horizontalMargin &&
-    point.y >= roomHeight * 0.18 && point.y <= roomHeight * 0.94
+    tile.column < 0 || tile.column >= columns
+    || tile.row < 0 || tile.row >= rows
+  ) return false;
+  const point = positionFor(tile.column, tile.row);
+  const horizontalMargin = Math.min(40, roomWidth * 0.04);
+  return point.x >= horizontalMargin && point.x <= roomWidth - horizontalMargin
+    && point.y >= roomHeight * 0.18 && point.y <= roomHeight * 0.94;
 }
 
-function placeHabbo(avatar: AvatarState) {
-  if (!avatar.visual) return
-  const point = positionFor(avatar.visual.column, avatar.visual.row)
-  const groundY = point.y + tileHeight * 0.34
-  const depth = Math.round(avatar.visual.column + avatar.visual.row)
-  const elements = avatarElements.get(avatar.login)
-  const imageHeight = avatar.imageHeight
-  const labelHalfWidth = (elements?.labelWidth ?? 0) / 2
-  const labelHeight = elements?.labelHeight ?? 0
+function placeHabbo (avatar: AvatarState) {
+  if (!avatar.visual) return;
+  const point = positionFor(avatar.visual.column, avatar.visual.row);
+  const groundY = point.y + tileHeight * 0.34;
+  const depth = Math.round(avatar.visual.column + avatar.visual.row);
+  const elements = avatarElements.get(avatar.login);
+  const imageHeight = avatar.imageHeight;
+  const labelHalfWidth = (elements?.labelWidth ?? 0) / 2;
+  const labelHeight = elements?.labelHeight ?? 0;
   const labelX = Math.max(
     labelHalfWidth + 8,
-    Math.min(roomWidth - labelHalfWidth - 8, point.x),
-  )
+    Math.min(roomWidth - labelHalfWidth - 8, point.x)
+  );
 
   const setPosition = (
     element: HTMLElement | null,
     x: number,
     y: number,
-    zIndex?: number,
+    zIndex?: number
   ) => {
-    if (!element) return
-    const transform = `translate3d(${x}px, ${y}px, 0)`
-    if (element.style.transform !== transform) element.style.transform = transform
+    if (!element) return;
+    const transform = `translate3d(${x}px, ${y}px, 0)`;
+    if (element.style.transform !== transform) element.style.transform = transform;
     if (zIndex !== undefined && element.style.zIndex !== String(zIndex)) {
-      element.style.zIndex = String(zIndex)
+      element.style.zIndex = String(zIndex);
     }
-  }
+  };
 
-  setPosition(elements?.shadow ?? null, point.x - 34 * 0.6, groundY - 14 * 1.2, depth + 1)
+  setPosition(elements?.shadow ?? null, point.x - 34 * 0.6, groundY - 14 * 1.2, depth + 1);
   setPosition(
     elements?.image ?? null,
     point.x - avatar.imageWidth * 0.56,
     groundY - imageHeight,
-    depth + 2,
-  )
+    depth + 2
+  );
   if (elements?.image && avatar.imageWidth > 0) {
-    const width = `${avatar.imageWidth}px`
-    if (elements.image.style.width !== width) elements.image.style.width = width
+    const width = `${avatar.imageWidth}px`;
+    if (elements.image.style.width !== width) elements.image.style.width = width;
   }
   setPosition(
     elements?.label ?? null,
     labelX - labelHalfWidth,
     groundY - imageHeight - labelHeight / 2,
-    depth + 3,
-  )
+    depth + 3
+  );
   setPosition(
     elements?.popoverAnchor ?? null,
     point.x,
-    groundY - imageHeight - labelHeight * 0.7 + 8,
-  )
+    groundY - imageHeight - labelHeight * 0.7 + 8
+  );
 }
 
-function setAvatarElement(login: string, part: AvatarPart, value: AvatarElementRef) {
+function setAvatarElement (login: string, part: AvatarPart, value: AvatarElementRef) {
   const elements = avatarElements.get(login) ?? {
     shadow: null,
     image: null,
     label: null,
     popoverAnchor: null,
     labelWidth: 0,
-    labelHeight: 0,
-  }
+    labelHeight: 0
+  };
 
-  if (part === 'image') {
-    elements.image = typeof HTMLImageElement !== 'undefined' && value instanceof HTMLImageElement
-      ? value
-      : null
-  } else {
-    const element = typeof HTMLElement !== 'undefined' && value instanceof HTMLElement
-      ? value
-      : null
-    elements[part] = element
-    if (part === 'label' && element) {
-      elements.labelWidth = element.offsetWidth
-      elements.labelHeight = element.offsetHeight
+  if (part === "image") {
+    elements.image = typeof HTMLImageElement !== "undefined" && value instanceof HTMLImageElement ? value : null;
+  }
+  else {
+    const element = typeof HTMLElement !== "undefined" && value instanceof HTMLElement ? value : null;
+    elements[part] = element;
+    if (part === "label" && element) {
+      elements.labelWidth = element.offsetWidth;
+      elements.labelHeight = element.offsetHeight;
     }
   }
 
   if (elements.shadow || elements.image || elements.label || elements.popoverAnchor) {
-    avatarElements.set(login, elements)
-  } else {
-    avatarElements.delete(login)
+    avatarElements.set(login, elements);
+  }
+  else {
+    avatarElements.delete(login);
   }
 
-  const avatar = avatarsByUser.get(login)
-  if (avatar && value !== null) placeHabbo(avatar)
+  const avatar = avatarsByUser.get(login);
+  if (avatar && value !== null) placeHabbo(avatar);
 }
 
-function scheduleAvatarAnimation() {
+function scheduleAvatarAnimation () {
   if (animationFrame === null) {
-    animationFrame = window.requestAnimationFrame(animateAvatarSteps)
+    animationFrame = window.requestAnimationFrame(animateAvatarSteps);
   }
 }
 
-function stopAvatarAnimation(avatar: AvatarState) {
-  movingAvatars.delete(avatar)
-  avatar.animationStartedAt = null
+function stopAvatarAnimation (avatar: AvatarState) {
+  movingAvatars.delete(avatar);
+  avatar.animationStartedAt = null;
   if (movingAvatars.size === 0 && animationFrame !== null) {
-    window.cancelAnimationFrame(animationFrame)
-    animationFrame = null
+    window.cancelAnimationFrame(animationFrame);
+    animationFrame = null;
   }
 }
 
-function animateAvatarSteps(now: number) {
-  animationFrame = null
+function animateAvatarSteps (now: number) {
+  animationFrame = null;
   for (const avatar of movingAvatars) {
-    const startedAt = avatar.animationStartedAt
-    const current = avatar.current
-    const next = avatar.nextStep
+    const startedAt = avatar.animationStartedAt;
+    const current = avatar.current;
+    const next = avatar.nextStep;
     if (avatar.removed || startedAt === null || !current || !next) {
-      movingAvatars.delete(avatar)
-      avatar.animationStartedAt = null
-      continue
+      movingAvatars.delete(avatar);
+      avatar.animationStartedAt = null;
+      continue;
     }
 
-    const progress = Math.min((now - startedAt) / stepDuration, 1)
+    const progress = Math.min((now - startedAt) / stepDuration, 1);
     avatar.visual = {
       column: current.column + (next.column - current.column) * progress,
-      row: current.row + (next.row - current.row) * progress,
-    }
-    placeHabbo(avatar)
+      row: current.row + (next.row - current.row) * progress
+    };
+    placeHabbo(avatar);
 
     if (progress === 1) {
-      avatar.animationStartedAt = null
-      avatar.current = { ...next }
-      avatar.visual = { ...next }
-      avatar.nextStep = null
-      movingAvatars.delete(avatar)
-      void moveNextStep(avatar)
+      avatar.animationStartedAt = null;
+      avatar.current = { ...next };
+      avatar.visual = { ...next };
+      avatar.nextStep = null;
+      movingAvatars.delete(avatar);
+      void moveNextStep(avatar);
     }
   }
 
-  if (movingAvatars.size > 0) scheduleAvatarAnimation()
+  if (movingAvatars.size > 0) scheduleAvatarAnimation();
 }
 
-function updateRoomLayout() {
-  const bounds = room.value?.getBoundingClientRect()
-  if (!bounds) return
+function updateRoomLayout () {
+  const bounds = room.value?.getBoundingClientRect();
+  if (!bounds) return;
 
-  const nextWidth = bounds.width
-  const nextHeight = bounds.height
-  const horizontalMargin = Math.min(40, nextWidth * 0.04)
-  const verticalRange = nextHeight * 0.76
+  const nextWidth = bounds.width;
+  const nextHeight = bounds.height;
+  const horizontalMargin = Math.min(40, nextWidth * 0.04);
+  const verticalRange = nextHeight * 0.76;
   const requiredGridSize = Math.ceil(
-    (nextWidth - horizontalMargin * 2) / (tileWidth / 2) +
-    verticalRange / (tileHeight / 2),
-  ) + 2
-  const gridSize = Math.max(2, Math.ceil(requiredGridSize / 2) * 2)
-  const layoutChanged = nextWidth !== roomWidth || nextHeight !== roomHeight ||
-    gridSize !== columns || gridSize !== rows
+    (nextWidth - horizontalMargin * 2) / (tileWidth / 2)
+    + verticalRange / (tileHeight / 2)
+  ) + 2;
+  const gridSize = Math.max(2, Math.ceil(requiredGridSize / 2) * 2);
+  const layoutChanged = nextWidth !== roomWidth || nextHeight !== roomHeight
+    || gridSize !== columns || gridSize !== rows;
 
-  roomWidth = nextWidth
-  roomHeight = nextHeight
-  columns = gridSize
-  rows = gridSize
-  originX = roomWidth / 2
-  originY = roomHeight / 2 - (columns + rows - 2) * tileHeight / 4
+  roomWidth = nextWidth;
+  roomHeight = nextHeight;
+  columns = gridSize;
+  rows = gridSize;
+  originX = roomWidth / 2;
+  originY = roomHeight / 2 - (columns + rows - 2) * tileHeight / 4;
 
   if (layoutChanged && avatars.value.length > 0) {
     for (const avatar of [...avatars.value]) {
-      avatar.movementVersion++
-      stopAvatarAnimation(avatar)
-      if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer)
-      if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer)
-      avatar.randomTimer = null
-      avatar.waitTimer = null
-      avatar.isWalking = false
-      avatar.nextStep = null
-      avatar.current = null
-      avatar.visual = null
-      avatar.destination = null
+      avatar.movementVersion++;
+      stopAvatarAnimation(avatar);
+      if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
+      if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
+      avatar.randomTimer = null;
+      avatar.waitTimer = null;
+      avatar.isWalking = false;
+      avatar.nextStep = null;
+      avatar.current = null;
+      avatar.visual = null;
+      avatar.destination = null;
     }
 
     for (const avatar of avatars.value) {
-      const spawn = findFreeTile()
+      const spawn = findFreeTile();
       if (!spawn) {
-        removeAvatarState(avatar)
-        continue
+        removeAvatarState(avatar);
+        continue;
       }
-      avatar.current = { ...spawn }
-      avatar.visual = { ...spawn }
-      avatar.destination = { ...spawn }
-      placeHabbo(avatar)
-      scheduleRandomMove(avatar)
+      avatar.current = { ...spawn };
+      avatar.visual = { ...spawn };
+      avatar.destination = { ...spawn };
+      placeHabbo(avatar);
+      scheduleRandomMove(avatar);
     }
-    return
+    return;
   }
 
-  avatars.value.forEach(placeHabbo)
+  avatars.value.forEach(placeHabbo);
 }
 
-function habboDirection(deltaColumn: number, deltaRow: number) {
+function habboDirection (deltaColumn: number, deltaRow: number) {
   const directions: Record<string, number> = {
-    '1,0': 2,
-    '-1,0': 6,
-    '0,1': 4,
-    '0,-1': 0,
-    '1,1': 3,
-    '-1,-1': 7,
-    '1,-1': 1,
-    '-1,1': 5,
-  }
-  const direction = directions[`${deltaColumn},${deltaRow}`]
+    "1,0": 2,
+    "-1,0": 6,
+    "0,1": 4,
+    "0,-1": 0,
+    "1,1": 3,
+    "-1,-1": 7,
+    "1,-1": 1,
+    "-1,1": 5
+  };
+  const direction = directions[`${deltaColumn},${deltaRow}`];
   if (direction === undefined) {
-    throw new Error(`Dirección Habbo no válida: ${deltaColumn},${deltaRow}`)
+    throw new Error(`Dirección Habbo no válida: ${deltaColumn},${deltaRow}`);
   }
-  return direction
+  return direction;
 }
 
-function sameTile(first: Tile | null, second: Tile | null) {
-  return first !== null && second !== null &&
-    first.column === second.column &&
-    first.row === second.row
+function sameTile (first: Tile | null, second: Tile | null) {
+  return first !== null && second !== null
+    && first.column === second.column
+    && first.row === second.row;
 }
 
-function tileUnavailable(tile: Tile, movingAvatar: AvatarState | null) {
+function tileUnavailable (tile: Tile, movingAvatar: AvatarState | null) {
   return avatars.value.some(other => other !== movingAvatar && (
-    sameTile(tile, other.current) ||
-    sameTile(tile, other.nextStep) ||
-    sameTile(tile, other.destination)
-  ))
+    sameTile(tile, other.current)
+    || sameTile(tile, other.nextStep)
+    || sameTile(tile, other.destination)
+  ));
 }
 
-function updateChatStatus() {
-  const connection = chatConnected
-    ? `Conectado a #${chatChannel}`
-    : `Conectando a #${chatChannel}`
-  status.value = `${connection} · ${avatars.value.length}/${maxAvatars} avatares activos`
+function updateChatStatus () {
+  const connection = chatConnected ? `Conectado a #${chatChannel}` : `Conectando a #${chatChannel}`;
+  status.value = `${connection} · ${avatars.value.length}/${maxAvatars} avatares activos`;
 }
 
-function findFreeTile(): Tile | null {
-  const freeTiles: Tile[] = []
+function findFreeTile (): Tile | null {
+  const freeTiles: Tile[] = [];
   for (let column = 0; column < columns; column++) {
     for (let row = 0; row < rows; row++) {
-      const tile = { column, row }
-      if (isRoomTile(tile) && !tileUnavailable(tile, null)) freeTiles.push(tile)
+      const tile = { column, row };
+      if (isRoomTile(tile) && !tileUnavailable(tile, null)) freeTiles.push(tile);
     }
   }
-  if (freeTiles.length === 0) return null
-  return freeTiles[Math.floor(Math.random() * freeTiles.length)] ?? null
+  if (freeTiles.length === 0) return null;
+  return freeTiles[Math.floor(Math.random() * freeTiles.length)] ?? null;
 }
 
-function createAvatarState(user: ActiveUser): AvatarState | null {
-  const spawn = findFreeTile()
-  if (!spawn) return null
+function createAvatarState (user: ActiveUser): AvatarState | null {
+  const spawn = findFreeTile();
+  if (!spawn) return null;
 
   const avatar = reactive<AvatarState>({
     login: user.login,
@@ -505,18 +496,18 @@ function createAvatarState(user: ActiveUser): AvatarState | null {
     visual: { ...spawn },
     destination: { ...spawn },
     direction: 2,
-    action: 'std',
+    action: "std",
     danceAction: user.danceAction,
-    gesture: 'std',
-    currentImage: '',
+    gesture: "std",
+    currentImage: "",
     imageWidth: 0,
     imageHeight: 0,
-    bubbleMessage: '',
+    bubbleMessage: "",
     bubbleVisible: false,
-    shadowRef: element => setAvatarElement(user.login, 'shadow', element),
-    imageRef: element => setAvatarElement(user.login, 'image', element),
-    labelRef: element => setAvatarElement(user.login, 'label', element),
-    popoverAnchorRef: element => setAvatarElement(user.login, 'popoverAnchor', element),
+    shadowRef: element => setAvatarElement(user.login, "shadow", element),
+    imageRef: element => setAvatarElement(user.login, "image", element),
+    labelRef: element => setAvatarElement(user.login, "label", element),
+    popoverAnchorRef: element => setAvatarElement(user.login, "popoverAnchor", element),
     isWalking: false,
     nextStep: null,
     animationStartedAt: null,
@@ -526,399 +517,404 @@ function createAvatarState(user: ActiveUser): AvatarState | null {
     bubbleTimer: null,
     gestureTimer: null,
     speechVersion: 0,
-    removed: false,
-  })
+    removed: false
+  });
 
-  avatars.value.push(avatar)
-  avatarsByUser.set(user.login, avatar)
-  placeHabbo(avatar)
-  void updateAvatar(avatar, avatar.direction, 'std')
+  avatars.value.push(avatar);
+  avatarsByUser.set(user.login, avatar);
+  placeHabbo(avatar);
+  void updateAvatar(avatar, avatar.direction, "std")
     .then(() => {
-      if (!avatar.removed) scheduleRandomMove(avatar)
+      if (!avatar.removed) scheduleRandomMove(avatar);
     })
-    .catch(error => reportAvatarLoadError(avatar, error))
-  return avatar
+    .catch(error => reportAvatarLoadError(avatar, error));
+  return avatar;
 }
 
-function clearAvatarTimers(avatar: AvatarState) {
-  if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer)
-  if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer)
-  if (avatar.bubbleTimer !== null) window.clearTimeout(avatar.bubbleTimer)
-  if (avatar.gestureTimer !== null) window.clearTimeout(avatar.gestureTimer)
-  avatar.randomTimer = null
-  avatar.waitTimer = null
-  avatar.bubbleTimer = null
-  avatar.gestureTimer = null
+function clearAvatarTimers (avatar: AvatarState) {
+  if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
+  if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
+  if (avatar.bubbleTimer !== null) window.clearTimeout(avatar.bubbleTimer);
+  if (avatar.gestureTimer !== null) window.clearTimeout(avatar.gestureTimer);
+  avatar.randomTimer = null;
+  avatar.waitTimer = null;
+  avatar.bubbleTimer = null;
+  avatar.gestureTimer = null;
 }
 
-function removeAvatarState(avatar: AvatarState) {
-  avatar.removed = true
-  avatar.movementVersion++
-  stopAvatarAnimation(avatar)
-  clearAvatarTimers(avatar)
-  avatarElements.delete(avatar.login)
-  avatarsByUser.delete(avatar.login)
-  const index = avatars.value.indexOf(avatar)
-  if (index >= 0) avatars.value.splice(index, 1)
+function removeAvatarState (avatar: AvatarState) {
+  avatar.removed = true;
+  avatar.movementVersion++;
+  stopAvatarAnimation(avatar);
+  clearAvatarTimers(avatar);
+  avatarElements.delete(avatar.login);
+  avatarsByUser.delete(avatar.login);
+  const index = avatars.value.indexOf(avatar);
+  if (index >= 0) avatars.value.splice(index, 1);
 }
 
-function reconcileActiveAvatars() {
-  const now = Date.now()
+function reconcileActiveAvatars () {
+  const now = Date.now();
   for (const [login, user] of activeUsers) {
-    if (now - user.lastActivity >= inactiveTimeout) activeUsers.delete(login)
+    if (now - user.lastActivity >= inactiveTimeout) activeUsers.delete(login);
   }
 
   const topUsers = [...activeUsers.values()]
     .sort((first, second) =>
-      second.activity - first.activity ||
-      second.lastActivity - first.lastActivity ||
-      first.login.localeCompare(second.login),
+      second.activity - first.activity
+      || second.lastActivity - first.lastActivity
+      || first.login.localeCompare(second.login)
     )
-    .slice(0, maxAvatars)
-  const topLogins = new Set(topUsers.map(user => user.login))
+    .slice(0, maxAvatars);
+  const topLogins = new Set(topUsers.map(user => user.login));
 
   for (const avatar of [...avatars.value]) {
-    if (!topLogins.has(avatar.login)) removeAvatarState(avatar)
+    if (!topLogins.has(avatar.login)) removeAvatarState(avatar);
   }
 
   for (const user of topUsers) {
-    const avatar = avatarsByUser.get(user.login)
+    const avatar = avatarsByUser.get(user.login);
     if (!avatar) {
-      const newAvatar = createAvatarState(user)
+      const newAvatar = createAvatarState(user);
       if (
-        newAvatar &&
-        user.lastMessage &&
-        Date.now() - user.lastMessageAt < 3000
+        newAvatar
+        && user.lastMessage
+        && Date.now() - user.lastMessageAt < 3000
       ) {
-        void showChatMessage(newAvatar, user.lastMessage)
+        void showChatMessage(newAvatar, user.lastMessage);
       }
-      continue
+      continue;
     }
-    const displayNameChanged = avatar.displayName !== user.displayName
-    avatar.displayName = user.displayName
-    avatar.activity = user.activity
+    const displayNameChanged = avatar.displayName !== user.displayName;
+    avatar.displayName = user.displayName;
+    avatar.activity = user.activity;
     if (displayNameChanged) {
       void nextTick(() => {
-        if (avatar.removed) return
-        const elements = avatarElements.get(avatar.login)
+        if (avatar.removed) return;
+        const elements = avatarElements.get(avatar.login);
         if (elements?.label) {
-          elements.labelWidth = elements.label.offsetWidth
-          elements.labelHeight = elements.label.offsetHeight
+          elements.labelWidth = elements.label.offsetWidth;
+          elements.labelHeight = elements.label.offsetHeight;
         }
-        placeHabbo(avatar)
-      })
+        placeHabbo(avatar);
+      });
     }
   }
 
-  updateChatStatus()
+  updateChatStatus();
 }
 
-function danceActionFromMessage(message: string): AvatarDanceAction | null {
+function danceActionFromMessage (message: string): AvatarDanceAction | null {
   switch (message.trim().toLowerCase()) {
-    case '!dance1': return 'dance1'
-    case '!dance2': return 'dance2'
-    case '!dance3': return 'dance3'
-    case '!dance4': return 'dance4'
-    default: return null
+    case "!dance1": return "dance1";
+    case "!dance2": return "dance2";
+    case "!dance3": return "dance3";
+    case "!dance4": return "dance4";
+    default: return null;
   }
 }
 
-function setAvatarDance(avatar: AvatarState, danceAction: AvatarDanceAction | null) {
-  avatar.danceAction = danceAction
-  const action = avatar.isWalking ? 'wlk' : 'std'
+function setAvatarDance (avatar: AvatarState, danceAction: AvatarDanceAction | null) {
+  avatar.danceAction = danceAction;
+  const action = avatar.isWalking ? "wlk" : "std";
   void updateAvatar(avatar, avatar.direction, action)
-    .catch(error => reportAvatarLoadError(avatar, error))
+    .catch(error => reportAvatarLoadError(avatar, error));
 }
 
-function recordChatActivity(username: string, message: string, twitchDisplayName: string) {
-  const messageText = String(message || '')
-  const login = String(username || '').trim().toLowerCase()
-  if (!login || knownChatBots.has(login)) return
-  const displayName = String(twitchDisplayName || username).trim()
-  const danceAction = danceActionFromMessage(messageText)
-  const stopDance = messageText.trim().toLowerCase() === '!stopdance'
-  const isDanceCommand = danceAction !== null || stopDance
-  if (messageText.trimStart().startsWith('!') && !isDanceCommand) return
+function recordChatActivity (username: string, message: string, twitchDisplayName: string) {
+  const messageText = String(message || "");
+  const login = String(username || "").trim().toLowerCase();
+  if (!login || knownChatBots.has(login)) return;
+  const displayName = String(twitchDisplayName || username).trim();
+  const danceAction = danceActionFromMessage(messageText);
+  const stopDance = messageText.trim().toLowerCase() === "!stopdance";
+  const isDanceCommand = danceAction !== null || stopDance;
+  if (messageText.trimStart().startsWith("!") && !isDanceCommand) return;
 
-  const now = Date.now()
-  let user = activeUsers.get(login)
+  const now = Date.now();
+  let user = activeUsers.get(login);
   if (!user || now - user.lastActivity >= inactiveTimeout) {
-    if (stopDance) return
+    if (stopDance) return;
     user = {
       login,
       displayName,
       activity: 0,
       lastActivity: now,
-      lastMessage: '',
+      lastMessage: "",
       lastMessageAt: 0,
-      danceAction: null,
-    }
-    activeUsers.set(login, user)
+      danceAction: null
+    };
+    activeUsers.set(login, user);
   }
-  user.displayName = displayName
-  user.activity++
-  user.lastActivity = now
+  user.displayName = displayName;
+  user.activity++;
+  user.lastActivity = now;
 
   if (isDanceCommand) {
-    user.lastMessage = ''
-    user.lastMessageAt = 0
-    user.danceAction = danceAction
-    const avatar = avatarsByUser.get(login)
-    if (avatar) setAvatarDance(avatar, danceAction)
-    scheduleReconciliation()
-    return
+    user.lastMessage = "";
+    user.lastMessageAt = 0;
+    user.danceAction = danceAction;
+    const avatar = avatarsByUser.get(login);
+    if (avatar) setAvatarDance(avatar, danceAction);
+    scheduleReconciliation();
+    return;
   }
 
-  user.lastMessage = messageText
-  user.lastMessageAt = now
+  user.lastMessage = messageText;
+  user.lastMessageAt = now;
 
-  const avatar = avatarsByUser.get(login)
-  if (avatar && messageText.trim()) void showChatMessage(avatar, messageText)
-  scheduleReconciliation()
+  const avatar = avatarsByUser.get(login);
+  if (avatar && messageText.trim()) void showChatMessage(avatar, messageText);
+  scheduleReconciliation();
 }
 
-async function showChatMessage(avatar: AvatarState, message: string) {
-  if (avatar.removed || !message.trim()) return
+async function showChatMessage (avatar: AvatarState, message: string) {
+  if (avatar.removed || !message.trim()) return;
 
-  avatar.bubbleMessage = message
-  avatar.bubbleVisible = true
-  window.clearTimeout(avatar.bubbleTimer ?? undefined)
+  avatar.bubbleMessage = message;
+  avatar.bubbleVisible = true;
+  window.clearTimeout(avatar.bubbleTimer ?? undefined);
   avatar.bubbleTimer = window.setTimeout(() => {
-    if (avatar.removed) return
-    avatar.bubbleVisible = false
-    avatar.bubbleTimer = null
-  }, 5000)
+    if (avatar.removed) return;
+    avatar.bubbleVisible = false;
+    avatar.bubbleTimer = null;
+  }, 5000);
 
-  window.clearTimeout(avatar.gestureTimer ?? undefined)
-  const speechVersion = ++avatar.speechVersion
-  avatar.gesture = 'spk'
-  await nextTick()
-  if (avatar.removed) return
-  placeHabbo(avatar)
+  window.clearTimeout(avatar.gestureTimer ?? undefined);
+  const speechVersion = ++avatar.speechVersion;
+  avatar.gesture = "spk";
+  await nextTick();
+  if (avatar.removed) return;
+  placeHabbo(avatar);
 
   try {
-    await updateAvatar(avatar, avatar.direction, avatar.action, 'spk')
-  } catch (error) {
-    reportAvatarLoadError(avatar, error)
-    return
+    await updateAvatar(avatar, avatar.direction, avatar.action, "spk");
   }
-  if (avatar.removed || speechVersion !== avatar.speechVersion) return
+  catch (error) {
+    reportAvatarLoadError(avatar, error);
+    return;
+  }
+  if (avatar.removed || speechVersion !== avatar.speechVersion) return;
 
   avatar.gestureTimer = window.setTimeout(() => {
-    avatar.gestureTimer = null
-    if (avatar.removed || speechVersion !== avatar.speechVersion) return
-    avatar.gesture = 'std'
-    void updateAvatar(avatar, avatar.direction, avatar.action, 'std')
-      .catch(error => reportAvatarLoadError(avatar, error))
-  }, 5000)
+    avatar.gestureTimer = null;
+    if (avatar.removed || speechVersion !== avatar.speechVersion) return;
+    avatar.gesture = "std";
+    void updateAvatar(avatar, avatar.direction, avatar.action, "std")
+      .catch(error => reportAvatarLoadError(avatar, error));
+  }, 5000);
 }
 
-async function moveNextStep(avatar: AvatarState) {
-  if (avatar.removed || !avatar.current || !avatar.destination) return
-  const movementVersion = avatar.movementVersion
+async function moveNextStep (avatar: AvatarState) {
+  if (avatar.removed || !avatar.current || !avatar.destination) return;
+  const movementVersion = avatar.movementVersion;
   const reportError = (error: unknown) => {
     if (movementVersion === avatar.movementVersion) {
-      reportAvatarLoadError(avatar, error)
+      reportAvatarLoadError(avatar, error);
     }
-  }
+  };
 
   if (sameTile(avatar.current, avatar.destination)) {
     try {
-      await updateAvatar(avatar, avatar.direction, 'std')
-    } catch (error) {
-      reportError(error)
-      return
+      await updateAvatar(avatar, avatar.direction, "std");
     }
-    if (avatar.removed || movementVersion !== avatar.movementVersion) return
+    catch (error) {
+      reportError(error);
+      return;
+    }
+    if (avatar.removed || movementVersion !== avatar.movementVersion) return;
     if (!sameTile(avatar.current, avatar.destination)) {
-      void moveNextStep(avatar)
-      return
+      void moveNextStep(avatar);
+      return;
     }
-    avatar.isWalking = false
-    avatar.nextStep = null
-    scheduleRandomMove(avatar)
-    return
+    avatar.isWalking = false;
+    avatar.nextStep = null;
+    scheduleRandomMove(avatar);
+    return;
   }
 
-  const deltaColumn = Math.sign(avatar.destination.column - avatar.current.column)
-  const deltaRow = Math.sign(avatar.destination.row - avatar.current.row)
+  const deltaColumn = Math.sign(avatar.destination.column - avatar.current.column);
+  const deltaRow = Math.sign(avatar.destination.row - avatar.current.row);
   const next = {
     column: avatar.current.column + deltaColumn,
-    row: avatar.current.row + deltaRow,
-  }
+    row: avatar.current.row + deltaRow
+  };
   if (tileUnavailable(next, avatar)) {
-    avatar.nextStep = null
-    if (avatar.action === 'std' || avatar.danceAction !== null) {
-      avatar.destination = { ...avatar.current }
-      avatar.isWalking = false
-      scheduleRandomMove(avatar)
-      return
+    avatar.nextStep = null;
+    if (avatar.action === "std" || avatar.danceAction !== null) {
+      avatar.destination = { ...avatar.current };
+      avatar.isWalking = false;
+      scheduleRandomMove(avatar);
+      return;
     }
 
     try {
-      await updateAvatar(avatar, avatar.direction, 'std')
-    } catch (error) {
-      reportError(error)
-      return
+      await updateAvatar(avatar, avatar.direction, "std");
     }
-    if (avatar.removed || movementVersion !== avatar.movementVersion) return
+    catch (error) {
+      reportError(error);
+      return;
+    }
+    if (avatar.removed || movementVersion !== avatar.movementVersion) return;
     avatar.waitTimer = window.setTimeout(() => {
-      avatar.waitTimer = null
-      void moveNextStep(avatar)
-    }, 250)
-    return
+      avatar.waitTimer = null;
+      void moveNextStep(avatar);
+    }, 250);
+    return;
   }
 
-  avatar.nextStep = next
-  const nextDirection = habboDirection(deltaColumn, deltaRow)
-  void preloadAvatar(nextDirection, 'std')
+  avatar.nextStep = next;
+  const nextDirection = habboDirection(deltaColumn, deltaRow);
+  void preloadAvatar(nextDirection, "std");
 
   try {
-    await updateAvatar(avatar, nextDirection, 'wlk')
-  } catch (error) {
-    reportError(error)
-    return
+    await updateAvatar(avatar, nextDirection, "wlk");
   }
-  if (avatar.removed || movementVersion !== avatar.movementVersion) return
+  catch (error) {
+    reportError(error);
+    return;
+  }
+  if (avatar.removed || movementVersion !== avatar.movementVersion) return;
   if (sameTile(avatar.current, avatar.destination)) {
-    avatar.nextStep = null
-    void moveNextStep(avatar)
-    return
+    avatar.nextStep = null;
+    void moveNextStep(avatar);
+    return;
   }
 
-  const latestColumn = Math.sign(avatar.destination.column - avatar.current.column)
-  const latestRow = Math.sign(avatar.destination.row - avatar.current.row)
+  const latestColumn = Math.sign(avatar.destination.column - avatar.current.column);
+  const latestRow = Math.sign(avatar.destination.row - avatar.current.row);
   if (habboDirection(latestColumn, latestRow) !== avatar.direction) {
-    avatar.nextStep = null
-    void moveNextStep(avatar)
-    return
+    avatar.nextStep = null;
+    void moveNextStep(avatar);
+    return;
   }
 
-  avatar.animationStartedAt = performance.now()
-  movingAvatars.add(avatar)
-  scheduleAvatarAnimation()
+  avatar.animationStartedAt = performance.now();
+  movingAvatars.add(avatar);
+  scheduleAvatarAnimation();
 }
 
-function reportAvatarLoadError(avatar: AvatarState | null, error: unknown) {
+function reportAvatarLoadError (avatar: AvatarState | null, error: unknown) {
   if (avatar) {
-    if (avatar.removed) return
-    avatar.isWalking = false
-    avatar.nextStep = null
-    if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer)
-    avatar.waitTimer = null
+    if (avatar.removed) return;
+    avatar.isWalking = false;
+    avatar.nextStep = null;
+    if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
+    avatar.waitTimer = null;
   }
-  status.value = 'No se pudo cargar la imagen del avatar. Revisa tu conexión con habbohistory.com.'
-  console.error(error)
+  status.value = "No se pudo cargar la imagen del avatar. Revisa tu conexión con habbohistory.com.";
+  console.info(error);
 }
 
-function scheduleRandomMove(avatar: AvatarState, delay = 1200 + Math.random() * 1800) {
-  if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer)
+function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() * 1800) {
+  if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   avatar.randomTimer = window.setTimeout(() => {
-    if (avatar.removed || !avatar.current) return
-    avatar.randomTimer = null
-    const optionsByDistance: Tile[][] = [[], [], []]
+    if (avatar.removed || !avatar.current) return;
+    avatar.randomTimer = null;
+    const optionsByDistance: Tile[][] = [[], [], []];
     for (let columnStep = -3; columnStep <= 3; columnStep++) {
       for (let rowStep = -3; rowStep <= 3; rowStep++) {
-        const distance = Math.max(Math.abs(columnStep), Math.abs(rowStep))
-        if (distance === 0) continue
+        const distance = Math.max(Math.abs(columnStep), Math.abs(rowStep));
+        if (distance === 0) continue;
         const tile = {
           column: avatar.current.column + columnStep,
-          row: avatar.current.row + rowStep,
-        }
+          row: avatar.current.row + rowStep
+        };
         if (isRoomTile(tile) && !tileUnavailable(tile, avatar)) {
-          optionsByDistance[distance - 1]?.push(tile)
+          optionsByDistance[distance - 1]?.push(tile);
         }
       }
     }
 
-    const availableOptions = optionsByDistance.filter(options => options.length > 0)
+    const availableOptions = optionsByDistance.filter(options => options.length > 0);
     if (availableOptions.length === 0) {
-      scheduleRandomMove(avatar, 300)
-      return
+      scheduleRandomMove(avatar, 300);
+      return;
     }
 
-    const options = availableOptions[Math.floor(Math.random() * availableOptions.length)]
-    const destination = options?.[Math.floor(Math.random() * options.length)]
+    const options = availableOptions[Math.floor(Math.random() * availableOptions.length)];
+    const destination = options?.[Math.floor(Math.random() * options.length)];
     if (!destination) {
-      scheduleRandomMove(avatar, 300)
-      return
+      scheduleRandomMove(avatar, 300);
+      return;
     }
-    avatar.destination = destination
-    walk(avatar)
-  }, delay)
+    avatar.destination = destination;
+    walk(avatar);
+  }, delay);
 }
 
-function walk(avatar: AvatarState) {
-  if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer)
-  avatar.randomTimer = null
-  if (avatar.removed || avatar.isWalking) return
-  avatar.isWalking = true
-  void moveNextStep(avatar)
+function walk (avatar: AvatarState) {
+  if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
+  avatar.randomTimer = null;
+  if (avatar.removed || avatar.isWalking) return;
+  avatar.isWalking = true;
+  void moveNextStep(avatar);
 }
 
-async function connectToChat() {
+async function connectToChat () {
   try {
-    const { ChatClient } = await import('@twurple/chat')
-    if (isUnmounting) return
+    const { ChatClient } = await import("@twurple/chat");
+    if (isUnmounting) return;
 
     chatClient = new ChatClient({
       channels: [chatChannel],
-      webSocket: true,
-    })
+      webSocket: true
+    });
     chatClient.onConnect(() => {
-      if (isUnmounting) return
-      chatConnected = true
-      updateChatStatus()
-    })
+      if (isUnmounting) return;
+      chatConnected = true;
+      updateChatStatus();
+    });
     chatClient.onDisconnect(() => {
-      if (isUnmounting) return
-      chatConnected = false
-      updateChatStatus()
-    })
+      if (isUnmounting) return;
+      chatConnected = false;
+      updateChatStatus();
+    });
     chatClient.onMessage((channel, username, message, msg) => {
-      if (channel.replace(/^#/, '').toLowerCase() === chatChannel) {
-        recordChatActivity(username, message, msg.userInfo.displayName ?? username)
+      if (channel.replace(/^#/, "").toLowerCase() === chatChannel) {
+        recordChatActivity(username, message, msg.userInfo.displayName ?? username);
       }
-    })
-    chatClient.connect()
-  } catch (error) {
-    if (isUnmounting) return
-    status.value = `No se pudo conectar al chat #${chatChannel}.`
-    console.error(error)
+    });
+    chatClient.connect();
+  }
+  catch (error) {
+    if (isUnmounting) return;
+    status.value = `No se pudo conectar al chat #${chatChannel}.`;
+    console.info(error);
   }
 }
 
 const avatarReconcileInterval = useIntervalFn(reconcileActiveAvatars, 5000, {
-  immediate: false,
-})
+  immediate: false
+});
 const {
   start: scheduleReconciliation,
-  stop: stopReconciliation,
-} = useTimeoutFn(reconcileActiveAvatars, 250, { immediate: false })
+  stop: stopReconciliation
+} = useTimeoutFn(reconcileActiveAvatars, 250, { immediate: false });
 
-useResizeObserver(room, () => updateRoomLayout())
+useResizeObserver(room, () => updateRoomLayout());
 
 onMounted(() => {
-  updateRoomLayout()
-  avatarReconcileInterval.resume()
-  void preloadAvatar(2, 'std').then((image) => {
-    if (image) return preloadAllWalkAnimations()
-  })
-  void connectToChat()
-})
+  updateRoomLayout();
+  avatarReconcileInterval.resume();
+  void preloadAvatar(2, "std").then((image) => {
+    if (image) return preloadAllWalkAnimations();
+  });
+  void connectToChat();
+});
 
 onBeforeUnmount(() => {
-  isUnmounting = true
-  avatarReconcileInterval.pause()
-  stopReconciliation()
-  chatClient?.quit()
-  chatClient = null
+  isUnmounting = true;
+  avatarReconcileInterval.pause();
+  stopReconciliation();
+  chatClient?.quit();
+  chatClient = null;
 
-  for (const avatar of [...avatars.value]) removeAvatarState(avatar)
-  avatarElements.clear()
-  activeUsers.clear()
-  preloadedImages.clear()
-})
+  for (const avatar of [...avatars.value]) removeAvatarState(avatar);
+  avatarElements.clear();
+  activeUsers.clear();
+  preloadedImages.clear();
+});
 </script>
 
 <template>
@@ -968,7 +964,7 @@ onBeforeUnmount(() => {
               />
             </template>
             <template #content>
-            <ChatEmotes :text="avatar.bubbleMessage" :user="user" />
+              <ChatEmotes :text="avatar.bubbleMessage" :user="user" />
             </template>
           </UPopover>
         </template>
