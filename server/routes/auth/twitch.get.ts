@@ -4,34 +4,27 @@ export default defineOAuthTwitchEventHandler({
   config: {
     scope: ["user:read:email"]
   },
-  async onSuccess (event, { user }) {
+  async onSuccess (event, { user: _user }) {
+    const user = await db.insert(tables.users).values({
+      twitchId: _user.id,
+      twitchLogin: _user.login,
+      twitchDisplay: _user.display_name
+    }).onConflictDoUpdate({
+      target: tables.users.twitchId,
+      set: {
+        twitchLogin: _user.login,
+        twitchDisplay: _user.display_name
+      }
+    }).returning().get();
+
     await setUserSession(event, {
       user: {
         id: user.id,
-        login: user.login,
-        displayName: user.display_name
+        twitchId: user.twitchId,
+        twitchLogin: user.twitchLogin,
+        twitchDisplay: user.twitchDisplay
       }
     });
-
-    const existingUser = await db.select().from(tables.users).where(
-      eq(tables.users.twitchId, user.id)
-    ).get();
-
-    if (!existingUser) {
-      await db.insert(tables.users).values({
-        twitchId: user.id,
-        twitchLogin: user.login,
-        twitchDisplay: user.display_name
-      }).run();
-    }
-    else {
-      await db.update(tables.users).set({
-        twitchLogin: user.login,
-        twitchDisplay: user.display_name
-      }).where(
-        eq(tables.users.twitchId, user.id)
-      ).run();
-    }
 
     return send(event as unknown as H3Event, `
       <script>

@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     figure: avatar?.figure || "hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80",
+    gender: avatar?.gender || "M",
     effect: avatar?.effect || null
   };
 });

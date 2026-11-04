@@ -3,7 +3,7 @@ import { unixepoch } from "../utils/db";
 
 export const users = sqliteTable("users", {
   id: integer().primaryKey({ autoIncrement: true }),
-  twitchId: text().unique(),
+  twitchId: text().notNull().unique(),
   twitchLogin: text().notNull(),
   twitchDisplay: text().notNull(),
   createdAt: integer().notNull().default(unixepoch({ mode: "ms" })),
@@ -15,8 +15,9 @@ export const users = sqliteTable("users", {
 
 export const avatars = sqliteTable("avatars", {
   id: integer().primaryKey({ autoIncrement: true }),
-  userId: integer().notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer().unique().notNull().references(() => users.id, { onDelete: "cascade" }),
   figure: text().notNull(),
+  gender: text().$type<"M" | "F">().notNull(),
   effect: integer(),
   createdAt: integer().notNull().default(unixepoch({ mode: "ms" })),
   updatedAt: integer().notNull().default(unixepoch({ mode: "ms" }))

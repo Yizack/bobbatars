@@ -1,7 +1,42 @@
 <script setup lang="ts">
-import { navigateTo, useRoute } from "#imports";
+import { computed, navigateTo, useRoute } from "#imports";
+import type { NavigationMenuItem } from "@nuxt/ui";
 
 const route = useRoute();
+const navigationItems = computed<NavigationMenuItem[][]>(() => [
+  [
+    {
+      label: "Overview",
+      to: "/",
+      icon: "i-lucide-layout-dashboard",
+      active: route.path === "/"
+    }
+  ],
+  [
+    {
+      label: "Viewer",
+      type: "label"
+    },
+    {
+      label: "My Avatar",
+      to: "/dashboard/avatar",
+      icon: "i-lucide-shirt",
+      active: route.path === "/dashboard/avatar"
+    }
+  ],
+  [
+    {
+      label: "Streamer",
+      type: "label"
+    },
+    {
+      label: "OBS overlay",
+      to: "/dashboard/obs-overlay",
+      icon: "i-lucide-monitor-play",
+      active: route.path === "/dashboard/obs-overlay"
+    }
+  ]
+]);
 const { clear, loggedIn, user } = useUserSession();
 
 async function logout () {
@@ -19,26 +54,13 @@ async function logout () {
     }"
   >
     <template #default>
-      <div class="px-3 pb-2 pt-5 text-[10px] font-semibold tracking-widest text-muted">CREATOR WORKSPACE</div>
-      <nav class="grid grid-cols-1 gap-1 max-md:grid-cols-2" aria-label="Workspace navigation">
-        <UButton to="/" :color="route.path === '/' ? 'primary' : 'neutral'" :variant="route.path === '/' ? 'soft' : 'ghost'" icon="i-lucide-layout-dashboard" class="justify-start">
-          Overview
-        </UButton>
-
-        <USeparator class="my-2 max-md:col-span-2" label="STUDIO" />
-        <UButton disabled color="neutral" variant="ghost" icon="i-lucide-panels-top-left" class="justify-start">
-          Room editor <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">Out of scope</UBadge>
-        </UButton>
-        <UButton to="/dashboard/avatar-generator" :color="route.path === '/dashboard/avatar-generator' ? 'primary' : 'neutral'" :variant="route.path === '/dashboard/avatar-generator' ? 'soft' : 'ghost'" icon="i-lucide-shirt" class="justify-start">
-          Avatar studio
-        </UButton>
-        <UButton disabled color="neutral" variant="ghost" icon="i-lucide-message-square" class="justify-start">
-          Chat simulator <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">Later</UBadge>
-        </UButton>
-        <UButton to="/dashboard/obs-overlay" :color="route.path === '/dashboard/obs-overlay' ? 'primary' : 'neutral'" :variant="route.path === '/dashboard/obs-overlay' ? 'soft' : 'ghost'" icon="i-lucide-monitor-play" class="justify-start">
-          OBS overlay
-        </UButton>
-      </nav>
+      <UNavigationMenu
+        :items="navigationItems"
+        orientation="vertical"
+        variant="pill"
+        aria-label="Workspace navigation"
+        class="w-full"
+      />
     </template>
 
     <template #footer>

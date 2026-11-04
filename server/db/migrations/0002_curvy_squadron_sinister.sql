@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `avatars_userId_unique` ON `avatars` (`user_id`);
