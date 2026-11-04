@@ -30,7 +30,7 @@ const parsedParts = computed(() => {
       <template v-if="!part.url">{{ part.token }}</template>
       <img
         v-else
-        class="inline-block align-middle max-h-8 -my-2"
+        class="inline-block align-middle max-h-6 -my-2"
         :src="part.url"
         :alt="part.token"
         :title="part.token"
