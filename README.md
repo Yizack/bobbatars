@@ -13,7 +13,7 @@ pnpm install
 pnpm dev
 ```
 
-Open `/dashboard/avatar-generator` to choose gender, figure parts, and palette colors. Import
+Open `/dashboard/avatar` to choose gender, figure parts, and palette colors. Import
 accepts an existing figure string; the readonly output includes its `&gender=M` or `&gender=F`
 suffix. The preview uses the Habbo Imaging URL referenced by AvatarGenerate and does not require a
 hotel client.

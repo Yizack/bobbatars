@@ -38,7 +38,7 @@ useHead({
           <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">Habbo Outfit Studio</h1>
           <p class="mt-2 text-sm leading-6 text-muted">Build a look from the original figure catalog and export its Habbo string.</p>
         </div>
-        <UButton to="/dashboard/avatar-generator" color="primary" size="lg" icon="i-lucide-shirt" trailing-icon="i-lucide-arrow-up-right">
+        <UButton to="/dashboard/avatar" color="primary" size="lg" icon="i-lucide-shirt" trailing-icon="i-lucide-arrow-up-right">
           Open Avatar Studio
         </UButton>
       </section>
@@ -106,7 +106,7 @@ useHead({
               <UIcon name="i-lucide-check" class="mt-0.5 size-4 shrink-0 text-success" />
               <span>Import/export with the gender suffix</span>
             </div>
-            <UButton to="/dashboard/avatar-generator" color="primary" icon="i-lucide-shirt" trailing-icon="i-lucide-arrow-right" block>
+            <UButton to="/dashboard/avatar" color="primary" icon="i-lucide-shirt" trailing-icon="i-lucide-arrow-right" block>
               Create an outfit
             </UButton>
           </div>
