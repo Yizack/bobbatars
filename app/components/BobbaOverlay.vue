@@ -2,6 +2,7 @@
 import { useIntervalFn, useResizeObserver, useTimeoutFn } from "@vueuse/core";
 import type { ChatClient as TwitchChatClient } from "@twurple/chat";
 import { withQuery } from "ufo";
+import { type AvatarDanceAction, parseAvatarChatCommand } from "../utils/avatarCommands";
 
 const props = defineProps<{
   user: string;
@@ -35,7 +36,6 @@ interface AvatarElements {
 
 type AvatarElementRef = Element | ComponentPublicInstance | null;
 type AvatarPart = "shadow" | "image" | "label" | "popoverAnchor" | "menuAnchor";
-type AvatarDanceAction = "dance1" | "dance2" | "dance3" | "dance4";
 type AvatarAction = "std" | "wlk" | AvatarDanceAction;
 
 interface AvatarState {
@@ -628,16 +628,6 @@ function reconcileActiveAvatars () {
   updateChatStatus();
 }
 
-function danceActionFromMessage (message: string): AvatarDanceAction | null {
-  switch (message.trim().toLowerCase()) {
-    case "!dance1": return "dance1";
-    case "!dance2": return "dance2";
-    case "!dance3": return "dance3";
-    case "!dance4": return "dance4";
-    default: return null;
-  }
-}
-
 function setAvatarDance (avatar: AvatarState, danceAction: AvatarDanceAction | null) {
   avatar.danceAction = danceAction;
   const action = avatar.isWalking ? "wlk" : "std";
@@ -695,13 +685,9 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
   const login = String(username || "").trim().toLowerCase();
   if (!login || knownChatBots.has(login)) return;
   const displayName = String(twitchDisplayName || username).trim();
-  const danceAction = danceActionFromMessage(messageText);
-  const stopDance = messageText.trim().toLowerCase() === "!stopdance";
-  const refreshAvatarMatch = messageText.trim().match(/^!(?:refresh|update)avatar(?:\s+@?([\da-z_]+))?$/i);
-  const refreshAvatarCommand = refreshAvatarMatch !== null;
-  const refreshAvatarTarget = refreshAvatarMatch?.[1]?.toLowerCase() ?? login;
-  const isDanceCommand = danceAction !== null || stopDance;
-  if (messageText.trimStart().startsWith("!") && !isDanceCommand && !refreshAvatarCommand) return;
+  const command = parseAvatarChatCommand(messageText);
+  const stopDance = command?.type === "dance" && command.action === null;
+  if (messageText.trimStart().startsWith("!") && !command) return;
 
   const now = Date.now();
   let user = activeUsers.get(login);
@@ -722,20 +708,20 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
   user.activity++;
   user.lastActivity = now;
 
-  if (isDanceCommand) {
+  if (command?.type === "dance") {
     user.lastMessage = "";
     user.lastMessageAt = 0;
-    user.danceAction = danceAction;
+    user.danceAction = command.action;
     const avatar = avatarsByUser.get(login);
-    if (avatar) setAvatarDance(avatar, danceAction);
+    if (avatar) setAvatarDance(avatar, command.action);
     scheduleReconciliation();
     return;
   }
 
-  if (refreshAvatarCommand) {
+  if (command?.type === "refresh-avatar") {
     user.lastMessage = "";
     user.lastMessageAt = 0;
-    const avatar = avatarsByUser.get(refreshAvatarTarget);
+    const avatar = avatarsByUser.get(command.target ?? login);
     if (avatar) {
       void refreshAvatarFigure(avatar)
         .catch(error => reportAvatarFetchError(avatar, error));
