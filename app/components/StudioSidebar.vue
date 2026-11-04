@@ -6,7 +6,7 @@ const { clear, loggedIn, user } = useUserSession();
 
 async function logout () {
   await clear();
-  await navigateTo("/login");
+  await navigateTo("/");
 }
 </script>
 
