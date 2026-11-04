@@ -67,8 +67,8 @@ async function logout () {
       <div class="grid w-full gap-3">
         <div v-if="loggedIn" class="flex min-w-0 items-center gap-3">
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-default">{{ user?.displayName || user?.login || 'Twitch user' }}</p>
-            <p v-if="user?.login" class="truncate text-xs text-muted">@{{ user.login }}</p>
+            <p class="truncate text-sm font-semibold text-default">{{ user?.twitchDisplay || user?.twitchLogin || 'Twitch user' }}</p>
+            <p v-if="user?.twitchLogin" class="truncate text-xs text-muted">@{{ user.twitchLogin }}</p>
           </div>
           <UButton color="neutral" variant="ghost" icon="i-lucide-log-out" @click="logout">
             Log out

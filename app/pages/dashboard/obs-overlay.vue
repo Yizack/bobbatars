@@ -3,9 +3,10 @@ import { useClipboard } from "@vueuse/core";
 
 definePageMeta({ layout: "dashboard" });
 
-const overlayUser = "soychinno";
+const { user } = useUserSession();
+
 const requestUrl = useRequestURL();
-const overlayUrl = computed(() => new URL(`/overlay/${overlayUser}`, requestUrl.origin).toString());
+const overlayUrl = computed(() => new URL(`/overlay/${user?.value?.twitchLogin}`, requestUrl.origin).toString());
 const copyError = ref("");
 const { copy, copied } = useClipboard();
 
@@ -32,7 +33,7 @@ useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
           <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">OBS overlay</h1>
           <p class="mt-2 text-sm leading-6 text-muted">Preview the live chat overlay and copy its URL into an OBS Browser Source.</p>
         </div>
-        <UBadge color="neutral" variant="subtle" size="sm">CHANNEL · {{ overlayUser }}</UBadge>
+        <UBadge color="neutral" variant="subtle" size="sm">CHANNEL · {{ user?.twitchDisplay }}</UBadge>
       </section>
 
       <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.8fr)]">
@@ -51,10 +52,10 @@ useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
             <iframe
               class="absolute inset-0 size-full border-0"
               :src="overlayUrl"
-              :title="`OBS overlay preview for Twitch channel ${overlayUser}`"
+              :title="`OBS overlay preview for Twitch channel ${user?.twitchDisplay}`"
               loading="eager"
             />
-            <UBadge class="absolute left-3 top-3 z-10" color="neutral" variant="subtle">#{{ overlayUser }}</UBadge>
+            <UBadge class="absolute left-3 top-3 z-10" color="neutral" variant="subtle">@{{ user?.twitchDisplay }}</UBadge>
           </div>
 
           <p class="mt-4 text-xs leading-5 text-muted">Avatars appear as people chat in this Twitch channel. The overlay background is transparent in OBS.</p>
