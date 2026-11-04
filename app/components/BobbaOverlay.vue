@@ -708,7 +708,7 @@ function reportAvatarLoadError(avatar: AvatarState | null, error: unknown) {
   console.error(error)
 }
 
-function scheduleRandomMove(avatar: AvatarState, delay = 500 + Math.random() * 1400) {
+function scheduleRandomMove(avatar: AvatarState, delay = 900 + Math.random() * 1500) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer)
   avatar.randomTimer = window.setTimeout(() => {
     if (avatar.removed || !avatar.current) return
