@@ -270,7 +270,7 @@ function placeHabbo(avatar: AvatarState) {
   }
   avatar.position.popoverAnchor = {
     left: `${point.x}px`,
-    top: `${groundY - imageHeight - labelHeight * 0.7 - 8}px`,
+    top: `${groundY - imageHeight - labelHeight * 0.7 + 8}px`,
   }
 }
 
