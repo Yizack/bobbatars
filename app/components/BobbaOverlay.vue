@@ -713,24 +713,29 @@ function scheduleRandomMove(avatar: AvatarState, delay = 900 + Math.random() * 1
   avatar.randomTimer = window.setTimeout(() => {
     if (avatar.removed || !avatar.current) return
     avatar.randomTimer = null
-    const options: Tile[] = []
-    for (let columnStep = -1; columnStep <= 1; columnStep++) {
-      for (let rowStep = -1; rowStep <= 1; rowStep++) {
-        if (columnStep === 0 && rowStep === 0) continue
+    const optionsByDistance: Tile[][] = [[], [], []]
+    for (let columnStep = -3; columnStep <= 3; columnStep++) {
+      for (let rowStep = -3; rowStep <= 3; rowStep++) {
+        const distance = Math.max(Math.abs(columnStep), Math.abs(rowStep))
+        if (distance === 0) continue
         const tile = {
           column: avatar.current.column + columnStep,
           row: avatar.current.row + rowStep,
         }
-        if (isRoomTile(tile) && !tileUnavailable(tile, avatar)) options.push(tile)
+        if (isRoomTile(tile) && !tileUnavailable(tile, avatar)) {
+          optionsByDistance[distance - 1]?.push(tile)
+        }
       }
     }
 
-    if (options.length === 0) {
+    const availableOptions = optionsByDistance.filter(options => options.length > 0)
+    if (availableOptions.length === 0) {
       scheduleRandomMove(avatar, 300)
       return
     }
 
-    const destination = options[Math.floor(Math.random() * options.length)]
+    const options = availableOptions[Math.floor(Math.random() * availableOptions.length)]
+    const destination = options?.[Math.floor(Math.random() * options.length)]
     if (!destination) {
       scheduleRandomMove(avatar, 300)
       return
