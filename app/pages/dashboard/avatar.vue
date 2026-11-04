@@ -46,8 +46,21 @@ interface OutfitPart {
   colorIds: string[];
 }
 
+interface HabboFigureLookup {
+  queued?: boolean;
+  notFound?: boolean;
+  message?: string | null;
+  name?: string | null;
+  figureString?: string | null;
+}
+
 const catalog = avatarCatalogJson as unknown as AvatarCatalog;
 const imagingUrl = "https://habbohistory.com/habbo-imaging/avatarimage.webp";
+type HabboHotel = "com" | "es";
+const habboHotels: { label: string, value: HabboHotel }[] = [
+  { label: "Habbo.com", value: "com" },
+  { label: "Habbo.es", value: "es" }
+];
 const categoryNames: Record<string, string> = {
   hd: "Head",
   hr: "Hair",
@@ -104,9 +117,23 @@ const selectedParts = ref<Record<string, OutfitPart>>({});
 const search = ref("");
 const importText = ref("");
 const importError = ref("");
+const lookupHotel = ref<HabboHotel>("es");
+const lookupUsername = ref("");
+const lookupState = ref<"idle" | "loading" | "queued" | "success" | "error">("idle");
+const lookupName = ref("");
+const lookupError = ref("");
+const lookupQueueMessage = ref("");
 const saveState = ref<"idle" | "saving" | "saved" | "error">("idle");
 const previewFailed = ref(false);
 const previewDirection = ref(4);
+
+watch([lookupHotel, lookupUsername], () => {
+  if (lookupState.value === "loading") return;
+  lookupState.value = "idle";
+  lookupName.value = "";
+  lookupError.value = "";
+  lookupQueueMessage.value = "";
+});
 
 const figureTypes = catalog.setTypes;
 const figureTypeByCode = new Map(figureTypes.map(type => [type.type, type]));
@@ -265,7 +292,7 @@ function randomizeOutfit () {
   selectedParts.value = nextParts;
 }
 
-function importOutfit () {
+function importOutfit (allowUnlistedParts = false) {
   const source = importText.value.trim();
   const segments = source.split("&");
   let rawFigure = segments.shift() || "";
@@ -289,8 +316,13 @@ function importOutfit () {
       return;
     }
 
+    if (!colorIds.length) {
+      importError.value = `Figure part "${token}" is malformed.`;
+      return;
+    }
+
     const metadata = figureTypeByCode.get(type);
-    if (!metadata || !metadata.sets[setId] || !colorIds.length) {
+    if (!allowUnlistedParts && (!metadata || !metadata.sets[setId])) {
       importError.value = `Figure part "${type}" is not in the AvatarGenerate catalog.`;
       return;
     }
@@ -300,9 +332,83 @@ function importOutfit () {
 
   gender.value = importedGender === "F" ? "F" : "M";
   selectedParts.value = parsedParts;
-  const firstType = tokens[0]?.split("-")[0];
+  const firstType = tokens
+    .map(token => token.split("-")[0])
+    .find(type => type && figureTypeByCode.has(type));
   if (firstType) activeType.value = firstType;
   importError.value = "";
+}
+
+function lookupErrorMessage (error: unknown) {
+  if (error instanceof Error) {
+    if ("statusMessage" in error && typeof error.statusMessage === "string") return error.statusMessage;
+    if (error.message) return error.message;
+  }
+  return "Could not look up this Habbo user. Check the username and hotel.";
+}
+
+function isHabboFigureLookup (value: unknown): value is HabboFigureLookup {
+  if (typeof value !== "object" || value === null) return false;
+  return (!("queued" in value) || typeof value.queued === "boolean")
+    && (!("notFound" in value) || typeof value.notFound === "boolean")
+    && (!("message" in value) || typeof value.message === "string" || value.message === null)
+    && (!("name" in value) || typeof value.name === "string" || value.name === null)
+    && (!("figureString" in value) || typeof value.figureString === "string" || value.figureString === null);
+}
+
+async function lookupHabboFigure () {
+  const username = lookupUsername.value.trim();
+  if (!username || lookupState.value === "loading") return;
+
+  lookupState.value = "loading";
+  lookupError.value = "";
+  lookupQueueMessage.value = "";
+  importError.value = "";
+
+  try {
+    const result = await $fetch<unknown>("/api/habbo/figure", {
+      query: {
+        hotel: lookupHotel.value,
+        username
+      },
+      timeout: 10000
+    });
+    if (!isHabboFigureLookup(result)) {
+      throw new Error("Habbo History returned an unexpected response.");
+    }
+
+    lookupName.value = result.name?.trim() || username;
+
+    if (result.notFound) {
+      lookupError.value = result.message?.trim() || "No Habbo with this username could be found in this hotel.";
+      lookupState.value = "error";
+      return;
+    }
+
+    if (!result.figureString) {
+      if (result.queued) {
+        lookupQueueMessage.value = result.message?.trim()
+          || "Habbo History is preparing this figure. Try the lookup again shortly.";
+        lookupState.value = "queued";
+        return;
+      }
+      throw new Error("Habbo History did not return a figure for this user.");
+    }
+
+    importText.value = `${result.figureString}&gender=${gender.value}`;
+    importOutfit(true);
+    if (importError.value) {
+      lookupError.value = importError.value;
+      lookupState.value = "error";
+      importError.value = "";
+      return;
+    }
+    lookupState.value = "success";
+  }
+  catch (error) {
+    lookupState.value = "error";
+    lookupError.value = lookupErrorMessage(error);
+  }
 }
 
 async function saveAvatar () {
@@ -528,12 +634,82 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
 
           <UCard variant="outline" class="min-w-0">
             <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-user-round-search" class="size-4 text-primary" />
+                <h2 class="text-sm font-semibold text-highlighted">Look up a Habbo figure</h2>
+              </div>
+            </template>
+            <div class="grid gap-3 sm:grid-cols-[minmax(8rem,0.7fr)_minmax(10rem,1fr)_auto] sm:items-end">
+              <label class="grid gap-1 text-sm font-medium text-highlighted">
+                <span>Hotel</span>
+                <USelect
+                  v-model="lookupHotel"
+                  :items="habboHotels"
+                  value-key="value"
+                  label-key="label"
+                  aria-label="Habbo hotel"
+                  :disabled="lookupState === 'loading'"
+                />
+              </label>
+              <label class="grid gap-1 text-sm font-medium text-highlighted">
+                <span>Username</span>
+                <UInput
+                  v-model="lookupUsername"
+                  autocomplete="off"
+                  aria-label="Habbo username"
+                  placeholder="Enter a Habbo username"
+                  :disabled="lookupState === 'loading'"
+                  @keydown.enter.prevent="lookupHabboFigure"
+                />
+              </label>
+              <UButton
+                type="button"
+                color="primary"
+                icon="i-lucide-search"
+                :loading="lookupState === 'loading'"
+                :disabled="!lookupUsername.trim() || lookupState === 'loading'"
+                @click="lookupHabboFigure"
+              >
+                Look up
+              </UButton>
+            </div>
+            <UAlert
+              v-if="lookupState === 'queued'"
+              class="mt-3"
+              color="warning"
+              variant="subtle"
+              title="Figure lookup queued"
+              :description="lookupQueueMessage"
+              icon="i-lucide-clock-3"
+            />
+            <UAlert
+              v-else-if="lookupState === 'success'"
+              class="mt-3"
+              color="success"
+              variant="subtle"
+              :title="`Loaded ${lookupName}'s figure`"
+              description="The figure is ready to preview and edit. Save it to keep it on your account."
+              icon="i-lucide-circle-check"
+            />
+            <UAlert
+              v-else-if="lookupState === 'error'"
+              class="mt-3"
+              color="error"
+              variant="subtle"
+              title="Could not look up this figure"
+              :description="lookupError"
+              icon="i-lucide-circle-alert"
+            />
+          </UCard>
+
+          <UCard variant="outline" class="min-w-0">
+            <template #header>
               <div class="flex items-center gap-2"><UIcon name="i-lucide-download" class="size-4 text-primary" /><h2 class="text-sm font-semibold text-highlighted">Import an existing figure</h2></div>
             </template>
             <div class="grid gap-3">
               <UTextarea id="import-figure" v-model="importText" :rows="2" placeholder="hd-3092-2.hr-831-61.ch-3438-110-1408&gender=M" aria-label="Paste a Habbo figure string" />
               <UAlert v-if="importError" color="error" variant="subtle" :description="importError" />
-              <UButton color="primary" icon="i-lucide-download" @click="importOutfit">Import outfit</UButton>
+              <UButton color="primary" icon="i-lucide-download" @click="importOutfit()">Import outfit</UButton>
             </div>
           </UCard>
         </aside>
