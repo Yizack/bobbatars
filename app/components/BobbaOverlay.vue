@@ -28,12 +28,13 @@ interface AvatarElements {
   image: HTMLImageElement | null;
   label: HTMLElement | null;
   popoverAnchor: HTMLElement | null;
+  menuAnchor: HTMLElement | null;
   labelWidth: number;
   labelHeight: number;
 }
 
 type AvatarElementRef = Element | ComponentPublicInstance | null;
-type AvatarPart = "shadow" | "image" | "label" | "popoverAnchor";
+type AvatarPart = "shadow" | "image" | "label" | "popoverAnchor" | "menuAnchor";
 type AvatarDanceAction = "dance1" | "dance2" | "dance3" | "dance4";
 type AvatarAction = "std" | "wlk" | AvatarDanceAction;
 
@@ -41,6 +42,9 @@ interface AvatarState {
   login: string;
   displayName: string;
   activity: number;
+  figure: string;
+  figureRequestVersion: number;
+  menuVisible: boolean;
   current: Tile | null;
   visual: Tile | null;
   destination: Tile | null;
@@ -57,6 +61,7 @@ interface AvatarState {
   imageRef: (element: AvatarElementRef) => void;
   labelRef: (element: AvatarElementRef) => void;
   popoverAnchorRef: (element: AvatarElementRef) => void;
+  menuAnchorRef: (element: AvatarElementRef) => void;
   isWalking: boolean;
   nextStep: Tile | null;
   animationStartedAt: number | null;
@@ -70,7 +75,7 @@ interface AvatarState {
 }
 
 const imageEndpoint = "https://habbohistory.com/habbo-imaging/avatarimage.webp";
-const figure = "hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80";
+const defaultFigure = "hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80";
 const danceHeadDirectionOverrides: Partial<Record<number, number>> = {
   3: 2,
   4: 5,
@@ -142,7 +147,12 @@ useHead({
   }
 });
 
-function imageUrl (direction: number, action: AvatarState["action"], gesture = "std") {
+function imageUrl (
+  direction: number,
+  action: AvatarState["action"],
+  gesture = "std",
+  figure = defaultFigure
+) {
   const headDirection = action === "dance3" || action === "dance4" ? danceHeadDirectionOverrides[direction] ?? direction : direction;
 
   return withQuery(imageEndpoint, {
@@ -161,9 +171,10 @@ function imageUrl (direction: number, action: AvatarState["action"], gesture = "
 function preloadAvatar (
   direction: number,
   action: AvatarState["action"],
-  gesture = "std"
+  gesture = "std",
+  figure = defaultFigure
 ): Promise<HTMLImageElement | null> {
-  const url = imageUrl(direction, action, gesture);
+  const url = imageUrl(direction, action, gesture, figure);
   const cached = preloadedImages.get(url);
   if (cached) return cached.promise;
 
@@ -201,7 +212,7 @@ async function updateAvatar (
   avatar.direction = direction;
   avatar.action = avatar.danceAction ?? action;
   avatar.gesture = gesture;
-  const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture);
+  const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture, avatar.figure);
 
   if (nextImage === avatar.currentImage && avatar.imageWidth > 0) {
     placeHabbo(avatar);
@@ -209,10 +220,10 @@ async function updateAvatar (
   }
 
   avatar.currentImage = nextImage;
-  const image = await preloadAvatar(avatar.direction, avatar.action, avatar.gesture);
+  const image = await preloadAvatar(avatar.direction, avatar.action, avatar.gesture, avatar.figure);
   if (avatar.removed) return;
 
-  const latestImage = imageUrl(avatar.direction, avatar.action, avatar.gesture);
+  const latestImage = imageUrl(avatar.direction, avatar.action, avatar.gesture, avatar.figure);
   if (nextImage !== latestImage) {
     await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture);
     return;
@@ -298,6 +309,11 @@ function placeHabbo (avatar: AvatarState) {
     point.x,
     groundY - imageHeight - labelHeight * 0.7 + 8
   );
+  setPosition(
+    elements?.menuAnchor ?? null,
+    point.x,
+    groundY - imageHeight - labelHeight * 0.7 + 8
+  );
 }
 
 function setAvatarElement (login: string, part: AvatarPart, value: AvatarElementRef) {
@@ -306,6 +322,7 @@ function setAvatarElement (login: string, part: AvatarPart, value: AvatarElement
     image: null,
     label: null,
     popoverAnchor: null,
+    menuAnchor: null,
     labelWidth: 0,
     labelHeight: 0
   };
@@ -322,7 +339,7 @@ function setAvatarElement (login: string, part: AvatarPart, value: AvatarElement
     }
   }
 
-  if (elements.shadow || elements.image || elements.label || elements.popoverAnchor) {
+  if (elements.shadow || elements.image || elements.label || elements.popoverAnchor || elements.menuAnchor) {
     avatarElements.set(login, elements);
   }
   else {
@@ -493,6 +510,9 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     login: user.login,
     displayName: user.displayName,
     activity: user.activity,
+    figure: defaultFigure,
+    figureRequestVersion: 0,
+    menuVisible: false,
     current: { ...spawn },
     visual: { ...spawn },
     destination: { ...spawn },
@@ -509,6 +529,7 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     imageRef: element => setAvatarElement(user.login, "image", element),
     labelRef: element => setAvatarElement(user.login, "label", element),
     popoverAnchorRef: element => setAvatarElement(user.login, "popoverAnchor", element),
+    menuAnchorRef: element => setAvatarElement(user.login, "menuAnchor", element),
     isWalking: false,
     nextStep: null,
     animationStartedAt: null,
@@ -524,6 +545,8 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
   avatars.value.push(avatar);
   avatarsByUser.set(user.login, avatar);
   placeHabbo(avatar);
+  void refreshAvatarFigure(avatar)
+    .catch(error => reportAvatarFetchError(avatar, error));
   void updateAvatar(avatar, avatar.direction, "std")
     .then(() => {
       if (!avatar.removed) scheduleRandomMove(avatar);
@@ -622,6 +645,51 @@ function setAvatarDance (avatar: AvatarState, danceAction: AvatarDanceAction | n
     .catch(error => reportAvatarLoadError(avatar, error));
 }
 
+function isNotFoundError (error: unknown) {
+  return error instanceof Error
+    && (("statusCode" in error && error.statusCode === 404)
+      || ("status" in error && error.status === 404));
+}
+
+async function refreshAvatarFigure (avatar: AvatarState) {
+  const requestVersion = ++avatar.figureRequestVersion;
+  let response: { figure: string };
+  try {
+    response = await $fetch<{ figure: string }>(`/api/avatars/${encodeURIComponent(avatar.login)}`);
+  }
+  catch (error) {
+    if (isNotFoundError(error)) return;
+    throw error;
+  }
+
+  if (
+    avatar.removed
+    || requestVersion !== avatar.figureRequestVersion
+    || avatar.figure === response.figure
+  ) return;
+
+  avatar.figure = response.figure;
+  await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture);
+}
+
+function reportAvatarFetchError (avatar: AvatarState, error: unknown) {
+  if (avatar.removed) return;
+  status.value = `No se pudo obtener el avatar de ${avatar.login}.`;
+  console.info(error);
+}
+
+function toggleAvatarMenu (avatar: AvatarState) {
+  const shouldOpen = !avatar.menuVisible;
+  for (const otherAvatar of avatars.value) otherAvatar.menuVisible = false;
+  avatar.menuVisible = shouldOpen;
+}
+
+function refreshAvatarFromMenu (avatar: AvatarState) {
+  avatar.menuVisible = false;
+  void refreshAvatarFigure(avatar)
+    .catch(error => reportAvatarFetchError(avatar, error));
+}
+
 function recordChatActivity (username: string, message: string, twitchDisplayName: string) {
   const messageText = String(message || "");
   const login = String(username || "").trim().toLowerCase();
@@ -629,8 +697,11 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
   const displayName = String(twitchDisplayName || username).trim();
   const danceAction = danceActionFromMessage(messageText);
   const stopDance = messageText.trim().toLowerCase() === "!stopdance";
+  const refreshAvatarMatch = messageText.trim().match(/^!(?:refresh|update)avatar(?:\s+@?([\da-z_]+))?$/i);
+  const refreshAvatarCommand = refreshAvatarMatch !== null;
+  const refreshAvatarTarget = refreshAvatarMatch?.[1]?.toLowerCase() ?? login;
   const isDanceCommand = danceAction !== null || stopDance;
-  if (messageText.trimStart().startsWith("!") && !isDanceCommand) return;
+  if (messageText.trimStart().startsWith("!") && !isDanceCommand && !refreshAvatarCommand) return;
 
   const now = Date.now();
   let user = activeUsers.get(login);
@@ -657,6 +728,18 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
     user.danceAction = danceAction;
     const avatar = avatarsByUser.get(login);
     if (avatar) setAvatarDance(avatar, danceAction);
+    scheduleReconciliation();
+    return;
+  }
+
+  if (refreshAvatarCommand) {
+    user.lastMessage = "";
+    user.lastMessageAt = 0;
+    const avatar = avatarsByUser.get(refreshAvatarTarget);
+    if (avatar) {
+      void refreshAvatarFigure(avatar)
+        .catch(error => reportAvatarFetchError(avatar, error));
+    }
     scheduleReconciliation();
     return;
   }
@@ -766,7 +849,7 @@ async function moveNextStep (avatar: AvatarState) {
 
   avatar.nextStep = next;
   const nextDirection = habboDirection(deltaColumn, deltaRow);
-  void preloadAvatar(nextDirection, "std");
+  void preloadAvatar(nextDirection, "std", "std", avatar.figure);
 
   try {
     await updateAvatar(avatar, nextDirection, "wlk");
@@ -935,10 +1018,18 @@ onBeforeUnmount(() => {
           <img
             v-if="avatar.currentImage"
             :ref="avatar.imageRef"
-            class="pointer-events-none absolute left-0 top-0 z-[2] h-auto max-w-full select-none"
+            class="pointer-events-auto absolute left-0 top-0 z-[2] h-auto max-w-full cursor-pointer select-none"
             :src="avatar.currentImage"
             :alt="`Avatar de ${avatar.displayName}`"
+            :aria-label="`Opciones para el avatar de ${avatar.displayName}`"
+            :aria-expanded="avatar.menuVisible"
+            aria-haspopup="menu"
+            role="button"
+            tabindex="0"
             draggable="false"
+            @click.left="toggleAvatarMenu(avatar)"
+            @keydown.enter.prevent="toggleAvatarMenu(avatar)"
+            @keydown.space.prevent="toggleAvatarMenu(avatar)"
           >
           <span
             :ref="avatar.labelRef"
@@ -966,6 +1057,37 @@ onBeforeUnmount(() => {
             </template>
             <template #content>
               <ChatEmotes :text="avatar.bubbleMessage" :user="user" />
+            </template>
+          </UPopover>
+          <UPopover
+            v-model:open="avatar.menuVisible"
+            arrow
+            :content="{ side: 'top', sideOffset: 8, collisionPadding: 8, updatePositionStrategy: 'always' }"
+            :ui="{
+              content: 'z-50 w-max rounded-[8px] border border-[rgba(198,219,233,0.3)] bg-[rgba(15,21,29,0.96)] p-1 shadow-lg',
+            }"
+          >
+            <template #anchor>
+              <span
+                :ref="avatar.menuAnchorRef"
+                class="pointer-events-none absolute left-0 top-0 h-0 w-0"
+                aria-hidden="true"
+              />
+            </template>
+            <template #content>
+              <div role="menu" :aria-label="`Opciones para ${avatar.displayName}`">
+                <UButton
+                  type="button"
+                  role="menuitem"
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-lucide-refresh-cw"
+                  @click="refreshAvatarFromMenu(avatar)"
+                >
+                  Refresh Avatar
+                </UButton>
+              </div>
             </template>
           </UPopover>
         </template>
