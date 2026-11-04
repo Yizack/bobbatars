@@ -33,8 +33,8 @@ const route = useRoute()
       <UButton disabled color="neutral" variant="ghost" icon="i-lucide-message-square" class="justify-start">
         Chat simulator <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">Later</UBadge>
       </UButton>
-      <UButton disabled color="neutral" variant="ghost" icon="i-lucide-monitor-play" class="justify-start">
-        OBS overlay <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">Later</UBadge>
+      <UButton to="/dashboard/obs-overlay" :color="route.path === '/dashboard/obs-overlay' ? 'primary' : 'neutral'" :variant="route.path === '/dashboard/obs-overlay' ? 'soft' : 'ghost'" icon="i-lucide-monitor-play" class="justify-start">
+        OBS overlay
       </UButton>
     </nav>
 
