@@ -2,7 +2,7 @@
 import { useIntervalFn, useResizeObserver, useTimeoutFn } from "@vueuse/core";
 import type { ChatClient as TwitchChatClient } from "@twurple/chat";
 import { withQuery } from "ufo";
-import { type AvatarDanceAction, parseAvatarChatCommand } from "../utils/avatarCommands";
+import { type AvatarDanceAction, avatarDanceActions, parseAvatarChatCommand } from "../utils/avatarCommands";
 
 const props = defineProps<{
   user: string;
@@ -45,6 +45,8 @@ interface AvatarState {
   figure: string;
   figureRequestVersion: number;
   menuVisible: boolean;
+  danceMenuVisible: boolean;
+  movementPaused: boolean;
   current: Tile | null;
   visual: Tile | null;
   destination: Tile | null;
@@ -513,6 +515,8 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     figure: defaultFigure,
     figureRequestVersion: 0,
     menuVisible: false,
+    danceMenuVisible: false,
+    movementPaused: false,
     current: { ...spawn },
     visual: { ...spawn },
     destination: { ...spawn },
@@ -670,14 +674,61 @@ function reportAvatarFetchError (avatar: AvatarState, error: unknown) {
 
 function toggleAvatarMenu (avatar: AvatarState) {
   const shouldOpen = !avatar.menuVisible;
-  for (const otherAvatar of avatars.value) otherAvatar.menuVisible = false;
-  avatar.menuVisible = shouldOpen;
+  for (const otherAvatar of avatars.value) {
+    if (otherAvatar !== avatar) updateAvatarMenuVisibility(otherAvatar, false);
+  }
+  updateAvatarMenuVisibility(avatar, shouldOpen);
+}
+
+function toggleDanceMenu (avatar: AvatarState) {
+  avatar.danceMenuVisible = !avatar.danceMenuVisible;
+}
+
+function updateAvatarMenuVisibility (avatar: AvatarState, isOpen: boolean) {
+  avatar.menuVisible = isOpen;
+  if (isOpen) {
+    pauseAvatarMovement(avatar);
+    return;
+  }
+  avatar.danceMenuVisible = false;
+  resumeAvatarMovement(avatar);
+}
+
+function pauseAvatarMovement (avatar: AvatarState) {
+  if (avatar.removed || avatar.movementPaused) return;
+  avatar.movementPaused = true;
+  avatar.movementVersion++;
+  if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
+  if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
+  avatar.randomTimer = null;
+  avatar.waitTimer = null;
+  stopAvatarAnimation(avatar);
+  avatar.isWalking = false;
+  avatar.nextStep = null;
+  avatar.destination = avatar.current ? { ...avatar.current } : null;
+  avatar.visual = avatar.current ? { ...avatar.current } : null;
+  if (avatar.current) {
+    placeHabbo(avatar);
+    void updateAvatar(avatar, avatar.direction, "std")
+      .catch(error => reportAvatarLoadError(avatar, error));
+  }
+}
+
+function resumeAvatarMovement (avatar: AvatarState) {
+  if (!avatar.movementPaused) return;
+  avatar.movementPaused = false;
+  if (!avatar.removed) scheduleRandomMove(avatar);
 }
 
 function refreshAvatarFromMenu (avatar: AvatarState) {
-  avatar.menuVisible = false;
+  updateAvatarMenuVisibility(avatar, false);
   void refreshAvatarFigure(avatar)
     .catch(error => reportAvatarFetchError(avatar, error));
+}
+
+function setAvatarDanceFromMenu (avatar: AvatarState, danceAction: AvatarDanceAction | null) {
+  updateAvatarMenuVisibility(avatar, false);
+  setAvatarDance(avatar, danceAction);
 }
 
 function recordChatActivity (username: string, message: string, twitchDisplayName: string) {
@@ -776,7 +827,7 @@ async function showChatMessage (avatar: AvatarState, message: string) {
 }
 
 async function moveNextStep (avatar: AvatarState) {
-  if (avatar.removed || !avatar.current || !avatar.destination) return;
+  if (avatar.removed || avatar.movementPaused || !avatar.current || !avatar.destination) return;
   const movementVersion = avatar.movementVersion;
   const reportError = (error: unknown) => {
     if (movementVersion === avatar.movementVersion) {
@@ -878,9 +929,11 @@ function reportAvatarLoadError (avatar: AvatarState | null, error: unknown) {
 
 function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() * 1800) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
+  avatar.randomTimer = null;
+  if (avatar.removed || avatar.movementPaused || !avatar.current) return;
   avatar.randomTimer = window.setTimeout(() => {
-    if (avatar.removed || !avatar.current) return;
     avatar.randomTimer = null;
+    if (avatar.removed || avatar.movementPaused || !avatar.current) return;
     const optionsByDistance: Tile[][] = [[], [], []];
     for (let columnStep = -3; columnStep <= 3; columnStep++) {
       for (let rowStep = -3; rowStep <= 3; rowStep++) {
@@ -916,7 +969,7 @@ function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() *
 function walk (avatar: AvatarState) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   avatar.randomTimer = null;
-  if (avatar.removed || avatar.isWalking) return;
+  if (avatar.removed || avatar.movementPaused || avatar.isWalking) return;
   avatar.isWalking = true;
   void moveNextStep(avatar);
 }
@@ -1052,6 +1105,7 @@ onBeforeUnmount(() => {
             :ui="{
               content: 'z-50 w-max rounded-[8px] border border-[rgba(198,219,233,0.3)] bg-[rgba(15,21,29,0.96)] p-1 shadow-lg',
             }"
+            @update:open="isOpen => updateAvatarMenuVisibility(avatar, isOpen)"
           >
             <template #anchor>
               <span
@@ -1061,10 +1115,54 @@ onBeforeUnmount(() => {
               />
             </template>
             <template #content>
-              <div role="menu" :aria-label="`Opciones para ${avatar.displayName}`">
+              <div role="group" :aria-label="`Opciones para ${avatar.displayName}`" class="flex flex-col gap-1">
                 <UButton
                   type="button"
-                  role="menuitem"
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-lucide-music-2"
+                  :trailing-icon="avatar.danceMenuVisible ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+                  :aria-expanded="avatar.danceMenuVisible"
+                  :aria-controls="avatar.danceMenuVisible ? `dance-options-${avatar.login}` : undefined"
+                  @click="toggleDanceMenu(avatar)"
+                >
+                  Dances
+                </UButton>
+                <div
+                  v-if="avatar.danceMenuVisible"
+                  :id="`dance-options-${avatar.login}`"
+                  role="group"
+                  :aria-label="`Dances para ${avatar.displayName}`"
+                  class="ml-2 flex flex-col gap-1 border-l border-[rgba(198,219,233,0.3)] pl-2"
+                >
+                  <UButton
+                    v-for="(danceAction, index) in avatarDanceActions"
+                    :key="danceAction"
+                    type="button"
+                    size="sm"
+                    color="neutral"
+                    variant="ghost"
+                    class="justify-start"
+                    @click="setAvatarDanceFromMenu(avatar, danceAction)"
+                  >
+                    Dance {{ index + 1 }}
+                  </UButton>
+                </div>
+                <UButton
+                  v-if="avatar.danceAction !== null"
+                  type="button"
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  class="justify-start"
+                  icon="i-lucide-circle-stop"
+                  @click="setAvatarDanceFromMenu(avatar, null)"
+                >
+                  Stop Dance
+                </UButton>
+                <UButton
+                  type="button"
                   size="sm"
                   color="neutral"
                   variant="ghost"

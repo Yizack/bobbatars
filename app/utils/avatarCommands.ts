@@ -1,5 +1,5 @@
 export type AvatarDanceAction = "dance1" | "dance2" | "dance3" | "dance4";
-const danceActions: readonly AvatarDanceAction[] = ["dance1", "dance2", "dance3", "dance4"];
+export const avatarDanceActions: readonly AvatarDanceAction[] = ["dance1", "dance2", "dance3", "dance4"];
 
 export type AvatarChatCommand
   = | { type: "dance", action: AvatarDanceAction | null }
@@ -15,7 +15,7 @@ export const avatarChatCommandRegistry: readonly AvatarChatCommandDefinition[] =
     pattern: /^!dance(?:\s+([1-4]))?$/i,
     parse: match => ({
       type: "dance",
-      action: danceActions[Number(match[1] ?? 1) - 1] ?? null
+      action: avatarDanceActions[Number(match[1] ?? 1) - 1] ?? null
     })
   },
   {
