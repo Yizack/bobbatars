@@ -30,7 +30,7 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
       type: "label"
     },
     {
-      label: "OBS overlay",
+      label: "Setup OBS overlay",
       to: "/dashboard/obs-overlay",
       icon: "i-lucide-monitor-play",
       active: route.path === "/dashboard/obs-overlay"

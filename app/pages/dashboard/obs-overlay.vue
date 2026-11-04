@@ -22,7 +22,7 @@ async function copyOverlayUrl () {
   }
 }
 
-useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
+useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
 </script>
 
 <template>
@@ -31,7 +31,7 @@ useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
       <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
         <div class="max-w-2xl">
           <UBadge color="primary" variant="soft" size="sm">TWITCH CHAT / HABBO ROOM</UBadge>
-          <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">OBS overlay</h1>
+          <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">Setup OBS overlay</h1>
           <p class="mt-2 text-sm leading-6 text-muted">Preview the live chat overlay and copy its URL into an OBS Browser Source.</p>
         </div>
         <UBadge color="neutral" variant="subtle" size="sm">CHANNEL · {{ user?.twitchDisplay }}</UBadge>
