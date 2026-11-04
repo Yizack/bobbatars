@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useHead } from '#imports'
+import { withQuery } from 'ufo'
 import StudioSidebar from '../../components/StudioSidebar.vue'
 import avatarCatalogJson from '../../data/avatar-generator/catalog.json'
 import { DEFAULT_MALE_OUTFIT_FIGURE } from '../../data/avatar-generator/default-outfit'
@@ -47,7 +48,7 @@ interface OutfitPart {
 }
 
 const catalog = avatarCatalogJson as unknown as AvatarCatalog
-const imagingUrl = 'https://www.habbo.es/habbo-imaging/avatarimage'
+const imagingUrl = 'https://habbohistory.com/habbo-imaging/avatarimage.webp'
 const categoryNames: Record<string, string> = {
   hd: 'Head',
   hr: 'Hair',
@@ -168,15 +169,13 @@ const figure = computed(() => Object.entries(selectedParts.value)
 const figureString = computed(() => `${figure.value}&gender=${gender.value}`)
 
 const previewUrl = computed(() => {
-  const params = new URLSearchParams({
+  return withQuery(imagingUrl, {
     head_direction: String(previewDirection.value),
     direction: String(previewDirection.value),
     size: 'l',
     figure: figure.value,
     gender: gender.value,
   })
-
-  return `${imagingUrl}?${params.toString()}`
 })
 
 watch(previewUrl, () => {
@@ -345,13 +344,11 @@ function itemPreviewUrl(type: string, setId: string): string {
     ? `${headPart}.${figurePart}`
     : figurePart
 
-  const params = new URLSearchParams({
+  return withQuery(imagingUrl, {
     figure: previewFigure,
     gender: gender.value,
     size: 'm',
   })
-
-  return `${imagingUrl}?${params.toString()}`
 }
 
 useHead({ title: 'Avatar Studio | Habbo Outfit Studio' })
