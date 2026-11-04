@@ -795,7 +795,28 @@ const {
 
 useResizeObserver(room, () => updateRoomLayout())
 
+function handleVisibilityChange() {
+  const isVisible = !document.hidden
+  for (const avatar of avatars.value) {
+    if (!avatar.isWalking) continue
+    const completedStep = avatar.animationFrame !== null ? avatar.nextStep : null
+    avatar.movementVersion++
+    if (avatar.animationFrame !== null) {
+      window.cancelAnimationFrame(avatar.animationFrame)
+    }
+    avatar.animationFrame = null
+    if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer)
+    avatar.waitTimer = null
+    if (completedStep) avatar.current = { ...completedStep }
+    if (avatar.current) avatar.visual = { ...avatar.current }
+    avatar.nextStep = null
+    placeHabbo(avatar)
+    if (isVisible) void moveNextStep(avatar)
+  }
+}
+
 onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   updateRoomLayout()
   avatarReconcileInterval.resume()
   void preloadAvatar(2, 'std').then((image) => {
@@ -805,6 +826,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   isUnmounting = true
   avatarReconcileInterval.pause()
   stopReconciliation()
