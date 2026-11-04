@@ -869,7 +869,7 @@ onBeforeUnmount(() => {
             class="pointer-events-none absolute z-[4] w-max max-w-[min(240px,calc(100%_-_24px))] -translate-x-1/2 -translate-y-[90%] overflow-hidden rounded-[8px] border border-[rgba(255,255,255,0.85)] bg-[rgba(255,255,255,0.95)] px-[9px] py-[7px] text-[13px] leading-[1.3] text-[#202630] whitespace-pre-wrap [overflow-wrap:anywhere] after:absolute after:bottom-[-5px] after:left-[calc(50%_+_var(--tail-offset,0px))] after:border-[5px] after:border-solid after:border-transparent after:border-t-[rgba(255,255,255,0.95)] after:content-[''] after:-translate-x-1/2"
             :style="avatar.position.bubble"
           >
-            {{ avatar.bubbleMessage }}
+            <ChatEmotes :text="avatar.bubbleMessage" :user="user" />
           </div>
         </template>
       </div>
