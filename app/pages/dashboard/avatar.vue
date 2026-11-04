@@ -1,44 +1,39 @@
 <script setup lang="ts">
 import { withQuery } from "ufo";
 import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
-import { DEFAULT_MALE_OUTFIT_FIGURE } from "../../data/avatar-generator/default-outfit";
+import { DEFAULT_MALE_OUTFIT_FIGURE, DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
 
 definePageMeta({ layout: "dashboard" });
 
 type Gender = "M" | "F";
 
 interface AvatarColor {
+  id: string;
   index: number;
   club: number;
-  selectable: number;
+  selectable: boolean;
   hex: string;
 }
 
 interface FigureSet {
+  id: string;
   gender: Gender | "U";
-  club: number;
-  colorable: number;
-  selectable: number;
-  preselectable: number;
+  colorCount: number;
 }
 
 interface FigureSetType {
-  paletteid: number;
   type: string;
-  sets: Record<string, FigureSet>;
-}
-
-interface DefaultPart {
-  set: string;
-  color: string;
+  label: string;
+  icon: string;
+  paletteId: string;
+  sets: FigureSet[];
 }
 
 interface AvatarCatalog {
-  source: string;
-  sourceCommit: string;
-  palettes: Record<string, Record<string, AvatarColor>>;
-  setTypes: FigureSetType[];
-  defaults: Record<Gender, Record<string, DefaultPart>>;
+  schemaVersion: number;
+  build: string;
+  palettes: Record<string, AvatarColor[]>;
+  categories: FigureSetType[];
 }
 
 interface OutfitPart {
@@ -89,7 +84,9 @@ const categoryIcons: Record<string, string> = {
   ca: "accessories.png",
   wa: "belts.png",
   cc: "jackets.png",
-  cp: "chest.png"
+  cp: "chest.png",
+  pt: "accessories.png",
+  mc: "accessories.png"
 };
 const genderIcons: Record<Gender, string> = { M: "male.png", F: "female.png" };
 
@@ -114,6 +111,7 @@ const { data: avatar } = await useFetch(`/api/avatars/${user.value.twitchLogin}`
 const gender = ref<Gender>(avatar.value.gender);
 const activeType = ref("hr");
 const selectedParts = ref<Record<string, OutfitPart>>({});
+const savedParts = ref<Record<string, OutfitPart>>({});
 const search = ref("");
 const importText = ref("");
 const importError = ref("");
@@ -135,86 +133,100 @@ watch([lookupHotel, lookupUsername], () => {
   lookupQueueMessage.value = "";
 });
 
-const figureTypes = catalog.setTypes;
+const figureTypes = catalog.categories;
 const figureTypeByCode = new Map(figureTypes.map(type => [type.type, type]));
 const activeCategory = computed(() => figureTypeByCode.get(activeType.value));
 const activePart = computed(() => selectedParts.value[activeType.value]);
-const activeSet = computed(() => activePart.value && activeCategory.value?.sets[activePart.value.setId]);
+const activeSet = computed(() => {
+  const part = activePart.value;
+  return part ? activeCategory.value?.sets.find(set => set.id === part.setId) : undefined;
+});
 const outfitCount = computed(() => Object.keys(selectedParts.value).length);
 
+function parseFigureString (figureString: string): Record<string, OutfitPart> {
+  const parts: Record<string, OutfitPart> = {};
+
+  for (const token of figureString.split(".")) {
+    const [type, setId, ...colorIds] = token.split("-");
+    if (!type || !setId) continue;
+
+    parts[type] = { setId, colorIds };
+  }
+
+  return parts;
+}
+
+function copyOutfitParts (parts: Record<string, OutfitPart>): Record<string, OutfitPart> {
+  const copy: Record<string, OutfitPart> = {};
+  for (const [type, part] of Object.entries(parts)) {
+    copy[type] = { setId: part.setId, colorIds: [...part.colorIds] };
+  }
+  return copy;
+}
+
+const defaultPartsByGender = {
+  M: parseFigureString(DEFAULT_OUTFIT_FIGURES.M),
+  F: parseFigureString(DEFAULT_OUTFIT_FIGURES.F)
+};
+
 function colorsForType (type: string): string[] {
-  const defaultPart = catalog.defaults[gender.value][type];
-  return String(defaultPart?.color || "").split("-").filter(Boolean);
+  return defaultPartsByGender[gender.value][type]?.colorIds ?? [];
 }
 
 function paletteForType (type: FigureSetType | undefined): [string, AvatarColor][] {
   if (!type) return [];
 
-  return Object.entries(catalog.palettes[String(type.paletteid)] || {})
-    .sort((left, right) => left[1].index - right[1].index);
+  return [...(catalog.palettes[type.paletteId] || [])]
+    .sort((left, right) => left.index - right.index)
+    .map((color): [string, AvatarColor] => [color.id, color]);
 }
 
 function defaultOutfit (forGender: Gender): Record<string, OutfitPart> {
-  const nextParts: Record<string, OutfitPart> = {};
-
-  if (forGender === "M") {
-    for (const partString of avatar.value.figure.split(".")) {
-      const [type, setId, ...colorIds] = partString.split("-");
-      if (!type || !setId || !colorIds.length) continue;
-
-      nextParts[type] = { setId, colorIds };
-    }
-
-    return nextParts;
-  }
-
-  for (const type of figureTypes) {
-    const part = catalog.defaults[forGender][type.type];
-    if (!part?.set || !part.color) continue;
-
-    nextParts[type.type] = {
-      setId: String(part.set),
-      colorIds: String(part.color).split("-").filter(Boolean)
-    };
-  }
-
-  return nextParts;
+  if (forGender === "M") return parseFigureString(avatar.value.figure);
+  return parseFigureString(DEFAULT_OUTFIT_FIGURES[forGender]);
 }
 
 selectedParts.value = defaultOutfit(gender.value);
+savedParts.value = copyOutfitParts(selectedParts.value);
 
 const availableSets = computed(() => {
   if (!activeCategory.value) return [];
 
   const query = search.value.trim().toLowerCase();
 
-  return Object.entries(activeCategory.value.sets)
-    .filter(([setId, set]) => {
+  return activeCategory.value.sets
+    .filter((set) => {
       const genderAvailable = set.gender === "U" || set.gender === gender.value;
-      return set.selectable === 1 && genderAvailable && (!query || setId.includes(query));
+      return genderAvailable && (!query || set.id.includes(query));
     })
-    .map(([setId, set]) => ({ setId, set }));
+    .sort((left, right) => Number(left.id) - Number(right.id))
+    .map(set => ({ setId: set.id, set }));
 });
 
 const availableColors = computed(() => {
-  if (activeSet.value?.colorable !== 1) return [];
+  if (!activeSet.value?.colorCount) return [];
 
-  return paletteForType(activeCategory.value).filter(([, color]) => color.selectable === 1);
+  return paletteForType(activeCategory.value).filter(([, color]) => color.selectable);
 });
 
-const figure = computed(() => Object.entries(selectedParts.value)
-  .map(([type, part]) => {
-    if (!part?.setId || !part.colorIds.length) return "";
-    return `${type}-${part.setId}-${part.colorIds.join("-")}`;
-  })
-  .filter(Boolean)
-  .join("."));
+function figureForParts (parts: Record<string, OutfitPart>): string {
+  return Object.entries(parts)
+    .map(([type, part]) => {
+      if (!part?.setId) return "";
+      const colors = part.colorIds.length ? `-${part.colorIds.join("-")}` : "";
+      return `${type}-${part.setId}${colors}`;
+    })
+    .filter(Boolean)
+    .join(".");
+}
+
+const figure = computed(() => figureForParts(selectedParts.value));
 
 const previewUrl = computed(() => {
   return withQuery(imagingUrl, {
     head_direction: String(previewDirection.value),
     direction: String(previewDirection.value),
-    size: "m",
+    size: "l",
     figure: figure.value,
     gender: gender.value
   });
@@ -230,14 +242,17 @@ watch([figure, gender], () => {
 
 function selectSet (setId: string) {
   const type = activeCategory.value;
-  const set = type?.sets[setId];
-  if (!type || !set || set.selectable !== 1 || (set.gender !== "U" && set.gender !== gender.value)) return;
+  const set = type?.sets.find(candidate => candidate.id === setId);
+  if (!type || !set || (set.gender !== "U" && set.gender !== gender.value)) return;
 
   const previous = selectedParts.value[type.type];
   const retainedColors = previous?.colorIds.length ? previous.colorIds : colorsForType(type.type);
   const palette = paletteForType(type);
-  const fallbackColor = palette.find(([, color]) => color.selectable === 1)?.[0] ?? palette[0]?.[0];
-  const colorIds = retainedColors.length ? retainedColors : fallbackColor ? [fallbackColor] : [];
+  const paletteIds = new Set(palette.map(([id]) => id));
+  const validColors = retainedColors.filter(colorId => paletteIds.has(colorId)).slice(0, set.colorCount);
+  const fallbackColor = palette.find(([, color]) => color.selectable)?.[0] ?? palette[0]?.[0];
+  const colorIds = Array.from({ length: set.colorCount }, (_, index) => validColors[index] ?? fallbackColor)
+    .filter((colorId): colorId is string => Boolean(colorId));
 
   selectedParts.value = {
     ...selectedParts.value,
@@ -245,13 +260,22 @@ function selectSet (setId: string) {
   };
 }
 
-function selectColor (colorId: string) {
-  const part = selectedParts.value[activeType.value];
-  if (!part || activeSet.value?.colorable !== 1) return;
+function selectColor (colorIndex: number, colorId: string) {
+  const type = activeType.value;
+  const part = selectedParts.value[type];
+  const colorCount = activeSet.value?.colorCount ?? 0;
+  if (!part || colorIndex < 0 || colorIndex >= colorCount) return;
+
+  const fallbackColor = availableColors.value[0]?.[0];
+  const defaultColors = colorsForType(type);
+  const colorIds = Array.from({ length: colorCount }, (_, index) => {
+    if (index === colorIndex) return colorId;
+    return part.colorIds[index] ?? defaultColors[index] ?? fallbackColor ?? "";
+  }).filter(Boolean);
 
   selectedParts.value = {
     ...selectedParts.value,
-    [activeType.value]: { ...part, colorIds: [colorId] }
+    [type]: { ...part, colorIds }
   };
 }
 
@@ -274,19 +298,20 @@ function randomizeOutfit () {
   const nextParts: Record<string, OutfitPart> = {};
 
   for (const type of figureTypes) {
-    const candidates = Object.entries(type.sets).filter(([, set]) =>
-      set.selectable === 1 && (set.gender === "U" || set.gender === gender.value)
-    );
+    const candidates = type.sets.filter(set => set.gender === "U" || set.gender === gender.value);
     const candidate = candidates[Math.floor(Math.random() * candidates.length)];
     if (!candidate) continue;
 
-    const [setId, set] = candidate;
     const palette = paletteForType(type);
-    const selectableColors = palette.filter(([, color]) => color.selectable === 1);
-    const randomColor = selectableColors[Math.floor(Math.random() * selectableColors.length)]?.[0];
-    const color = set.colorable === 1 ? randomColor : (colorsForType(type.type)[0] ?? palette[0]?.[0]);
+    const selectableColors = palette.filter(([, color]) => color.selectable);
+    const defaultColors = colorsForType(type.type);
+    const colorIds = Array.from({ length: candidate.colorCount }, (_, index) =>
+      selectableColors[Math.floor(Math.random() * selectableColors.length)]?.[0]
+      ?? defaultColors[index]
+      ?? palette[0]?.[0]
+    ).filter((colorId): colorId is string => Boolean(colorId));
 
-    if (color) nextParts[type.type] = { setId, colorIds: [color] };
+    nextParts[type.type] = { setId: candidate.id, colorIds };
   }
 
   selectedParts.value = nextParts;
@@ -316,14 +341,9 @@ function importOutfit (allowUnlistedParts = false) {
       return;
     }
 
-    if (!colorIds.length) {
-      importError.value = `Figure part "${token}" is malformed.`;
-      return;
-    }
-
     const metadata = figureTypeByCode.get(type);
-    if (!allowUnlistedParts && (!metadata || !metadata.sets[setId])) {
-      importError.value = `Figure part "${type}" is not in the AvatarGenerate catalog.`;
+    if (!allowUnlistedParts && (!metadata || !metadata.sets.some(set => set.id === setId))) {
+      importError.value = `Figure part "${type}" is not in the current avatar catalog.`;
       return;
     }
 
@@ -415,7 +435,8 @@ async function saveAvatar () {
   const twitchLogin = user.value?.twitchLogin;
   if (!twitchLogin || saveState.value === "saving") return;
 
-  const figureToSave = figure.value;
+  const partsToSave = copyOutfitParts(selectedParts.value);
+  const figureToSave = figureForParts(partsToSave);
   const genderToSave = gender.value;
   saveState.value = "saving";
 
@@ -428,6 +449,7 @@ async function saveAvatar () {
         effect: null
       }
     });
+    savedParts.value = partsToSave;
     saveState.value = figure.value === figureToSave && gender.value === genderToSave ? "saved" : "idle";
   }
   catch {
@@ -436,7 +458,7 @@ async function saveAvatar () {
 }
 
 function categoryName (type: string): string {
-  return categoryNames[type] || type.toUpperCase();
+  return figureTypeByCode.get(type)?.label || categoryNames[type] || type.toUpperCase();
 }
 
 function categoryIcon (type: string): string {
@@ -447,21 +469,34 @@ function genderIcon (value: Gender): string {
   return `/avatar-generator/icons/${genderIcons[value]}`;
 }
 
-function itemPreviewUrl (type: string, setId: string): string {
+function catalogPreviewColors (type: string, setId: string): string[] {
   const figureType = figureTypeByCode.get(type);
-  const set = figureType?.sets[setId];
-  if (!figureType || !set) return "";
+  const set = figureType?.sets.find(candidate => candidate.id === setId);
+  if (!figureType || !set || !set.colorCount) return [];
 
   const palette = paletteForType(figureType);
   const paletteIds = new Set(palette.map(([id]) => id));
-  const currentColors = selectedParts.value[type]?.colorIds.length ? selectedParts.value[type].colorIds : colorsForType(type);
-  const validCurrentColors = currentColors.filter(colorId => paletteIds.has(colorId));
-  const fallbackColor = palette.find(([, color]) => color.selectable === 1)?.[0];
-  const colorIds = set.colorable === 1 ? (validCurrentColors.length ? validCurrentColors : fallbackColor ? [fallbackColor] : []) : [];
-  const previewParts = {
-    ...selectedParts.value,
-    [type]: { setId, colorIds }
-  };
+  let preferredColors = savedParts.value[type]?.colorIds ?? colorsForType(type);
+  if (type === "hd") preferredColors = selectedParts.value.hd?.colorIds ?? preferredColors;
+  const validColors = preferredColors.filter(colorId => paletteIds.has(colorId)).slice(0, set.colorCount);
+  const fallbackColor = palette.find(([, color]) => color.selectable)?.[0] ?? palette[0]?.[0];
+  return Array.from({ length: set.colorCount }, (_, index) => validColors[index] ?? fallbackColor)
+    .filter((colorId): colorId is string => Boolean(colorId));
+}
+
+function itemPreviewUrl (type: string, setId: string): string {
+  const figureType = figureTypeByCode.get(type);
+  const set = figureType?.sets.find(candidate => candidate.id === setId);
+  if (!figureType || !set) return "";
+
+  const previewParts: Record<string, OutfitPart> = {};
+  for (const [partType, part] of Object.entries(selectedParts.value)) {
+    previewParts[partType] = {
+      setId: part.setId,
+      colorIds: catalogPreviewColors(partType, part.setId)
+    };
+  }
+  previewParts[type] = { setId, colorIds: catalogPreviewColors(type, setId) };
   const previewFigure = Object.entries(previewParts)
     .map(([partType, part]) => {
       if (!part.setId) return "";
@@ -474,7 +509,7 @@ function itemPreviewUrl (type: string, setId: string): string {
   return withQuery(imagingUrl, {
     figure: previewFigure,
     gender: gender.value,
-    size: "l"
+    size: "m"
   });
 }
 
@@ -536,7 +571,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                 <img :src="categoryIcon(type.type)" alt="" class="size-5 shrink-0 object-contain">
                 <span class="truncate">{{ categoryName(type.type) }}</span>
                 <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">
-                  {{ Object.values(type.sets).filter(set => set.selectable === 1 && (set.gender === 'U' || set.gender === gender)).length }}
+                  {{ type.sets.filter(set => set.gender === 'U' || set.gender === gender).length }}
                 </UBadge>
               </UButton>
             </nav>
@@ -577,23 +612,28 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                 <div class="flex items-center justify-between gap-3">
                   <span class="text-xs font-semibold text-highlighted">Colors</span>
                   <UBadge color="neutral" variant="subtle" size="xs">
-                    {{ activeSet?.colorable === 1 ? `${availableColors.length} selectable` : 'Catalog color' }}
+                    {{ activeSet?.colorCount ? `${activeSet.colorCount} color slots` : activeSet ? 'Fixed color' : 'Select an item' }}
                   </UBadge>
                 </div>
-                <div v-if="availableColors.length" class="grid max-h-32 grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-2 overflow-y-auto p-0.5" aria-label="Available colors">
-                  <UButton
-                    v-for="[colorId, color] in availableColors"
-                    :key="colorId"
-                    class="size-7 min-w-7 rounded-none p-0 ring-1 ring-inset ring-white/20"
-                    :class="activePart?.colorIds.includes(colorId) ? 'ring-2 ring-primary ring-offset-2 ring-offset-default' : ''"
-                    :style="{ backgroundColor: `#${color.hex}` }"
-                    type="button"
-                    :aria-label="`Color ${color.hex}, ID ${colorId}`"
-                    :aria-pressed="activePart?.colorIds.includes(colorId) || false"
-                    @click="selectColor(colorId)"
-                  />
+                <div v-if="availableColors.length && activeSet?.colorCount" class="space-y-3" aria-label="Available colors">
+                  <div v-for="colorIndex in activeSet.colorCount" :key="colorIndex" class="space-y-2">
+                    <p class="text-xs text-muted">Color {{ colorIndex }}</p>
+                    <div class="grid max-h-32 grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-2 overflow-y-auto p-0.5" :aria-label="`Available colors for slot ${colorIndex}`">
+                      <UButton
+                        v-for="[colorId, color] in availableColors"
+                        :key="colorId"
+                        class="size-7 min-w-7 rounded-none p-0 ring-1 ring-inset ring-white/20"
+                        :class="activePart?.colorIds[colorIndex - 1] === colorId ? 'ring-2 ring-primary ring-offset-2 ring-offset-default' : ''"
+                        :style="{ backgroundColor: `#${color.hex}` }"
+                        type="button"
+                        :aria-label="`Color slot ${colorIndex}: ${color.hex}, ID ${colorId}`"
+                        :aria-pressed="activePart?.colorIds[colorIndex - 1] === colorId"
+                        @click="selectColor(colorIndex - 1, colorId)"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <p v-else class="text-xs text-muted">Select a colorable set to view its palette.</p>
+                <p v-else class="text-xs text-muted">Select a set with color slots to view its palette.</p>
               </div>
             </div>
           </div>
