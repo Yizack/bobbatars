@@ -23,7 +23,7 @@ export const avatarChatCommandRegistry: readonly AvatarChatCommandDefinition[] =
     parse: () => ({ type: "dance", action: null })
   },
   {
-    pattern: /^!(?:refresh|update)avatar(?:\s+@?([\da-z_]+))?$/i,
+    pattern: /^!(?:refresh|update)?avatar(?:\s+@?([\da-z_]+))?$/i,
     parse: match => ({
       type: "refresh-avatar",
       target: match[1]?.toLowerCase() ?? null
