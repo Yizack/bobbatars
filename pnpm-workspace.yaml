@@ -1,14 +1,8 @@
-minimumReleaseAgeExclude:
-  - '@nuxt/kit@4.6.4'
-  - '@nuxt/nitro-server@4.6.4'
-  - '@nuxt/schema@4.6.4'
-  - '@nuxt/vite-builder@4.6.4'
-  - '@nuxt/vite-server@4.6.4'
-  - nitropack@2.13.6
-  - nuxt@4.6.4
-  - unrouting@0.3.2
-  - '@iconify-json/lucide@1.2.151'
+minimumReleaseAge: 0
+overrides:
+  '@nuxt/cli': 4.0.3
+
 allowBuilds:
-  'esbuild@0.28.2': true
-  'esbuild@0.27.7': true
-  'vue-demi@0.14.10': true
+  'esbuild@0.28.2': false
+  'esbuild@0.27.7': false
+  'vue-demi@0.14.10': false
