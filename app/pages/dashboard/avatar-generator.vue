@@ -332,9 +332,21 @@ function itemPreviewUrl(type: string, setId: string): string {
   const figurePart = colorIds.length
     ? `${type}-${setId}-${colorIds.join('-')}`
     : `${type}-${setId}`
+  const selectedHead = selectedParts.value.hd
+  const defaultHead = catalog.defaults[gender.value].hd
+  const headSetId = selectedHead?.setId || String(defaultHead?.set || '')
+  const headColorIds = selectedHead?.colorIds.length
+    ? selectedHead.colorIds
+    : String(defaultHead?.color || '').split('-').filter(Boolean)
+  const headPart = headSetId && headColorIds.length
+    ? `hd-${headSetId}-${headColorIds.join('-')}`
+    : ''
+  const previewFigure = type !== 'hd' && headPart
+    ? `${headPart}.${figurePart}`
+    : figurePart
 
   const params = new URLSearchParams({
-    figure: figurePart,
+    figure: previewFigure,
     gender: gender.value,
     size: 'm',
   })
