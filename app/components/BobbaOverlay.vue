@@ -22,6 +22,7 @@ interface ActiveUser {
   lastActivity: number
   lastMessage: string
   lastMessageAt: number
+  danceAction: AvatarDanceAction | null
 }
 
 interface AvatarElements {
@@ -35,6 +36,8 @@ interface AvatarElements {
 
 type AvatarElementRef = Element | ComponentPublicInstance | null
 type AvatarPart = 'shadow' | 'image' | 'label' | 'popoverAnchor'
+type AvatarDanceAction = 'dance1' | 'dance2' | 'dance3' | 'dance4'
+type AvatarAction = 'std' | 'wlk' | AvatarDanceAction
 
 interface AvatarState {
   login: string
@@ -44,7 +47,8 @@ interface AvatarState {
   visual: Tile | null
   destination: Tile | null
   direction: number
-  action: 'std' | 'wlk'
+  action: AvatarAction
+  danceAction: AvatarDanceAction | null
   gesture: 'std' | 'spk'
   currentImage: string
   imageWidth: number
@@ -69,6 +73,12 @@ interface AvatarState {
 
 const imageEndpoint = 'https://habbohistory.com/habbo-imaging/avatarimage.webp'
 const figure = 'hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80'
+const danceHeadDirectionOverrides: Partial<Record<number, number>> = {
+  3: 2,
+  4: 5,
+  6: 5,
+  7: 0,
+}
 const tileWidth = 76
 const tileHeight = tileWidth / 2
 const stepDuration = 320
@@ -135,10 +145,14 @@ useHead({
 })
 
 function imageUrl(direction: number, action: AvatarState['action'], gesture = 'std') {
+  const headDirection = action === 'dance3' || action === 'dance4'
+    ? danceHeadDirectionOverrides[direction] ?? direction
+    : direction
+
   return withQuery(imageEndpoint, {
     figure,
     direction,
-    head_direction: direction,
+    head_direction: headDirection,
     gesture,
     action,
     size: 'm',
@@ -185,11 +199,11 @@ async function preloadAllWalkAnimations() {
 async function updateAvatar(
   avatar: AvatarState,
   direction: number,
-  action: AvatarState['action'],
+  action: AvatarAction,
   gesture = avatar.gesture,
 ): Promise<void> {
   avatar.direction = direction
-  avatar.action = action
+  avatar.action = avatar.danceAction ?? action
   avatar.gesture = gesture
   const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture)
 
@@ -492,6 +506,7 @@ function createAvatarState(user: ActiveUser): AvatarState | null {
     destination: { ...spawn },
     direction: 2,
     action: 'std',
+    danceAction: user.danceAction,
     gesture: 'std',
     currentImage: '',
     imageWidth: 0,
@@ -598,17 +613,37 @@ function reconcileActiveAvatars() {
   updateChatStatus()
 }
 
+function danceActionFromMessage(message: string): AvatarDanceAction | null {
+  switch (message.trim().toLowerCase()) {
+    case '!dance1': return 'dance1'
+    case '!dance2': return 'dance2'
+    case '!dance3': return 'dance3'
+    case '!dance4': return 'dance4'
+    default: return null
+  }
+}
+
+function setAvatarDance(avatar: AvatarState, danceAction: AvatarDanceAction | null) {
+  avatar.danceAction = danceAction
+  const action = avatar.isWalking ? 'wlk' : 'std'
+  void updateAvatar(avatar, avatar.direction, action)
+    .catch(error => reportAvatarLoadError(avatar, error))
+}
+
 function recordChatActivity(username: string, message: string, twitchDisplayName: string) {
   const messageText = String(message || '')
-  if (messageText.trimStart().startsWith('!')) return
-
   const login = String(username || '').trim().toLowerCase()
   if (!login || knownChatBots.has(login)) return
   const displayName = String(twitchDisplayName || username).trim()
+  const danceAction = danceActionFromMessage(messageText)
+  const stopDance = messageText.trim().toLowerCase() === '!stopdance'
+  const isDanceCommand = danceAction !== null || stopDance
+  if (messageText.trimStart().startsWith('!') && !isDanceCommand) return
 
   const now = Date.now()
   let user = activeUsers.get(login)
   if (!user || now - user.lastActivity >= inactiveTimeout) {
+    if (stopDance) return
     user = {
       login,
       displayName,
@@ -616,12 +651,24 @@ function recordChatActivity(username: string, message: string, twitchDisplayName
       lastActivity: now,
       lastMessage: '',
       lastMessageAt: 0,
+      danceAction: null,
     }
     activeUsers.set(login, user)
   }
   user.displayName = displayName
   user.activity++
   user.lastActivity = now
+
+  if (isDanceCommand) {
+    user.lastMessage = ''
+    user.lastMessageAt = 0
+    user.danceAction = danceAction
+    const avatar = avatarsByUser.get(login)
+    if (avatar) setAvatarDance(avatar, danceAction)
+    scheduleReconciliation()
+    return
+  }
+
   user.lastMessage = messageText
   user.lastMessageAt = now
 
@@ -701,7 +748,7 @@ async function moveNextStep(avatar: AvatarState) {
   }
   if (tileUnavailable(next, avatar)) {
     avatar.nextStep = null
-    if (avatar.action === 'std') {
+    if (avatar.action === 'std' || avatar.danceAction !== null) {
       avatar.destination = { ...avatar.current }
       avatar.isWalking = false
       scheduleRandomMove(avatar)
