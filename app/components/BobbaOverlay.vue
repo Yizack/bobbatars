@@ -579,7 +579,7 @@ async function showChatMessage(avatar: AvatarState, message: string) {
     if (avatar.removed) return
     avatar.bubbleVisible = false
     avatar.bubbleTimer = null
-  }, 3000)
+  }, 5000)
 
   window.clearTimeout(avatar.gestureTimer ?? undefined)
   const speechVersion = ++avatar.speechVersion
@@ -708,7 +708,7 @@ function reportAvatarLoadError(avatar: AvatarState | null, error: unknown) {
   console.error(error)
 }
 
-function scheduleRandomMove(avatar: AvatarState, delay = 900 + Math.random() * 1500) {
+function scheduleRandomMove(avatar: AvatarState, delay = 1200 + Math.random() * 1800) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer)
   avatar.randomTimer = window.setTimeout(() => {
     if (avatar.removed || !avatar.current) return
