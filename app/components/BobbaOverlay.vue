@@ -640,6 +640,20 @@ async function moveNextStep(avatar: AvatarState) {
   }
   if (tileUnavailable(next, avatar)) {
     avatar.nextStep = null
+    if (avatar.action === 'std') {
+      avatar.destination = { ...avatar.current }
+      avatar.isWalking = false
+      scheduleRandomMove(avatar)
+      return
+    }
+
+    try {
+      await updateAvatar(avatar, avatar.direction, 'std')
+    } catch (error) {
+      reportError(error)
+      return
+    }
+    if (avatar.removed || movementVersion !== avatar.movementVersion) return
     avatar.waitTimer = window.setTimeout(() => {
       avatar.waitTimer = null
       void moveNextStep(avatar)
