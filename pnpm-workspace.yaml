@@ -1,4 +1,7 @@
 minimumReleaseAge: 0
+shamefullyHoist: true
+strictPeerDependencies: false
+
 overrides:
   '@nuxt/cli': 4.0.3
 
@@ -6,3 +9,4 @@ allowBuilds:
   'esbuild@0.28.2': false
   'esbuild@0.27.7': false
   'vue-demi@0.14.10': false
+  esbuild: false
