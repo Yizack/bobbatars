@@ -6,5 +6,5 @@ const { preview } = useRoute().query as { preview?: boolean };
 </script>
 
 <template>
-  <BobbaOverlay :user="user" :preview="preview" />
+  <BobbaOverlay :user="user" :preview="Boolean(preview)" />
 </template>
