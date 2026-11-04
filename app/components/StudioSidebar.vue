@@ -38,6 +38,7 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
   ]
 ]);
 const { clear, loggedIn, user } = useUserSession();
+const sidebarOpen = defineModel<boolean>("open", { default: true });
 
 async function logout () {
   await clear();
@@ -47,8 +48,10 @@ async function logout () {
 
 <template>
   <USidebar
-    collapsible="none"
+    v-model:open="sidebarOpen"
+    collapsible="offcanvas"
     variant="inset"
+    :menu="{ title: 'Workspace navigation' }"
     :ui="{
       container: 'h-full',
     }"

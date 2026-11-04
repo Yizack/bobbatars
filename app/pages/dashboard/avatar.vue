@@ -214,7 +214,7 @@ const previewUrl = computed(() => {
   return withQuery(imagingUrl, {
     head_direction: String(previewDirection.value),
     direction: String(previewDirection.value),
-    size: "l",
+    size: "m",
     figure: figure.value,
     gender: gender.value
   });
@@ -458,18 +458,23 @@ function itemPreviewUrl (type: string, setId: string): string {
   const validCurrentColors = currentColors.filter(colorId => paletteIds.has(colorId));
   const fallbackColor = palette.find(([, color]) => color.selectable === 1)?.[0];
   const colorIds = set.colorable === 1 ? (validCurrentColors.length ? validCurrentColors : fallbackColor ? [fallbackColor] : []) : [];
-  const figurePart = colorIds.length ? `${type}-${setId}-${colorIds.join("-")}` : `${type}-${setId}`;
-  const selectedHead = selectedParts.value.hd;
-  const defaultHead = catalog.defaults[gender.value].hd;
-  const headSetId = selectedHead?.setId || String(defaultHead?.set || "");
-  const headColorIds = selectedHead?.colorIds.length ? selectedHead.colorIds : String(defaultHead?.color || "").split("-").filter(Boolean);
-  const headPart = headSetId && headColorIds.length ? `hd-${headSetId}-${headColorIds.join("-")}` : "";
-  const previewFigure = type !== "hd" && headPart ? `${headPart}.${figurePart}` : figurePart;
+  const previewParts = {
+    ...selectedParts.value,
+    [type]: { setId, colorIds }
+  };
+  const previewFigure = Object.entries(previewParts)
+    .map(([partType, part]) => {
+      if (!part.setId) return "";
+      const colors = part.colorIds.length ? `-${part.colorIds.join("-")}` : "";
+      return `${partType}-${part.setId}${colors}`;
+    })
+    .filter(Boolean)
+    .join(".");
 
   return withQuery(imagingUrl, {
     figure: previewFigure,
     gender: gender.value,
-    size: "m"
+    size: "l"
   });
 }
 
@@ -506,7 +511,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
       </section>
 
       <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.8fr)]">
-        <UCard variant="outline" class="min-w-0" :ui="{ body: 'p-0 sm:p-0' }">
+        <UCard variant="outline" class="order-2 min-w-0 xl:order-1" :ui="{ body: 'p-0 sm:p-0' }">
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <div>
@@ -518,7 +523,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
           </template>
 
           <div class="grid xl:grid-cols-[13rem_minmax(0,1fr)]">
-            <nav class="flex gap-2 overflow-x-auto border-b border-default p-3 xl:flex-col xl:overflow-x-visible xl:border-b-0 xl:border-r" aria-label="Outfit categories">
+            <nav class="flex flex-wrap gap-2 overflow-x-auto border-b border-default p-3 xl:flex-col xl:overflow-x-visible xl:border-b-0 xl:border-r" aria-label="Outfit categories">
               <UButton
                 v-for="type in figureTypes"
                 :key="type.type"
@@ -556,7 +561,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                 >
                   <span class="flex h-36 w-full items-center justify-center overflow-hidden rounded bg-neutral-950">
                     <img
-                      class="max-h-28 max-w-full object-contain self-center"
+                      class="max-h-28 max-w-full scale-130 object-contain self-center"
                       :src="itemPreviewUrl(activeType, item.setId)"
                       alt=""
                       loading="lazy"
@@ -594,10 +599,10 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
           </div>
         </UCard>
 
-        <aside class="grid min-w-0 content-start gap-4" aria-label="Avatar preview and controls">
+        <aside class="order-1 grid min-w-0 content-start grid-cols-2 gap-3 sm:gap-4 xl:order-2 xl:grid-cols-1" aria-label="Avatar preview and controls">
           <UCard variant="outline" class="min-w-0">
             <template #header>
-              <div class="flex items-center justify-between gap-3">
+              <div class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p class="text-[10px] font-semibold tracking-widest text-primary">HABBO IMAGING</p>
                   <h2 class="mt-1 text-lg font-semibold text-highlighted">Outfit preview</h2>
@@ -608,11 +613,11 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
               </div>
             </template>
 
-            <div class="relative grid min-h-72 place-items-center overflow-hidden rounded-md bg-neutral-950 p-4">
+            <div class="relative grid min-h-56 place-items-center overflow-hidden rounded-md bg-neutral-950 p-2 sm:min-h-72 sm:p-4">
               <img
                 v-if="!previewFailed"
                 :key="previewUrl"
-                class="relative z-10 max-h-72 max-w-full object-contain"
+                class="relative z-10 max-h-56 max-w-full object-contain sm:max-h-72"
                 :src="previewUrl"
                 :alt="`${gender === 'M' ? 'Male' : 'Female'} Habbo avatar preview`"
                 loading="eager"
@@ -622,11 +627,11 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
               <UBadge class="absolute bottom-3 right-3 z-20" color="neutral" variant="subtle">{{ gender }} / DIR {{ previewDirection }}</UBadge>
             </div>
 
-            <div class="mt-4 flex flex-wrap items-center gap-2">
-              <UButton color="secondary" variant="soft" icon="i-lucide-shuffle" @click="randomizeOutfit">Randomize</UButton>
-              <UButton color="neutral" variant="outline" icon="i-lucide-rotate-ccw" @click="selectedParts = defaultOutfit(gender)">Reset</UButton>
-              <UButton color="primary" icon="i-lucide-save" :loading="saveState === 'saving'" :disabled="!user?.twitchLogin || saveState === 'saving'" @click="saveAvatar">Save avatar</UButton>
-              <UBadge class="ml-auto" color="neutral" variant="subtle">{{ outfitCount }} parts</UBadge>
+            <div class="mt-3 grid grid-cols-2 items-center gap-2 sm:mt-4 sm:flex sm:flex-wrap">
+              <UButton size="sm" class="min-w-0 justify-center" color="secondary" variant="soft" icon="i-lucide-shuffle" @click="randomizeOutfit">Randomize</UButton>
+              <UButton size="sm" class="min-w-0 justify-center" color="neutral" variant="outline" icon="i-lucide-rotate-ccw" @click="selectedParts = defaultOutfit(gender)">Reset</UButton>
+              <UButton size="sm" class="col-span-2 justify-center sm:col-span-1" color="primary" icon="i-lucide-save" :loading="saveState === 'saving'" :disabled="!user?.twitchLogin || saveState === 'saving'" @click="saveAvatar">Save avatar</UButton>
+              <UBadge class="col-span-2 justify-center sm:ml-auto sm:col-span-1" color="neutral" variant="subtle">{{ outfitCount }} parts</UBadge>
             </div>
             <UAlert v-if="saveState === 'saved'" class="mt-3" color="success" variant="subtle" title="Avatar saved" description="Your current avatar has been saved to your account." icon="i-lucide-circle-check" />
             <UAlert v-else-if="saveState === 'error'" class="mt-3" color="error" variant="subtle" title="Could not save avatar" description="Please try again." icon="i-lucide-circle-alert" />
@@ -639,8 +644,8 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                 <h2 class="text-sm font-semibold text-highlighted">Look up a Habbo figure</h2>
               </div>
             </template>
-            <div class="grid gap-3 sm:grid-cols-[minmax(8rem,0.7fr)_minmax(10rem,1fr)_auto] sm:items-end">
-              <label class="grid gap-1 text-sm font-medium text-highlighted">
+            <div class="grid min-w-0 gap-3">
+              <label class="grid min-w-0 gap-1 text-sm font-medium text-highlighted">
                 <span>Hotel</span>
                 <USelect
                   v-model="lookupHotel"
@@ -648,22 +653,25 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                   value-key="value"
                   label-key="label"
                   aria-label="Habbo hotel"
+                  class="w-full"
                   :disabled="lookupState === 'loading'"
                 />
               </label>
-              <label class="grid gap-1 text-sm font-medium text-highlighted">
+              <label class="grid min-w-0 gap-1 text-sm font-medium text-highlighted">
                 <span>Username</span>
                 <UInput
                   v-model="lookupUsername"
                   autocomplete="off"
                   aria-label="Habbo username"
                   placeholder="Enter a Habbo username"
+                  class="w-full"
                   :disabled="lookupState === 'loading'"
                   @keydown.enter.prevent="lookupHabboFigure"
                 />
               </label>
               <UButton
                 type="button"
+                class="w-full justify-center"
                 color="primary"
                 icon="i-lucide-search"
                 :loading="lookupState === 'loading'"
@@ -702,7 +710,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
             />
           </UCard>
 
-          <UCard variant="outline" class="min-w-0">
+          <UCard variant="outline" class="col-span-2 min-w-0 xl:col-span-1">
             <template #header>
               <div class="flex items-center gap-2"><UIcon name="i-lucide-download" class="size-4 text-primary" /><h2 class="text-sm font-semibold text-highlighted">Import an existing figure</h2></div>
             </template>
