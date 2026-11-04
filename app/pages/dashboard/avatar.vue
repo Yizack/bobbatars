@@ -380,10 +380,20 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
           <p class="mt-2 text-sm leading-6 text-muted">Choose catalog items and colors to customize your avatar.</p>
         </div>
         <div class="flex gap-2" role="group" aria-label="Avatar gender">
-          <UButton :color="gender === 'M' ? 'primary' : 'neutral'" :variant="gender === 'M' ? 'solid' : 'outline'" :aria-pressed="gender === 'M'" @click="changeGender('M')">
-            <img :src="genderIcon('M')" alt="" class="size-5 shrink-0 object-contain">Male
+          <UButton
+            :color="gender === 'M' ? 'primary' : 'neutral'"
+            :variant="gender === 'M' ? 'solid' : 'outline'"
+            :aria-pressed="gender === 'M'"
+            @click="changeGender('M')"
+          >
+            <img :src="genderIcon('M')" alt="" class="size-5 shrink-0 object-contain" style="object-position: 0 4px;">Male
           </UButton>
-          <UButton :color="gender === 'F' ? 'primary' : 'neutral'" :variant="gender === 'F' ? 'solid' : 'outline'" :aria-pressed="gender === 'F'" @click="changeGender('F')">
+          <UButton
+            :color="gender === 'F' ? 'primary' : 'neutral'"
+            :variant="gender === 'F' ? 'solid' : 'outline'"
+            :aria-pressed="gender === 'F'"
+            @click="changeGender('F')"
+          >
             <img :src="genderIcon('F')" alt="" class="size-5 shrink-0 object-contain">Female
           </UButton>
         </div>
