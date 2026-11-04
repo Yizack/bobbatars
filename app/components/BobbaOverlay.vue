@@ -4,7 +4,7 @@ import type { ChatClient as TwitchChatClient } from '@twurple/chat'
 import { withQuery } from 'ufo'
 import { useHead } from '#imports'
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import type { ComponentPublicInstance, CSSProperties } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
 
 const props = defineProps<{
   user: string
@@ -25,13 +25,16 @@ interface ActiveUser {
 }
 
 interface AvatarElements {
+  shadow: HTMLElement | null
   image: HTMLImageElement | null
   label: HTMLElement | null
   popoverAnchor: HTMLElement | null
+  labelWidth: number
+  labelHeight: number
 }
 
 type AvatarElementRef = Element | ComponentPublicInstance | null
-type AvatarPart = keyof AvatarElements
+type AvatarPart = 'shadow' | 'image' | 'label' | 'popoverAnchor'
 
 interface AvatarState {
   login: string
@@ -48,18 +51,13 @@ interface AvatarState {
   imageHeight: number
   bubbleMessage: string
   bubbleVisible: boolean
-  position: {
-    shadow: CSSProperties
-    image: CSSProperties
-    label: CSSProperties
-    popoverAnchor: CSSProperties
-  }
+  shadowRef: (element: AvatarElementRef) => void
   imageRef: (element: AvatarElementRef) => void
   labelRef: (element: AvatarElementRef) => void
   popoverAnchorRef: (element: AvatarElementRef) => void
   isWalking: boolean
   nextStep: Tile | null
-  animationFrame: number | null
+  animationStartedAt: number | null
   movementVersion: number
   randomTimer: number | null
   waitTimer: number | null
@@ -105,6 +103,7 @@ const knownChatBots = new Set([
 const room = ref<HTMLDivElement | null>(null)
 const status = ref('Conectando al chat de Twitch…')
 const avatars = ref<AvatarState[]>([])
+const movingAvatars = new Set<AvatarState>()
 const activeUsers = new Map<string, ActiveUser>()
 const avatarsByUser = new Map<string, AvatarState>()
 const avatarElements = new Map<string, AvatarElements>()
@@ -122,6 +121,7 @@ let originY = 0
 let chatClient: TwitchChatClient | null = null
 let chatConnected = false
 let isUnmounting = false
+let animationFrame: number | null = null
 
 useHead({
   title: 'Widget de sala Habbo',
@@ -244,41 +244,60 @@ function placeHabbo(avatar: AvatarState) {
   const groundY = point.y + tileHeight * 0.34
   const depth = Math.round(avatar.visual.column + avatar.visual.row)
   const elements = avatarElements.get(avatar.login)
-  const imageHeight = elements?.image?.offsetHeight || avatar.imageHeight
-  const labelHalfWidth = (elements?.label?.offsetWidth ?? 0) / 2
-  const labelHeight = elements?.label?.offsetHeight ?? 0
+  const imageHeight = avatar.imageHeight
+  const labelHalfWidth = (elements?.labelWidth ?? 0) / 2
+  const labelHeight = elements?.labelHeight ?? 0
   const labelX = Math.max(
     labelHalfWidth + 8,
     Math.min(roomWidth - labelHalfWidth - 8, point.x),
   )
 
-  avatar.position.image = {
-    left: `${point.x}px`,
-    top: `${groundY}px`,
-    zIndex: depth + 2,
-    width: avatar.imageWidth > 0 ? `${avatar.imageWidth}px` : undefined,
+  const setPosition = (
+    element: HTMLElement | null,
+    x: number,
+    y: number,
+    zIndex?: number,
+  ) => {
+    if (!element) return
+    const transform = `translate3d(${x}px, ${y}px, 0)`
+    if (element.style.transform !== transform) element.style.transform = transform
+    if (zIndex !== undefined && element.style.zIndex !== String(zIndex)) {
+      element.style.zIndex = String(zIndex)
+    }
   }
-  avatar.position.shadow = {
-    left: `${point.x}px`,
-    top: `${groundY}px`,
-    zIndex: depth + 1,
+
+  setPosition(elements?.shadow ?? null, point.x - 34 * 0.6, groundY - 14 * 1.2, depth + 1)
+  setPosition(
+    elements?.image ?? null,
+    point.x - avatar.imageWidth * 0.56,
+    groundY - imageHeight,
+    depth + 2,
+  )
+  if (elements?.image && avatar.imageWidth > 0) {
+    const width = `${avatar.imageWidth}px`
+    if (elements.image.style.width !== width) elements.image.style.width = width
   }
-  avatar.position.label = {
-    left: `${labelX}px`,
-    top: `${groundY - imageHeight}px`,
-    zIndex: depth + 3,
-  }
-  avatar.position.popoverAnchor = {
-    left: `${point.x}px`,
-    top: `${groundY - imageHeight - labelHeight * 0.7 + 8}px`,
-  }
+  setPosition(
+    elements?.label ?? null,
+    labelX - labelHalfWidth,
+    groundY - imageHeight - labelHeight / 2,
+    depth + 3,
+  )
+  setPosition(
+    elements?.popoverAnchor ?? null,
+    point.x,
+    groundY - imageHeight - labelHeight * 0.7 + 8,
+  )
 }
 
 function setAvatarElement(login: string, part: AvatarPart, value: AvatarElementRef) {
   const elements = avatarElements.get(login) ?? {
+    shadow: null,
     image: null,
     label: null,
     popoverAnchor: null,
+    labelWidth: 0,
+    labelHeight: 0,
   }
 
   if (part === 'image') {
@@ -290,14 +309,67 @@ function setAvatarElement(login: string, part: AvatarPart, value: AvatarElementR
       ? value
       : null
     elements[part] = element
+    if (part === 'label' && element) {
+      elements.labelWidth = element.offsetWidth
+      elements.labelHeight = element.offsetHeight
+    }
   }
 
-  if (elements.image || elements.label || elements.popoverAnchor) {
+  if (elements.shadow || elements.image || elements.label || elements.popoverAnchor) {
     avatarElements.set(login, elements)
   } else {
     avatarElements.delete(login)
   }
 
+  const avatar = avatarsByUser.get(login)
+  if (avatar && value !== null) placeHabbo(avatar)
+}
+
+function scheduleAvatarAnimation() {
+  if (animationFrame === null) {
+    animationFrame = window.requestAnimationFrame(animateAvatarSteps)
+  }
+}
+
+function stopAvatarAnimation(avatar: AvatarState) {
+  movingAvatars.delete(avatar)
+  avatar.animationStartedAt = null
+  if (movingAvatars.size === 0 && animationFrame !== null) {
+    window.cancelAnimationFrame(animationFrame)
+    animationFrame = null
+  }
+}
+
+function animateAvatarSteps(now: number) {
+  animationFrame = null
+  for (const avatar of movingAvatars) {
+    const startedAt = avatar.animationStartedAt
+    const current = avatar.current
+    const next = avatar.nextStep
+    if (avatar.removed || startedAt === null || !current || !next) {
+      movingAvatars.delete(avatar)
+      avatar.animationStartedAt = null
+      continue
+    }
+
+    const progress = Math.min((now - startedAt) / stepDuration, 1)
+    avatar.visual = {
+      column: current.column + (next.column - current.column) * progress,
+      row: current.row + (next.row - current.row) * progress,
+    }
+    placeHabbo(avatar)
+
+    if (progress === 1) {
+      avatar.animationStartedAt = null
+      avatar.current = { ...next }
+      avatar.visual = { ...next }
+      avatar.nextStep = null
+      movingAvatars.delete(avatar)
+      void moveNextStep(avatar)
+    }
+  }
+
+  if (movingAvatars.size > 0) scheduleAvatarAnimation()
 }
 
 function updateRoomLayout() {
@@ -326,10 +398,7 @@ function updateRoomLayout() {
   if (layoutChanged && avatars.value.length > 0) {
     for (const avatar of [...avatars.value]) {
       avatar.movementVersion++
-      if (avatar.animationFrame !== null) {
-        window.cancelAnimationFrame(avatar.animationFrame)
-      }
-      avatar.animationFrame = null
+      stopAvatarAnimation(avatar)
       if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer)
       if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer)
       avatar.randomTimer = null
@@ -429,18 +498,13 @@ function createAvatarState(user: ActiveUser): AvatarState | null {
     imageHeight: 0,
     bubbleMessage: '',
     bubbleVisible: false,
-    position: {
-      shadow: {},
-      image: {},
-      label: {},
-      popoverAnchor: {},
-    },
+    shadowRef: element => setAvatarElement(user.login, 'shadow', element),
     imageRef: element => setAvatarElement(user.login, 'image', element),
     labelRef: element => setAvatarElement(user.login, 'label', element),
     popoverAnchorRef: element => setAvatarElement(user.login, 'popoverAnchor', element),
     isWalking: false,
     nextStep: null,
-    animationFrame: null,
+    animationStartedAt: null,
     movementVersion: 0,
     randomTimer: null,
     waitTimer: null,
@@ -475,11 +539,8 @@ function clearAvatarTimers(avatar: AvatarState) {
 function removeAvatarState(avatar: AvatarState) {
   avatar.removed = true
   avatar.movementVersion++
+  stopAvatarAnimation(avatar)
   clearAvatarTimers(avatar)
-  if (avatar.animationFrame !== null) {
-    window.cancelAnimationFrame(avatar.animationFrame)
-  }
-  avatar.animationFrame = null
   avatarElements.delete(avatar.login)
   avatarsByUser.delete(avatar.login)
   const index = avatars.value.indexOf(avatar)
@@ -518,8 +579,20 @@ function reconcileActiveAvatars() {
       }
       continue
     }
+    const displayNameChanged = avatar.displayName !== user.displayName
     avatar.displayName = user.displayName
     avatar.activity = user.activity
+    if (displayNameChanged) {
+      void nextTick(() => {
+        if (avatar.removed) return
+        const elements = avatarElements.get(avatar.login)
+        if (elements?.label) {
+          elements.labelWidth = elements.label.offsetWidth
+          elements.labelHeight = elements.label.offsetHeight
+        }
+        placeHabbo(avatar)
+      })
+    }
   }
 
   updateChatStatus()
@@ -674,28 +747,9 @@ async function moveNextStep(avatar: AvatarState) {
     return
   }
 
-  const startedAt = performance.now()
-  const animateStep = (now: number) => {
-    if (avatar.removed || movementVersion !== avatar.movementVersion) return
-    avatar.animationFrame = null
-    const progress = Math.min((now - startedAt) / stepDuration, 1)
-    avatar.visual = {
-      column: avatar.current!.column + deltaColumn * progress,
-      row: avatar.current!.row + deltaRow * progress,
-    }
-    placeHabbo(avatar)
-
-    if (progress < 1) {
-      avatar.animationFrame = window.requestAnimationFrame(animateStep)
-    } else {
-      avatar.animationFrame = null
-      avatar.current = next
-      avatar.visual = { ...next }
-      avatar.nextStep = null
-      void moveNextStep(avatar)
-    }
-  }
-  avatar.animationFrame = window.requestAnimationFrame(animateStep)
+  avatar.animationStartedAt = performance.now()
+  movingAvatars.add(avatar)
+  scheduleAvatarAnimation()
 }
 
 function reportAvatarLoadError(avatar: AvatarState | null, error: unknown) {
@@ -830,23 +884,21 @@ onBeforeUnmount(() => {
 
         <template v-for="avatar in avatars" :key="avatar.login">
           <div
-            class="pointer-events-none absolute z-[1] h-[14px] w-[34px] -translate-x-[60%] -translate-y-[120%] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
-            :style="avatar.position.shadow"
+            :ref="avatar.shadowRef"
+            class="pointer-events-none absolute left-0 top-0 z-[1] h-[14px] w-[34px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
             aria-hidden="true"
           />
           <img
             v-if="avatar.currentImage"
             :ref="avatar.imageRef"
-            class="pointer-events-none absolute z-[2] h-auto max-w-full select-none -translate-x-[56%] -translate-y-full"
+            class="pointer-events-none absolute left-0 top-0 z-[2] h-auto max-w-full select-none"
             :src="avatar.currentImage"
-            :style="avatar.position.image"
             :alt="`Avatar de ${avatar.displayName}`"
             draggable="false"
           >
           <span
             :ref="avatar.labelRef"
-            class="pointer-events-none absolute z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate"
-            :style="avatar.position.label"
+            class="pointer-events-none absolute left-0 top-0 z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate"
             :title="`${avatar.displayName}: ${avatar.activity} mensajes`"
           >
             {{ avatar.displayName }}
@@ -864,8 +916,7 @@ onBeforeUnmount(() => {
             <template #anchor>
               <span
                 :ref="avatar.popoverAnchorRef"
-                class="pointer-events-none absolute h-0 w-0"
-                :style="avatar.position.popoverAnchor"
+                class="pointer-events-none absolute left-0 top-0 h-0 w-0"
                 aria-hidden="true"
               />
             </template>
