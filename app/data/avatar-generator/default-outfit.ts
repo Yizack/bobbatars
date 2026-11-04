@@ -1,0 +1,1 @@
+export const DEFAULT_MALE_OUTFIT_FIGURE = 'hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80'
