@@ -815,7 +815,7 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="fixed inset-0 flex w-full items-end overflow-hidden bg-transparent [font-family:Trebuchet_MS,Arial,sans-serif]">
-    <section class="h-[min(420px,100vh)] w-full" aria-label="Sala Habbo">
+    <section class="h-[min(266px,100vh)] w-full" aria-label="Sala Habbo">
       <div ref="room" class="relative h-full w-full">
         <p class="sr-only" role="status" aria-live="polite">
           {{ status }}
