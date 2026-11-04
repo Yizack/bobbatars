@@ -27,12 +27,11 @@ interface ActiveUser {
 interface AvatarElements {
   image: HTMLImageElement | null
   label: HTMLElement | null
-  bubble: HTMLElement | null
+  popoverAnchor: HTMLElement | null
 }
 
 type AvatarElementRef = Element | ComponentPublicInstance | null
 type AvatarPart = keyof AvatarElements
-type BubbleStyle = CSSProperties & { '--tail-offset': string }
 
 interface AvatarState {
   login: string
@@ -53,11 +52,11 @@ interface AvatarState {
     shadow: CSSProperties
     image: CSSProperties
     label: CSSProperties
-    bubble: BubbleStyle
+    popoverAnchor: CSSProperties
   }
   imageRef: (element: AvatarElementRef) => void
   labelRef: (element: AvatarElementRef) => void
-  bubbleRef: (element: AvatarElementRef) => void
+  popoverAnchorRef: (element: AvatarElementRef) => void
   isWalking: boolean
   nextStep: Tile | null
   animationFrame: number | null
@@ -252,15 +251,6 @@ function placeHabbo(avatar: AvatarState) {
     labelHalfWidth + 8,
     Math.min(roomWidth - labelHalfWidth - 8, point.x),
   )
-  const bubbleHalfWidth = (elements?.bubble?.offsetWidth ?? 0) / 2
-  const bubbleX = Math.max(
-    bubbleHalfWidth + 8,
-    Math.min(roomWidth - bubbleHalfWidth - 8, point.x),
-  )
-  const tailOffset = Math.max(
-    -bubbleHalfWidth + 12,
-    Math.min(bubbleHalfWidth - 12, point.x - bubbleX),
-  )
 
   avatar.position.image = {
     left: `${point.x}px`,
@@ -278,11 +268,9 @@ function placeHabbo(avatar: AvatarState) {
     top: `${groundY - imageHeight}px`,
     zIndex: depth + 3,
   }
-  avatar.position.bubble = {
-    left: `${bubbleX}px`,
+  avatar.position.popoverAnchor = {
+    left: `${point.x}px`,
     top: `${groundY - imageHeight - labelHeight * 0.7 - 8}px`,
-    zIndex: depth + 4,
-    '--tail-offset': `${tailOffset}px`,
   }
 }
 
@@ -290,7 +278,7 @@ function setAvatarElement(login: string, part: AvatarPart, value: AvatarElementR
   const elements = avatarElements.get(login) ?? {
     image: null,
     label: null,
-    bubble: null,
+    popoverAnchor: null,
   }
 
   if (part === 'image') {
@@ -304,7 +292,7 @@ function setAvatarElement(login: string, part: AvatarPart, value: AvatarElementR
     elements[part] = element
   }
 
-  if (elements.image || elements.label || elements.bubble) {
+  if (elements.image || elements.label || elements.popoverAnchor) {
     avatarElements.set(login, elements)
   } else {
     avatarElements.delete(login)
@@ -445,11 +433,11 @@ function createAvatarState(user: ActiveUser): AvatarState | null {
       shadow: {},
       image: {},
       label: {},
-      bubble: { '--tail-offset': '0px' },
+      popoverAnchor: {},
     },
     imageRef: element => setAvatarElement(user.login, 'image', element),
     labelRef: element => setAvatarElement(user.login, 'label', element),
-    bubbleRef: element => setAvatarElement(user.login, 'bubble', element),
+    popoverAnchorRef: element => setAvatarElement(user.login, 'popoverAnchor', element),
     isWalking: false,
     nextStep: null,
     animationFrame: null,
@@ -863,14 +851,28 @@ onBeforeUnmount(() => {
           >
             {{ avatar.displayName }}
           </span>
-          <div
-            v-show="avatar.bubbleVisible"
-            :ref="avatar.bubbleRef"
-            class="pointer-events-none absolute z-[4] w-max max-w-[min(240px,calc(100%_-_24px))] -translate-x-1/2 -translate-y-[90%] overflow-hidden rounded-[8px] border border-[rgba(255,255,255,0.85)] bg-[rgba(255,255,255,0.95)] px-[9px] py-[7px] text-[13px] leading-[1.3] text-[#202630] whitespace-pre-wrap [overflow-wrap:anywhere] after:absolute after:bottom-[-5px] after:left-[calc(50%_+_var(--tail-offset,0px))] after:border-[5px] after:border-solid after:border-transparent after:border-t-[rgba(255,255,255,0.95)] after:content-[''] after:-translate-x-1/2"
-            :style="avatar.position.bubble"
+          <UPopover
+            :open="avatar.bubbleVisible"
+            :dismissible="false"
+            :content="{ side: 'top', sideOffset: 8, collisionPadding: 8, updatePositionStrategy: 'always' }"
+            arrow
+            :ui="{
+              content: 'z-50 pointer-events-none w-max max-w-[min(240px,calc(100vw_-_24px))] overflow-hidden rounded-[8px] border border-[rgba(255,255,255,0.85)] bg-[rgba(255,255,255,0.95)] px-[9px] py-[7px] text-[13px] leading-[1.3] text-[#202630] whitespace-pre-wrap [overflow-wrap:anywhere]',
+              arrow: 'fill-white',
+            }"
           >
+            <template #anchor>
+              <span
+                :ref="avatar.popoverAnchorRef"
+                class="pointer-events-none absolute h-0 w-0"
+                :style="avatar.position.popoverAnchor"
+                aria-hidden="true"
+              />
+            </template>
+            <template #content>
             <ChatEmotes :text="avatar.bubbleMessage" :user="user" />
-          </div>
+            </template>
+          </UPopover>
         </template>
       </div>
     </section>
