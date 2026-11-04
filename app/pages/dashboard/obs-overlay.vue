@@ -1,25 +1,26 @@
 <script setup lang="ts">
-import { useClipboard } from '@vueuse/core'
-import { computed, ref } from 'vue'
-import { useHead, useRequestURL } from '#imports'
+import { useClipboard } from "@vueuse/core";
 
-const overlayUser = 'soychinno'
-const requestUrl = useRequestURL()
-const overlayUrl = computed(() => new URL(`/overlay/${overlayUser}`, requestUrl.origin).toString())
-const copyError = ref('')
-const { copy, copied } = useClipboard()
+definePageMeta({ layout: "dashboard" });
 
-async function copyOverlayUrl() {
-  copyError.value = ''
+const overlayUser = "soychinno";
+const requestUrl = useRequestURL();
+const overlayUrl = computed(() => new URL(`/overlay/${overlayUser}`, requestUrl.origin).toString());
+const copyError = ref("");
+const { copy, copied } = useClipboard();
+
+async function copyOverlayUrl () {
+  copyError.value = "";
 
   try {
-    await copy(overlayUrl.value)
-  } catch {
-    copyError.value = 'Clipboard access failed. Copy the URL from the field above.'
+    await copy(overlayUrl.value);
+  }
+  catch {
+    copyError.value = "Clipboard access failed. Copy the URL from the field above.";
   }
 }
 
-useHead({ title: 'OBS Overlay | Habbo Outfit Studio' })
+useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
 </script>
 
 <template>
