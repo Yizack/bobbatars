@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useIntervalFn, useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import type { ChatClient as TwitchChatClient } from '@twurple/chat'
+import { withQuery } from 'ufo'
 import { useHead } from '#imports'
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import type { ComponentPublicInstance, CSSProperties } from 'vue'
@@ -135,18 +136,17 @@ useHead({
 })
 
 function imageUrl(direction: number, action: AvatarState['action'], gesture = 'std') {
-  const params = new URLSearchParams({
+  return withQuery(imageEndpoint, {
     figure,
-    direction: String(direction),
-    head_direction: String(direction),
+    direction,
+    head_direction: direction,
     gesture,
     action,
     size: 'm',
     format: 'webp',
-    rv: '55',
-    animv: '28',
+    rv: 55,
+    animv: 28,
   })
-  return `${imageEndpoint}?${params.toString()}`
 }
 
 function preloadAvatar(

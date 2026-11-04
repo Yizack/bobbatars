@@ -21,12 +21,12 @@ suffix and preserves multiple color IDs.
 
 ## Preview
 
-AvatarGenerate itself creates full and per-item previews with
-`https://www.habbo.com.tr/habbo-imaging/avatarimage`. This app follows that original preview
-integration. The image endpoint is external; if it is unavailable, the catalog selection and
-outfit-string export remain usable. This editor contains no Habbo image assets and makes no claim
-that the 2016 catalog matches current inventory. The UI icons are from AvatarGenerate; no Habbo
-avatar or clothing sprite assets are bundled.
+The app uses the external `https://habbohistory.com/habbo-imaging/avatarimage.webp` endpoint for
+full and per-item previews. Per-item previews include the selected head part so its skin color is
+consistent across figure options. If the endpoint is unavailable, catalog selection and outfit
+string export remain usable. This editor contains no Habbo image assets and makes no claim that
+the 2016 catalog matches current inventory. The UI icons are from AvatarGenerate; no Habbo avatar
+or clothing sprite assets are bundled.
 
 ## Scope
 

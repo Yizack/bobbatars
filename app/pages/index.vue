@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useHead } from '#imports'
+import { withQuery } from 'ufo'
 import avatarCatalogJson from '../data/avatar-generator/catalog.json'
 import { DEFAULT_MALE_OUTFIT_FIGURE } from '../data/avatar-generator/default-outfit'
 
@@ -11,14 +12,13 @@ const avatarCatalog = avatarCatalogJson as unknown as {
 }
 const defaultFigure = DEFAULT_MALE_OUTFIT_FIGURE
 const defaultFigureString = `${defaultFigure}&gender=M`
-const previewQuery = new URLSearchParams({
+const previewUrl = withQuery('https://habbohistory.com/habbo-imaging/avatarimage.webp', {
   head_direction: '4',
   direction: '4',
   size: 'l',
   figure: defaultFigure,
   gender: 'M',
 })
-const previewUrl = `https://www.habbo.es/habbo-imaging/avatarimage?${previewQuery.toString()}`
 const selectableSetCount = avatarCatalog.setTypes.reduce((count, type) =>
   count + Object.values(type.sets).filter(set => set.selectable === 1).length, 0,
 )
