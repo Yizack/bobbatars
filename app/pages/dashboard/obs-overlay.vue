@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { useClipboard } from "@vueuse/core";
+import { withQuery } from "ufo";
 
 definePageMeta({ layout: "dashboard" });
 
 const { user } = useUserSession();
 
 const requestUrl = useRequestURL();
-const overlayUrl = computed(() => new URL(`/overlay/${user?.value?.twitchLogin}`, requestUrl.origin).toString());
+const overlayUrl = computed(() => `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`);
 const copyError = ref("");
 const { copy, copied } = useClipboard();
 
@@ -51,7 +52,7 @@ useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
           <div class="relative aspect-video overflow-hidden rounded-md border border-default bg-neutral-950">
             <iframe
               class="absolute inset-0 size-full border-0"
-              :src="overlayUrl"
+              :src="withQuery(overlayUrl, { preview: true })"
               :title="`OBS overlay preview for Twitch channel ${user?.twitchDisplay}`"
               loading="eager"
             />

@@ -5,6 +5,7 @@ import { withQuery } from "ufo";
 
 const props = defineProps<{
   user: string;
+  preview?: boolean;
 }>();
 
 interface Tile {
@@ -134,10 +135,10 @@ useHead({
   title: "Widget de sala Habbo",
   link: [{ rel: "preconnect", href: "https://habbohistory.com" }],
   htmlAttrs: {
-    class: "overflow-hidden bg-transparent"
+    class: "overflow-hidden"
   },
   bodyAttrs: {
-    class: "m-0 overflow-hidden bg-transparent"
+    class: `m-0 overflow-hidden ${props.preview ? "" : "bg-transparent"}`
   }
 });
 
@@ -918,7 +919,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="fixed inset-0 flex w-full items-end overflow-hidden bg-transparent [font-family:Trebuchet_MS,Arial,sans-serif]">
+  <main class="fixed inset-0 flex w-full items-end overflow-hidden [font-family:Trebuchet_MS,Arial,sans-serif]">
     <section class="h-[min(266px,100vh)] w-full" aria-label="Sala Habbo">
       <div ref="room" class="relative h-full w-full">
         <p class="sr-only" role="status" aria-live="polite">
