@@ -52,10 +52,13 @@ const availableSets = computed(() => {
   return activeCategory.value.sets
     .filter((set) => {
       const genderAvailable = set.gender === "U" || set.gender === gender.value;
-      return !set.nft && genderAvailable && (!query || set.id.includes(query));
+      const matchesQuery = !query
+        || set.id.toLowerCase().includes(query)
+        || set.label.toLowerCase().includes(query);
+      return !set.nft && genderAvailable && matchesQuery;
     })
     .sort((left, right) => Number(left.id) - Number(right.id))
-    .map(set => ({ setId: set.id, set }));
+    .map(set => ({ setId: set.id, set, label: set.label }));
 });
 const availableEffects = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -71,7 +74,11 @@ const effectItemsContainer = ref<HTMLElement | null>(null);
 const pageSize = 18;
 const visibleSetCount = ref(pageSize);
 const visibleEffectCount = ref(pageSize);
-const visibleSets = computed(() => availableSets.value.slice(0, visibleSetCount.value));
+const hasSetSearch = computed(() => Boolean(search.value.trim()));
+const visibleSets = computed(() => {
+  if (hasSetSearch.value) return availableSets.value;
+  return availableSets.value.slice(0, visibleSetCount.value);
+});
 const visibleEffects = computed(() => availableEffects.value.slice(0, visibleEffectCount.value));
 
 useInfiniteScroll(
@@ -81,7 +88,7 @@ useInfiniteScroll(
   },
   {
     distance: 160,
-    canLoadMore: () => visibleSetCount.value < availableSets.value.length
+    canLoadMore: () => !hasSetSearch.value && visibleSetCount.value < availableSets.value.length
   }
 );
 
@@ -254,7 +261,7 @@ function itemPreviewUrl (type: string, setId: string): string {
 
       <div class="min-w-0 space-y-4 p-4">
         <div class="flex items-center gap-2">
-          <UInput v-model="search" type="search" icon="pixelarticons:search" class="min-w-0 flex-1" :aria-label="activeType === 'effects' ? 'Filter effects by name' : `Filter ${categoryName(activeType)} by set ID`" :placeholder="activeType === 'effects' ? 'Filter by effect name' : 'Filter by set ID'" />
+          <UInput v-model="search" type="search" icon="pixelarticons:search" class="min-w-0 flex-1" :aria-label="activeType === 'effects' ? 'Filter effects by name' : `Filter ${categoryName(activeType)} by name or ID`" :placeholder="activeType === 'effects' ? 'Filter by effect name' : 'Filter by name or ID'" />
           <UButton v-if="activeType === 'effects' && selectedEffect !== null" type="button" color="error" variant="ghost" icon="pixelarticons:close" @click="selectedEffect = null">Remove effect</UButton>
           <UButton v-else-if="activeType !== 'hd' && activeType !== 'lg' && activePart" type="button" color="error" variant="ghost" icon="pixelarticons:close" @click="removeActivePart">Remove</UButton>
         </div>
@@ -309,6 +316,7 @@ function itemPreviewUrl (type: string, setId: string): string {
                 <img class="max-h-28 max-w-full scale-130 object-contain self-center" :src="itemPreviewUrl(activeType, item.setId)" alt="" loading="lazy">
               </span>
               <span class="w-full truncate text-center font-mono text-xs text-muted">#{{ item.setId }}</span>
+              <span class="w-full truncate text-center font-mono text-xs text-muted">{{ item.label }}</span>
             </UButton>
             <UAlert v-if="!availableSets.length" class="col-span-full" color="neutral" variant="subtle" title="No matching items" description="Try another set ID or category." icon="pixelarticons:letter-x-circle" />
           </div>

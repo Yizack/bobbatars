@@ -143,10 +143,7 @@ function randomizeOutfit () {
 
 function importOutfit (allowUnlistedParts = false) {
   const source = importText.value.trim();
-  const segments = source.split("&");
-  let rawFigure = segments.shift() || "";
-  const genderParam = segments.find(value => value.toLowerCase().startsWith("gender="));
-  const importedGender = genderParam?.slice(genderParam.indexOf("=") + 1).toUpperCase();
+  let rawFigure = source.split("&")[0] || "";
 
   if (rawFigure.startsWith("figure=")) rawFigure = rawFigure.slice("figure=".length);
 
@@ -174,7 +171,6 @@ function importOutfit (allowUnlistedParts = false) {
     parsedParts[type] = { setId, colorIds };
   }
 
-  gender.value = importedGender === "F" ? "F" : "M";
   selectedParts.value = parsedParts;
   const firstType = tokens
     .map(token => token.split("-")[0])
@@ -239,7 +235,7 @@ async function lookupHabboFigure () {
       throw new Error("Habbo History did not return a figure for this user.");
     }
 
-    importText.value = `${result.figureString}&gender=${gender.value}`;
+    importText.value = result.figureString;
     importOutfit(true);
     if (importError.value) {
       lookupError.value = importError.value;

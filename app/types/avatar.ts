@@ -16,6 +16,7 @@ export interface AvatarColor {
 
 export interface FigureSet {
   id: string;
+  label: string;
   gender: AvatarGender | "U";
   colorCount: number;
   nft?: boolean;
