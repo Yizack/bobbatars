@@ -315,8 +315,10 @@ function itemPreviewUrl (type: string, setId: string): string {
               <span class="flex h-36 w-full items-center justify-center overflow-hidden rounded bg-neutral-950">
                 <img class="max-h-28 max-w-full scale-130 object-contain self-center" :src="itemPreviewUrl(activeType, item.setId)" alt="" loading="lazy">
               </span>
-              <span class="w-full truncate text-center font-mono text-xs text-muted">#{{ item.setId }}</span>
-              <span class="w-full truncate text-center font-mono text-xs text-muted">{{ item.label }}</span>
+              <div class="flex flex-col">
+                <span class="w-full truncate text-center font-mono text-xs">{{ item.label }}</span>
+                <span class="w-full truncate text-center font-mono text-xs text-muted">#{{ item.setId }}</span>
+              </div>
             </UButton>
             <UAlert v-if="!availableSets.length" class="col-span-full" color="neutral" variant="subtle" title="No matching items" description="Try another set ID or category." icon="pixelarticons:letter-x-circle" />
           </div>
