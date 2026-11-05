@@ -29,5 +29,6 @@ export default [
   "pixelarticons:sofa",
   "pixelarticons:square",
   "pixelarticons:check",
-  "pixelarticons:loader"
+  "pixelarticons:loader",
+  "pixelarticons:settings-cog"
 ];

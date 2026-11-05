@@ -8,10 +8,23 @@ const props = withDefaults(defineProps<{
   user: string;
   tiles?: boolean;
   chat?: boolean;
+  maxAvatars?: number;
+  roomHeight?: number;
   embedded?: boolean;
 }>(), {
   chat: true,
+  maxAvatars: 50,
+  roomHeight: 266,
   embedded: false
+});
+
+const maxAvatars = computed(() => {
+  if (!Number.isInteger(props.maxAvatars)) return 50;
+  return Math.min(50, Math.max(1, props.maxAvatars));
+});
+const roomHeightSetting = computed(() => {
+  if (!Number.isInteger(props.roomHeight)) return 266;
+  return Math.min(500, Math.max(38, props.roomHeight));
 });
 
 interface Tile {
@@ -102,7 +115,6 @@ const tileWidth = 76;
 const tileHeight = tileWidth / 2;
 const stepDuration = 320;
 const chatChannel = props.user.toLowerCase();
-const maxAvatars = 50;
 const inactiveTimeout = 15 * 60 * 1000;
 const knownChatBots = new Set([
   "ankhbot",
@@ -149,7 +161,7 @@ const preloadedImages = new Map<string, {
 let columns = 0;
 let rows = 0;
 let roomWidth = 0;
-let roomHeight = 0;
+let roomLayoutHeight = 0;
 let originX = 0;
 let originY = 0;
 let chatClient: TwitchChatClient | null = null;
@@ -281,7 +293,7 @@ function isRoomTile (tile: Tile) {
   const point = positionFor(tile.column, tile.row);
   const horizontalMargin = Math.min(40, roomWidth * 0.04);
   return point.x >= horizontalMargin && point.x <= roomWidth - horizontalMargin
-    && point.y >= roomHeight * 0.18 && point.y <= roomHeight * 0.94;
+    && point.y >= roomLayoutHeight * 0.18 && point.y <= roomLayoutHeight * 0.94;
 }
 
 function placeHabbo (avatar: AvatarState) {
@@ -435,15 +447,15 @@ function updateRoomLayout () {
     + verticalRange / (tileHeight / 2)
   ) + 2;
   const gridSize = Math.max(2, Math.ceil(requiredGridSize / 2) * 2);
-  const layoutChanged = nextWidth !== roomWidth || nextHeight !== roomHeight
+  const layoutChanged = nextWidth !== roomWidth || nextHeight !== roomLayoutHeight
     || gridSize !== columns || gridSize !== rows;
 
   roomWidth = nextWidth;
-  roomHeight = nextHeight;
+  roomLayoutHeight = nextHeight;
   columns = gridSize;
   rows = gridSize;
   originX = roomWidth / 2;
-  originY = roomHeight / 2 - (columns + rows - 2) * tileHeight / 4;
+  originY = roomLayoutHeight / 2 - (columns + rows - 2) * tileHeight / 4;
 
   if (layoutChanged) {
     const nextRoomTiles: RoomTile[] = [];
@@ -524,7 +536,7 @@ function tileUnavailable (tile: Tile, movingAvatar: AvatarState | null) {
 
 function updateChatStatus () {
   const connection = chatConnected ? `Conectado a #${chatChannel}` : `Conectando a #${chatChannel}`;
-  status.value = `${connection} · ${avatars.value.length}/${maxAvatars} avatares activos`;
+  status.value = `${connection} · ${avatars.value.length}/${maxAvatars.value} avatares activos`;
 }
 
 function findFreeTile (): Tile | null {
@@ -632,7 +644,7 @@ function reconcileActiveAvatars () {
       || second.lastActivity - first.lastActivity
       || first.login.localeCompare(second.login)
     )
-    .slice(0, maxAvatars - (streamer ? 1 : 0));
+    .slice(0, maxAvatars.value - (streamer ? 1 : 0));
   if (streamer) topUsers.push(streamer);
   const topLogins = new Set(topUsers.map(user => user.login));
 
@@ -1161,7 +1173,7 @@ onBeforeUnmount(() => {
     class="flex w-full items-end overflow-hidden [font-family:Trebuchet_MS,Arial,sans-serif]"
   >
     <section
-      :class="props.embedded ? 'h-[min(266px,100%)]' : 'h-[min(266px,100vh)]'"
+      :style="{ height: `min(${roomHeightSetting}px, ${props.embedded ? '100%' : '100vh'})` }"
       class="w-full"
       aria-label="Sala Habbo"
     >

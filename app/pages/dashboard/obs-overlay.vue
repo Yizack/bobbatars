@@ -9,11 +9,15 @@ const { user } = useUserSession();
 const requestUrl = useRequestURL();
 const tiles = ref(false);
 const chat = ref(true);
+const maxAvatars = ref(50);
+const roomHeight = ref(266);
 const overlayUrl = computed(() => withQuery(
   `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`,
   {
     tiles: tiles.value ? "true" : undefined,
-    chat: chat.value ? undefined : "false"
+    chat: chat.value ? undefined : "false",
+    maxAvatars: maxAvatars.value === 50 ? undefined : String(maxAvatars.value),
+    roomHeight: roomHeight.value === 266 ? undefined : String(roomHeight.value)
   }
 ));
 const copyError = ref("");
@@ -60,6 +64,8 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
               :user="user?.twitchLogin ?? ''"
               :tiles="tiles"
               :chat="chat"
+              :max-avatars="maxAvatars"
+              :room-height="roomHeight"
               embedded
             />
             <UBadge class="absolute left-3 top-3 z-10" color="neutral" variant="subtle">@{{ user?.twitchDisplay }}</UBadge>
@@ -68,23 +74,65 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
           <p class="mt-4 text-xs leading-5 text-muted">Avatars appear as people chat in this Twitch channel. The overlay background is transparent in OBS.</p>
         </UCard>
 
-        <div class="order-2 xl:order-3 grid grid-cols-3 gap-2">
-          <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3">
-            <div class="grid gap-1">
-              <p class="text-sm font-medium text-highlighted">Show room tiles</p>
-              <p class="text-xs leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
+        <UCard variant="outline" class="order-2 xl:order-3 min-w-0">
+          <template #header>
+            <div class="flex items-center gap-2">
+              <UIcon name="pixelarticons:settings-cog" class="size-4 text-primary" />
+              <h2 class="text-sm font-semibold text-highlighted">Settings</h2>
             </div>
-            <USwitch v-model="tiles" aria-label="Show room tiles" />
-          </div>
+          </template>
 
-          <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3">
-            <div class="grid gap-1">
-              <p class="text-sm font-medium text-highlighted">Chat bubbles</p>
-              <p class="text-xs leading-5 text-muted">Show chat messages above avatars.</p>
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
+            <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+              <div class="grid gap-1">
+                <label for="obs-max-avatars" class="text-sm font-medium text-highlighted">Maximum avatars</label>
+                <p class="text-xs leading-5 text-muted">Set a room limit from 1 to 50.</p>
+              </div>
+              <UInput
+                id="obs-max-avatars"
+                v-model.number="maxAvatars"
+                type="number"
+                min="1"
+                max="50"
+                step="1"
+                class="w-20"
+                aria-label="Maximum avatars"
+              />
             </div>
-            <USwitch v-model="chat" aria-label="Enable chat bubbles" />
+
+            <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+              <div class="flex items-center justify-between gap-4">
+                <div class="grid gap-1">
+                  <p class="text-sm font-medium text-highlighted">Room height</p>
+                  <p class="text-xs leading-5 text-muted">Set the room height.</p>
+                </div>
+              </div>
+              <USlider
+                v-model="roomHeight"
+                :max="494"
+                :min="38"
+                :step="38"
+                aria-label="Room height in pixels"
+              />
+            </div>
+
+            <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+              <label class="grid gap-1" for="obs-show-tiles">
+                <p class="text-sm font-medium text-highlighted">Show room tiles</p>
+                <p class="text-xs leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
+              </label>
+              <USwitch id="obs-show-tiles" v-model="tiles" aria-label="Show room tiles" />
+            </div>
+
+            <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+              <label class="grid gap-1" for="obs-chat-bubbles">
+                <p class="text-sm font-medium text-highlighted">Chat bubbles</p>
+                <p class="text-xs leading-5 text-muted">Show chat messages above avatars.</p>
+              </label>
+              <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
+            </div>
           </div>
-        </div>
+        </UCard>
 
         <UCard variant="outline" class="order-3 xl:order-2 min-w-0">
           <template #header>
