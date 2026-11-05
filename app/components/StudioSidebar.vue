@@ -9,7 +9,7 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
       label: "Overview",
       to: "/",
       icon: "pixelarticons:home",
-      active: route.path === "/"
+      active: route.path === "/dashboard"
     }
   ],
   [
@@ -20,7 +20,7 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
     {
       label: "My Avatar",
       to: "/dashboard/avatar",
-      icon: "pixelarticons:user",
+      icon: "pixelarticons:shirt",
       active: route.path === "/dashboard/avatar"
     }
   ],
