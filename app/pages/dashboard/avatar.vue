@@ -3,10 +3,12 @@ import { withQuery } from "ufo";
 import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
 import { DEFAULT_MALE_OUTFIT_FIGURE, DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
 import { useInfiniteScroll } from "@vueuse/core";
+import { type AvatarDanceAction, avatarDanceActions } from "../../utils/avatarCommands";
 
 definePageMeta({ layout: "dashboard" });
 
 type Gender = "M" | "F";
+type AvatarPreviewAction = "std" | AvatarDanceAction;
 
 interface AvatarColor {
   id: string;
@@ -91,6 +93,16 @@ const categoryIcons: Record<string, string> = {
   mc: "extra.png"
 };
 const genderIcons: Record<Gender, string> = { M: "male.png", F: "female.png" };
+const previewDanceHeadDirectionOverrides: Partial<Record<number, number>> = {
+  3: 2,
+  4: 5,
+  6: 5,
+  7: 0
+};
+const previewActionOptions: { label: string, value: AvatarPreviewAction }[] = [
+  { label: "Stand", value: "std" },
+  ...avatarDanceActions.map((action, index) => ({ label: `Dance ${index + 1}`, value: action }))
+];
 
 const { user } = useUserSession();
 
@@ -126,6 +138,7 @@ const lookupQueueMessage = ref("");
 const saveState = ref<"idle" | "saving" | "saved" | "error">("idle");
 const previewFailed = ref(false);
 const previewDirection = ref(4);
+const previewAction = ref<AvatarPreviewAction>("std");
 
 watch([lookupHotel, lookupUsername], () => {
   if (lookupState.value === "loading") return;
@@ -246,12 +259,22 @@ function figureForParts (parts: Record<string, OutfitPart>): string {
 const figure = computed(() => figureForParts(selectedParts.value));
 
 const previewUrl = computed(() => {
+  let headDirection = previewDirection.value;
+  if (previewAction.value === "dance3" || previewAction.value === "dance4") {
+    headDirection = previewDanceHeadDirectionOverrides[previewDirection.value] ?? previewDirection.value;
+  }
+
   return withQuery(imagingUrl, {
-    head_direction: String(previewDirection.value),
+    head_direction: String(headDirection),
     direction: String(previewDirection.value),
     size: "l",
     figure: figure.value,
-    gender: gender.value
+    gender: gender.value,
+    action: previewAction.value,
+    gesture: "std",
+    format: "webp",
+    rv: 55,
+    animv: 28
   });
 });
 
@@ -670,9 +693,20 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                   <p class="text-[10px] font-semibold tracking-widest text-primary">HABBO IMAGING</p>
                   <h2 class="mt-1 text-lg font-semibold text-highlighted">Outfit preview</h2>
                 </div>
-                <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-rotate-3d" @click="previewDirection = (previewDirection + 1) % 8">
-                  Turn · {{ previewDirection }}
-                </UButton>
+                <div class="flex w-full min-w-0 flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
+                  <USelect
+                    v-model="previewAction"
+                    :items="previewActionOptions"
+                    value-key="value"
+                    label-key="label"
+                    aria-label="Preview dance"
+                    size="sm"
+                    class="w-full sm:w-32"
+                  />
+                  <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-rotate-3d" @click="previewDirection = (previewDirection + 1) % 8">
+                    Turn · {{ previewDirection }}
+                  </UButton>
+                </div>
               </div>
             </template>
 
