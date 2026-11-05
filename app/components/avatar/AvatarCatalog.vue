@@ -233,7 +233,7 @@ function itemPreviewUrl (type: string, setId: string): string {
           class="min-w-36 shrink-0 justify-start xl:w-full"
           @click="activeType = type.type; search = ''"
         >
-          <img :src="categoryIcon(type.type)" alt="" class="size-5 shrink-0 object-contain">
+          <img :src="categoryIcon(type.type)" alt="" class="size-8 shrink-0 object-contain">
           <span class="truncate">{{ categoryName(type.type) }}</span>
           <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">
             {{ type.sets.filter(set => !set.nft && (set.gender === 'U' || set.gender === gender)).length }}
@@ -246,7 +246,7 @@ function itemPreviewUrl (type: string, setId: string): string {
           class="min-w-36 shrink-0 justify-start xl:w-full"
           @click="activeType = 'effects'; search = ''"
         >
-          <img :src="categoryIcon('effects')" alt="" class="size-5 shrink-0 object-contain">
+          <img :src="categoryIcon('effects')" alt="" class="size-8 shrink-0 object-contain">
           <span class="truncate">{{ categoryName('effects') }}</span>
           <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">{{ catalog.effects.length }}</UBadge>
         </UButton>
