@@ -1037,7 +1037,7 @@ function reportAvatarLoadError (avatar: AvatarState | null, error: unknown) {
   console.info(error);
 }
 
-function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() * 1800) {
+function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() * 3800) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   avatar.randomTimer = null;
   if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current) return;
