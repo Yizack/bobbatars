@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, navigateTo, useRoute } from "#imports";
 import type { NavigationMenuItem } from "@nuxt/ui";
+import { useMediaQuery } from "@vueuse/core";
 
-const route = useRoute();
 const sidebarOpen = defineModel<boolean>("open", { default: true });
+const isMobile = useMediaQuery("(max-width: 1023px)");
+
 function closeSidebar () {
-  sidebarOpen.value = false;
+  sidebarOpen.value = isMobile.value ? false : sidebarOpen.value;
 }
 
 const navigationItems = computed<NavigationMenuItem[][]>(() => [
