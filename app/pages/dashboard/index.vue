@@ -61,7 +61,7 @@ const categoryCount = avatarCatalog.categories.length + (avatarCatalog?.effects?
         </div>
       </section>
 
-      <section class="grid grid-cols-3 gap-4" aria-label="Outfit catalog statistics">
+      <section class="grid grid-cols-2 xl:grid-cols-3 gap-4" aria-label="Outfit catalog statistics">
         <div class="border-l-2 border-primary/50 pl-4">
           <p class="text-[10px] font-semibold tracking-[0.18em] text-primary uppercase">Categories</p>
           <p class="mt-1 flex flex-wrap items-baseline gap-x-2">

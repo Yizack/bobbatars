@@ -21,7 +21,8 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
   [
     {
       label: "Viewer",
-      type: "label"
+      type: "label",
+      class: "uppercase"
     },
     {
       label: "My Avatar",
@@ -33,7 +34,8 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
   [
     {
       label: "Streamer",
-      type: "label"
+      type: "label",
+      class: "uppercase"
     },
     {
       label: "OBS overlay",
@@ -56,20 +58,19 @@ async function logout () {
     v-model:open="sidebarOpen"
     collapsible="offcanvas"
     variant="inset"
+    title="Bobbatars"
     :menu="{ title: 'Workspace navigation' }"
     :ui="{
       container: 'h-full',
     }"
   >
-    <template #default>
-      <UNavigationMenu
-        :items="navigationItems"
-        orientation="vertical"
-        variant="pill"
-        aria-label="Workspace navigation"
-        class="w-full"
-      />
-    </template>
+    <UNavigationMenu
+      :items="navigationItems"
+      orientation="vertical"
+      variant="pill"
+      aria-label="Workspace navigation"
+      class="w-full"
+    />
 
     <template #footer>
       <div class="grid w-full gap-3">
