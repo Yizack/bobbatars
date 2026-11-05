@@ -6,7 +6,6 @@ import { type AvatarDanceAction, avatarDanceActions, parseAvatarChatCommand } fr
 
 const props = defineProps<{
   user: string;
-  preview?: boolean;
 }>();
 
 interface Tile {
@@ -137,17 +136,6 @@ let chatClient: TwitchChatClient | null = null;
 let chatConnected = false;
 let isUnmounting = false;
 let animationFrame: number | null = null;
-
-useHead({
-  title: "Widget de sala Habbo",
-  link: [{ rel: "preconnect", href: "https://habbohistory.com" }],
-  htmlAttrs: {
-    class: "overflow-hidden"
-  },
-  bodyAttrs: {
-    class: `m-0 overflow-hidden ${props.preview ? "" : "bg-transparent"}`
-  }
-});
 
 function imageUrl (
   direction: number,
