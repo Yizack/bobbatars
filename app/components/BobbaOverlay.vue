@@ -4,13 +4,24 @@ import type { ChatClient as TwitchChatClient } from "@twurple/chat";
 import { withQuery } from "ufo";
 import { type AvatarDanceAction, avatarDanceActions, parseAvatarChatCommand } from "../utils/avatarCommands";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   user: string;
-}>();
+  tiles?: boolean;
+  chat?: boolean;
+  embedded?: boolean;
+}>(), {
+  chat: true,
+  embedded: false
+});
 
 interface Tile {
   column: number;
   row: number;
+}
+
+interface RoomTile extends Tile {
+  x: number;
+  y: number;
 }
 
 interface ActiveUser {
@@ -20,6 +31,7 @@ interface ActiveUser {
   lastActivity: number;
   lastMessage: string;
   lastMessageAt: number;
+  isStreamer: boolean;
   isSitting: boolean;
   danceAction: AvatarDanceAction | null;
 }
@@ -122,6 +134,7 @@ function randomSitDirection () {
 }
 
 const room = ref<HTMLDivElement | null>(null);
+const roomTiles = ref<RoomTile[]>([]);
 const status = ref("Conectando al chat de Twitch…");
 const avatars = ref<AvatarState[]>([]);
 const movingAvatars = new Set<AvatarState>();
@@ -249,6 +262,15 @@ function positionFor (column: number, row: number) {
     x: originX + (column - row) * tileWidth / 2,
     y: originY + (column + row) * tileHeight / 2
   };
+}
+
+function tilePoints (tile: RoomTile) {
+  return [
+    `${tile.x},${tile.y - tileHeight / 2}`,
+    `${tile.x + tileWidth / 2},${tile.y}`,
+    `${tile.x},${tile.y + tileHeight / 2}`,
+    `${tile.x - tileWidth / 2},${tile.y}`
+  ].join(" ");
 }
 
 function isRoomTile (tile: Tile) {
@@ -423,6 +445,18 @@ function updateRoomLayout () {
   originX = roomWidth / 2;
   originY = roomHeight / 2 - (columns + rows - 2) * tileHeight / 4;
 
+  if (layoutChanged) {
+    const nextRoomTiles: RoomTile[] = [];
+    for (let column = 0; column < columns; column++) {
+      for (let row = 0; row < rows; row++) {
+        const tile = { column, row };
+        if (!isRoomTile(tile)) continue;
+        nextRoomTiles.push({ ...tile, ...positionFor(column, row) });
+      }
+    }
+    roomTiles.value = nextRoomTiles;
+  }
+
   if (layoutChanged && avatars.value.length > 0) {
     for (const avatar of [...avatars.value]) {
       avatar.movementVersion++;
@@ -587,16 +621,19 @@ function removeAvatarState (avatar: AvatarState) {
 function reconcileActiveAvatars () {
   const now = Date.now();
   for (const [login, user] of activeUsers) {
-    if (now - user.lastActivity >= inactiveTimeout) activeUsers.delete(login);
+    if (!user.isStreamer && now - user.lastActivity >= inactiveTimeout) activeUsers.delete(login);
   }
 
+  const streamer = [...activeUsers.values()].find(user => user.isStreamer);
   const topUsers = [...activeUsers.values()]
+    .filter(user => !user.isStreamer)
     .sort((first, second) =>
       second.activity - first.activity
       || second.lastActivity - first.lastActivity
       || first.login.localeCompare(second.login)
     )
-    .slice(0, maxAvatars);
+    .slice(0, maxAvatars - (streamer ? 1 : 0));
+  if (streamer) topUsers.push(streamer);
   const topLogins = new Set(topUsers.map(user => user.login));
 
   for (const avatar of [...avatars.value]) {
@@ -787,7 +824,7 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
 
   const now = Date.now();
   let user = activeUsers.get(login);
-  if (!user || now - user.lastActivity >= inactiveTimeout) {
+  if (!user || (!user.isStreamer && now - user.lastActivity >= inactiveTimeout)) {
     if (stopCommand) return;
     user = {
       login,
@@ -796,6 +833,7 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
       lastActivity: now,
       lastMessage: "",
       lastMessageAt: 0,
+      isStreamer: login === chatChannel,
       isSitting: false,
       danceAction: null
     };
@@ -1066,6 +1104,22 @@ async function connectToChat () {
   }
 }
 
+function ensureStreamerActive () {
+  if (!chatChannel || activeUsers.has(chatChannel)) return;
+
+  activeUsers.set(chatChannel, {
+    login: chatChannel,
+    displayName: props.user,
+    activity: 0,
+    lastActivity: Date.now(),
+    lastMessage: "",
+    lastMessageAt: 0,
+    isStreamer: true,
+    isSitting: false,
+    danceAction: null
+  });
+}
+
 const avatarReconcileInterval = useIntervalFn(reconcileActiveAvatars, 5000, {
   immediate: false
 });
@@ -1078,6 +1132,8 @@ useResizeObserver(room, () => updateRoomLayout());
 
 onMounted(() => {
   updateRoomLayout();
+  ensureStreamerActive();
+  reconcileActiveAvatars();
   avatarReconcileInterval.resume();
   void preloadAvatar(2, "std").then((image) => {
     if (image) return preloadAllWalkAnimations();
@@ -1100,9 +1156,28 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="fixed inset-0 flex w-full items-end overflow-hidden [font-family:Trebuchet_MS,Arial,sans-serif]">
-    <section class="h-[min(266px,100vh)] w-full" aria-label="Sala Habbo">
+  <div
+    :class="props.embedded ? 'absolute inset-0' : 'fixed inset-0'"
+    class="flex w-full items-end overflow-hidden [font-family:Trebuchet_MS,Arial,sans-serif]"
+  >
+    <section
+      :class="props.embedded ? 'h-[min(266px,100%)]' : 'h-[min(266px,100vh)]'"
+      class="w-full"
+      aria-label="Sala Habbo"
+    >
       <div ref="room" class="relative h-full w-full">
+        <svg v-if="props.tiles" class="pointer-events-none absolute inset-0 z-0 size-full" aria-hidden="true">
+          <polygon
+            v-for="tile in roomTiles"
+            :key="`${tile.column}-${tile.row}`"
+            :points="tilePoints(tile)"
+            :fill="(tile.column + tile.row) % 2 === 0 ? 'rgba(80, 145, 169, 0.18)' : 'rgba(43, 101, 125, 0.13)'"
+            stroke="rgba(169, 217, 230, 0.42)"
+            stroke-width="1"
+            vector-effect="non-scaling-stroke"
+          />
+        </svg>
+
         <p class="sr-only" role="status" aria-live="polite">
           {{ status }}
         </p>
@@ -1110,13 +1185,14 @@ onBeforeUnmount(() => {
         <template v-for="avatar in avatars" :key="avatar.login">
           <div
             :ref="avatar.shadowRef"
-            class="pointer-events-none absolute left-0 top-0 z-[1] h-[14px] w-[34px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
+            class="pointer-events-none absolute left-1 -top-1 z-[1] h-[14px] w-[34px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
             aria-hidden="true"
           />
           <img
             v-if="avatar.currentImage"
             :ref="avatar.imageRef"
-            class="pointer-events-auto absolute left-0 top-0 z-[2] h-auto max-w-full cursor-pointer select-none"
+            class="pointer-events-auto absolute left-1 z-[2] h-auto max-w-full cursor-pointer select-none"
+            :class="avatar.isSitting ? 'top-3' : '-top-1'"
             :src="avatar.currentImage"
             :alt="`Avatar de ${avatar.displayName}`"
             :aria-label="`Opciones para el avatar de ${avatar.displayName}`"
@@ -1137,7 +1213,7 @@ onBeforeUnmount(() => {
             {{ avatar.displayName }}
           </span>
           <UPopover
-            :open="avatar.bubbleVisible"
+            :open="props.chat && avatar.bubbleVisible"
             :dismissible="false"
             :content="{ side: 'top', sideOffset: 8, collisionPadding: 8, updatePositionStrategy: 'always' }"
             arrow
@@ -1247,5 +1323,5 @@ onBeforeUnmount(() => {
         </template>
       </div>
     </section>
-  </main>
+  </div>
 </template>

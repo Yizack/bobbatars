@@ -1,8 +1,11 @@
 <script setup lang="ts">
-const { user } = useRoute("overlay-user").params;
+const route = useRoute("overlay-user");
+const { user } = route.params;
 definePageMeta({ layout: false });
 
-const { preview } = useRoute().query as { preview?: boolean };
+const preview = route.query.preview === "true";
+const tiles = computed(() => route.query.tiles === "true");
+const chat = computed(() => route.query.chat !== "false");
 
 useHead({
   htmlAttrs: {
@@ -15,5 +18,7 @@ useHead({
 </script>
 
 <template>
-  <BobbaOverlay :user="user" />
+  <main>
+    <BobbaOverlay :user="user" :tiles="tiles" :chat="chat" />
+  </main>
 </template>

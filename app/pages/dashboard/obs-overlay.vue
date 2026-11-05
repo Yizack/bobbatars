@@ -7,7 +7,15 @@ definePageMeta({ layout: "dashboard" });
 const { user } = useUserSession();
 
 const requestUrl = useRequestURL();
-const overlayUrl = computed(() => `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`);
+const tiles = ref(false);
+const chat = ref(true);
+const overlayUrl = computed(() => withQuery(
+  `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`,
+  {
+    tiles: tiles.value ? "true" : undefined,
+    chat: chat.value ? undefined : "false"
+  }
+));
 const copyError = ref("");
 const { copy, copied } = useClipboard();
 
@@ -36,7 +44,7 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
       </section>
 
       <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.8fr)]">
-        <UCard variant="outline" class="min-w-0">
+        <UCard variant="outline" class="order-1 min-w-0">
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <div>
@@ -48,11 +56,11 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
           </template>
 
           <div class="relative aspect-video overflow-hidden rounded-md border border-default bg-neutral-950">
-            <iframe
-              class="absolute inset-0 size-full border-0"
-              :src="withQuery(overlayUrl, { preview: true })"
-              :title="`OBS overlay preview for Twitch channel ${user?.twitchDisplay}`"
-              loading="eager"
+            <BobbaOverlay
+              :user="user?.twitchLogin ?? ''"
+              :tiles="tiles"
+              :chat="chat"
+              embedded
             />
             <UBadge class="absolute left-3 top-3 z-10" color="neutral" variant="subtle">@{{ user?.twitchDisplay }}</UBadge>
           </div>
@@ -60,7 +68,25 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
           <p class="mt-4 text-xs leading-5 text-muted">Avatars appear as people chat in this Twitch channel. The overlay background is transparent in OBS.</p>
         </UCard>
 
-        <UCard variant="outline" class="min-w-0">
+        <div class="order-2 xl:order-3 grid grid-cols-3 gap-2">
+          <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3">
+            <div class="grid gap-1">
+              <p class="text-sm font-medium text-highlighted">Show room tiles</p>
+              <p class="text-xs leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
+            </div>
+            <USwitch v-model="tiles" aria-label="Show room tiles" />
+          </div>
+
+          <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3">
+            <div class="grid gap-1">
+              <p class="text-sm font-medium text-highlighted">Chat bubbles</p>
+              <p class="text-xs leading-5 text-muted">Show chat messages above avatars.</p>
+            </div>
+            <USwitch v-model="chat" aria-label="Enable chat bubbles" />
+          </div>
+        </div>
+
+        <UCard variant="outline" class="order-3 xl:order-2 min-w-0">
           <template #header>
             <div class="flex items-center gap-2">
               <UIcon name="pixelarticons:monitor" class="size-4 text-primary" />
