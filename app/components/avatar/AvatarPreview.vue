@@ -36,8 +36,8 @@ watch(previewUrl, () => {
     <template #header>
       <div class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p class="text-[10px] font-semibold tracking-widest text-primary">HABBO IMAGING</p>
-          <h2 class="mt-1 text-lg font-semibold text-highlighted">Outfit preview</h2>
+          <p class="text-[10px] max-sm:text-[9px] font-semibold tracking-widest text-primary">HABBO IMAGING</p>
+          <h2 class="mt-1 text-lg max-sm:text-base font-semibold text-highlighted">Outfit preview</h2>
         </div>
         <div class="flex w-full min-w-0 flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
           <USelect
@@ -49,7 +49,7 @@ watch(previewUrl, () => {
             size="sm"
             class="w-full sm:w-32"
           />
-          <UButton size="sm" color="neutral" variant="outline" icon="pixelarticons:move" @click="previewDirection = (previewDirection + 1) % 8">
+          <UButton class="max-sm:text-[11px]" size="sm" color="neutral" variant="outline" icon="pixelarticons:move" @click="previewDirection = (previewDirection + 1) % 8">
             Turn
           </UButton>
         </div>
@@ -66,16 +66,16 @@ watch(previewUrl, () => {
         loading="eager"
         @error="previewFailed = true"
       >
-      <UAlert v-else color="warning" variant="subtle" title="Preview unavailable" description="Habbo Imaging did not return this outfit. You can still save it." icon="pixelarticons:image-delete" />
+      <UAlert v-else color="warning" variant="subtle" title="Preview unavailable" description="Habbo Imaging did not return this outfit. You can still save it." icon="pixelarticons:image-delete" :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }" />
     </div>
 
     <div class="mt-3 grid grid-cols-2 items-center gap-2 sm:mt-4 sm:flex sm:flex-wrap">
-      <UButton size="sm" class="min-w-0 justify-center" color="secondary" icon="pixelarticons:shuffle" @click="emit('randomize')">Randomize</UButton>
-      <UButton size="sm" class="min-w-0 justify-center" color="neutral" icon="pixelarticons:reload" @click="emit('reset')">Reset</UButton>
-      <UBadge class="col-span-2 justify-center sm:ml-auto sm:col-span-1" color="neutral" variant="subtle">{{ outfitCount }} parts</UBadge>
-      <UButton class="col-span-2 justify-center sm:col-span-1" color="primary" icon="pixelarticons:save" :loading="saveState === 'saving'" :disabled="!canSave || saveState === 'saving'" block @click="emit('save')">Save avatar</UButton>
+      <UButton size="sm" class="min-w-0 justify-center max-sm:text-[11px]" color="secondary" icon="pixelarticons:shuffle" @click="emit('randomize')">Randomize</UButton>
+      <UButton size="sm" class="min-w-0 justify-center max-sm:text-[11px]" color="neutral" icon="pixelarticons:reload" @click="emit('reset')">Reset</UButton>
+      <UBadge class="col-span-2 justify-center max-sm:text-[11px] sm:ml-auto sm:col-span-1" color="neutral" variant="subtle">{{ outfitCount }} parts</UBadge>
+      <UButton class="col-span-2 justify-center max-sm:text-xs sm:col-span-1" color="primary" icon="pixelarticons:save" :loading="saveState === 'saving'" :disabled="!canSave || saveState === 'saving'" block @click="emit('save')">Save avatar</UButton>
     </div>
-    <UAlert v-if="saveState === 'saved'" class="mt-3" color="success" variant="subtle" title="Avatar saved" description="Your current avatar has been saved to your account." icon="pixelarticons:checkbox-on" />
-    <UAlert v-else-if="saveState === 'error'" class="mt-3" color="error" variant="subtle" title="Could not save avatar" description="Please try again." icon="pixelarticons:alert" />
+    <UAlert v-if="saveState === 'saved'" class="mt-3" color="success" variant="subtle" title="Avatar saved" description="Your current avatar has been saved to your account." icon="pixelarticons:checkbox-on" :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }" />
+    <UAlert v-else-if="saveState === 'error'" class="mt-3" color="error" variant="subtle" title="Could not save avatar" description="Please try again." icon="pixelarticons:alert" :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }" />
   </UCard>
 </template>

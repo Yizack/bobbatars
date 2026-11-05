@@ -26,11 +26,11 @@ const hotels: { label: string, value: HabboHotel }[] = [
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="pixelarticons:user" class="size-4 text-primary" />
-        <h2 class="text-sm font-semibold text-highlighted">Load a Habbo</h2>
+        <h2 class="text-sm max-sm:text-xs font-semibold text-highlighted">Load a Habbo</h2>
       </div>
     </template>
     <div class="grid min-w-0 gap-3">
-      <label class="grid min-w-0 gap-1 text-sm font-medium text-highlighted">
+      <label class="grid min-w-0 gap-1 text-sm max-sm:text-xs font-medium text-highlighted">
         <span>Hotel</span>
         <USelect
           v-model="hotel"
@@ -42,7 +42,7 @@ const hotels: { label: string, value: HabboHotel }[] = [
           :disabled="state === 'loading'"
         />
       </label>
-      <label class="grid min-w-0 gap-1 text-sm font-medium text-highlighted">
+      <label class="grid min-w-0 gap-1 text-sm max-sm:text-xs font-medium text-highlighted">
         <span>Username</span>
         <UInput
           v-model="username"
@@ -56,7 +56,7 @@ const hotels: { label: string, value: HabboHotel }[] = [
       </label>
       <UButton
         type="button"
-        class="w-full justify-center"
+        class="w-full justify-center max-sm:text-xs"
         color="primary"
         icon="pixelarticons:search"
         :loading="state === 'loading'"
@@ -73,6 +73,7 @@ const hotels: { label: string, value: HabboHotel }[] = [
       variant="subtle"
       title="Figure lookup queued"
       :description="queueMessage"
+      :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }"
     />
     <UAlert
       v-else-if="state === 'success'"
@@ -82,6 +83,7 @@ const hotels: { label: string, value: HabboHotel }[] = [
       :title="`Loaded ${name}'s figure`"
       description="The figure is ready to preview and edit. Save it to keep it on your account."
       icon="pixelarticons:checkbox-on"
+      :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }"
     />
     <UAlert
       v-else-if="state === 'error'"
@@ -91,6 +93,7 @@ const hotels: { label: string, value: HabboHotel }[] = [
       title="Could not look up this figure"
       :description="error"
       icon="pixelarticons:alert"
+      :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }"
     />
   </UCard>
 </template>

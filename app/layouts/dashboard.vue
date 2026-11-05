@@ -17,7 +17,7 @@ const sidebarOpen = ref(true);
           :aria-expanded="sidebarOpen"
           @click="sidebarOpen = !sidebarOpen"
         />
-        <span class="text-sm font-semibold text-highlighted">Bobbatars</span>
+        <span class="text-sm max-sm:text-xs font-semibold text-highlighted">Bobbatars</span>
       </header>
       <div class="min-h-0 flex-1 overflow-y-auto">
         <slot />

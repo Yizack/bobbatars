@@ -42,8 +42,8 @@ useHead({ title: "OBS Overlay | Bobbatars" });
     <div class="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
         <div class="max-w-2xl">
-          <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">OBS overlay</h1>
-          <p class="mt-2 text-sm leading-6 text-muted">Preview the live chat overlay and copy its URL into an OBS Browser Source.</p>
+          <h1 id="page-title" class="mt-3 text-3xl max-sm:text-2xl font-semibold tracking-normal text-highlighted sm:text-4xl">OBS overlay</h1>
+          <p class="mt-2 text-sm max-sm:text-xs leading-6 text-muted">Preview the live chat overlay and copy its URL into an OBS Browser Source.</p>
         </div>
       </section>
 
@@ -52,10 +52,10 @@ useHead({ title: "OBS Overlay | Bobbatars" });
           <template #header>
             <div class="flex items-center justify-between gap-3">
               <div>
-                <p class="text-[10px] font-semibold tracking-widest text-primary">LIVE PREVIEW</p>
-                <h2 class="mt-1 text-lg font-semibold text-highlighted">Habbo chat room</h2>
+                <p class="text-[10px] max-sm:text-[9px] font-semibold tracking-widest text-primary">LIVE PREVIEW</p>
+                <h2 class="mt-1 text-lg max-sm:text-base font-semibold text-highlighted">Habbo chat room</h2>
               </div>
-              <UBadge color="primary" variant="subtle" size="sm">PREVIEW</UBadge>
+              <UBadge class="max-sm:text-[11px]" color="primary" variant="subtle" size="sm">PREVIEW</UBadge>
             </div>
           </template>
 
@@ -68,11 +68,11 @@ useHead({ title: "OBS Overlay | Bobbatars" });
               :room-height="roomHeight"
               embedded
             />
-            <UBadge class="absolute left-3 top-3 z-10" color="neutral" variant="subtle">@{{ user?.twitchDisplay }}</UBadge>
+            <UBadge class="absolute left-3 top-3 z-10 max-sm:text-[11px]" color="neutral" variant="subtle">@{{ user?.twitchDisplay }}</UBadge>
           </div>
 
           <template #footer>
-            <p class="text-xs leading-5 text-muted">Avatars appear as people chat in this Twitch channel. The overlay background is transparent in OBS.</p>
+            <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Avatars appear as people chat in this Twitch channel. The overlay background is transparent in OBS.</p>
           </template>
         </UCard>
 
@@ -81,7 +81,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
             <template #header>
               <div class="flex items-center gap-2">
                 <UIcon name="pixelarticons:settings-cog" class="size-4 text-primary" />
-                <h2 class="text-sm font-semibold text-highlighted">Settings</h2>
+                <h2 class="text-sm max-sm:text-xs font-semibold text-highlighted">Settings</h2>
               </div>
             </template>
 
@@ -89,8 +89,8 @@ useHead({ title: "OBS Overlay | Bobbatars" });
               <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
                 <div class="flex items-center justify-between gap-4">
                   <div class="grid gap-1">
-                    <p class="text-sm font-medium text-highlighted">Maximum avatars</p>
-                    <p class="text-xs leading-5 text-muted">Set a limit up to 50. The source resolution may reduce the cap.</p>
+                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Maximum avatars</p>
+                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set a limit up to 50. The source resolution may reduce the cap.</p>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -102,6 +102,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                   />
                   <UButton
                     type="button"
+                    class="max-sm:text-xs"
                     color="neutral"
                     variant="outline"
                     :disabled="maxAvatars === 50"
@@ -115,8 +116,8 @@ useHead({ title: "OBS Overlay | Bobbatars" });
 
               <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
                 <label class="grid gap-1" for="obs-show-tiles">
-                  <p class="text-sm font-medium text-highlighted">Show room tiles</p>
-                  <p class="text-xs leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
+                  <p class="text-sm max-sm:text-xs font-medium text-highlighted">Show room tiles</p>
+                  <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
                 </label>
                 <USwitch id="obs-show-tiles" v-model="tiles" aria-label="Show room tiles" />
               </div>
@@ -124,8 +125,8 @@ useHead({ title: "OBS Overlay | Bobbatars" });
               <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
                 <div class="flex items-center justify-between gap-4">
                   <div class="grid gap-1">
-                    <p class="text-sm font-medium text-highlighted">Room height</p>
-                    <p class="text-xs leading-5 text-muted">Set the room height.</p>
+                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Room height</p>
+                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set the room height.</p>
                   </div>
                 </div>
                 <USlider
@@ -139,8 +140,8 @@ useHead({ title: "OBS Overlay | Bobbatars" });
 
               <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
                 <label class="grid gap-1" for="obs-chat-bubbles">
-                  <p class="text-sm font-medium text-highlighted">Chat bubbles</p>
-                  <p class="text-xs leading-5 text-muted">Show chat messages above avatars.</p>
+                  <p class="text-sm max-sm:text-xs font-medium text-highlighted">Chat bubbles</p>
+                  <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Show chat messages above avatars.</p>
                 </label>
                 <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
               </div>
@@ -151,7 +152,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
             <template #header>
               <div class="flex items-center gap-2">
                 <UIcon name="pixelarticons:monitor" class="size-4 text-primary" />
-                <h2 class="text-sm font-semibold text-highlighted">Connect to OBS</h2>
+                <h2 class="text-sm max-sm:text-xs font-semibold text-highlighted">Connect to OBS</h2>
               </div>
             </template>
 
@@ -162,20 +163,21 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                 title="Add a Browser Source"
                 description="Copy this URL and paste it into the URL field of an OBS Browser Source."
                 icon="pixelarticons:info-box"
+                :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }"
               />
 
               <div class="grid gap-2">
-                <label for="obs-overlay-url" class="text-xs font-semibold text-highlighted">Browser Source URL</label>
+                <label for="obs-overlay-url" class="text-xs max-sm:text-[11px] font-semibold text-highlighted">Browser Source URL</label>
                 <UInput id="obs-overlay-url" :model-value="overlayUrl" readonly aria-label="OBS Browser Source URL" />
               </div>
 
-              <UButton color="primary" :icon="copied ? 'pixelarticons:checkbox-on' : 'pixelarticons:copy'" block @click="copyOverlayUrl">
+              <UButton class="max-sm:text-xs" color="primary" :icon="copied ? 'pixelarticons:checkbox-on' : 'pixelarticons:copy'" block @click="copyOverlayUrl">
                 {{ copied ? 'Copied' : 'Copy URL for OBS' }}
               </UButton>
-              <p v-if="copyError" class="-mt-2 text-xs text-error" role="alert">{{ copyError }}</p>
-              <p v-else-if="copied" class="-mt-2 text-xs text-success" role="status">Overlay URL copied to clipboard.</p>
+              <p v-if="copyError" class="-mt-2 text-xs max-sm:text-[11px] text-error" role="alert">{{ copyError }}</p>
+              <p v-else-if="copied" class="-mt-2 text-xs max-sm:text-[11px] text-success" role="status">Overlay URL copied to clipboard.</p>
 
-              <NuxtLink :to="overlayUrl" target="_blank" class="inline-flex items-center gap-2 text-sm text-primary underline underline-offset-4">
+              <NuxtLink :to="overlayUrl" target="_blank" class="inline-flex items-center gap-2 text-sm max-sm:text-xs text-primary underline underline-offset-4">
                 Open overlay in a new tab
                 <UIcon name="pixelarticons:external-link" class="size-4" />
               </NuxtLink>

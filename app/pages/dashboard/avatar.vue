@@ -292,11 +292,12 @@ useHead({ title: "Avatar | Bobbatars" });
     <div class="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
         <div class="max-w-2xl">
-          <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">My Avatar</h1>
-          <p class="mt-2 text-sm leading-6 text-muted">Choose catalog items, colors, and effects to customize your avatar.</p>
+          <h1 id="page-title" class="mt-3 text-3xl max-sm:text-2xl font-semibold tracking-normal text-highlighted sm:text-4xl">My Avatar</h1>
+          <p class="mt-2 text-sm max-sm:text-xs leading-6 text-muted">Choose catalog items, colors, and effects to customize your avatar.</p>
         </div>
         <div class="flex gap-2" role="group" aria-label="Avatar gender">
           <UButton
+            class="max-sm:text-xs"
             color="neutral"
             :variant="gender === 'M' ? 'subtle' : 'outline'"
             :aria-pressed="gender === 'M'"
@@ -305,6 +306,7 @@ useHead({ title: "Avatar | Bobbatars" });
             <img :src="genderIcon('M')" alt="" class="size-5 shrink-0 object-contain" style="object-position: 0 4px;">Male
           </UButton>
           <UButton
+            class="max-sm:text-xs"
             color="neutral"
             :variant="gender === 'F' ? 'subtle' : 'outline'"
             :aria-pressed="gender === 'F'"
