@@ -42,6 +42,7 @@ interface AvatarState {
   displayName: string;
   activity: number;
   figure: string;
+  effect: number | null;
   figureRequestVersion: number;
   menuVisible: boolean;
   danceMenuVisible: boolean;
@@ -141,7 +142,8 @@ function imageUrl (
   direction: number,
   action: AvatarState["action"],
   gesture = "std",
-  figure = defaultFigure
+  figure = defaultFigure,
+  effect: number | null = null
 ) {
   const headDirection = action === "dance3" || action === "dance4" ? danceHeadDirectionOverrides[direction] ?? direction : direction;
 
@@ -154,7 +156,8 @@ function imageUrl (
     size: "m",
     format: "webp",
     rv: 55,
-    animv: 28
+    animv: 28,
+    ...(effect === null ? {} : { effect: String(effect) })
   });
 }
 
@@ -162,9 +165,10 @@ function preloadAvatar (
   direction: number,
   action: AvatarState["action"],
   gesture = "std",
-  figure = defaultFigure
+  figure = defaultFigure,
+  effect: number | null = null
 ): Promise<HTMLImageElement | null> {
-  const url = imageUrl(direction, action, gesture, figure);
+  const url = imageUrl(direction, action, gesture, figure, effect);
   const cached = preloadedImages.get(url);
   if (cached) return cached.promise;
 
@@ -202,7 +206,7 @@ async function updateAvatar (
   avatar.direction = direction;
   avatar.action = avatar.danceAction ?? action;
   avatar.gesture = gesture;
-  const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture, avatar.figure);
+  const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture, avatar.figure, avatar.effect);
 
   if (nextImage === avatar.currentImage && avatar.imageWidth > 0) {
     placeHabbo(avatar);
@@ -210,10 +214,10 @@ async function updateAvatar (
   }
 
   avatar.currentImage = nextImage;
-  const image = await preloadAvatar(avatar.direction, avatar.action, avatar.gesture, avatar.figure);
+  const image = await preloadAvatar(avatar.direction, avatar.action, avatar.gesture, avatar.figure, avatar.effect);
   if (avatar.removed) return;
 
-  const latestImage = imageUrl(avatar.direction, avatar.action, avatar.gesture, avatar.figure);
+  const latestImage = imageUrl(avatar.direction, avatar.action, avatar.gesture, avatar.figure, avatar.effect);
   if (nextImage !== latestImage) {
     await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture);
     return;
@@ -501,6 +505,7 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     displayName: user.displayName,
     activity: user.activity,
     figure: defaultFigure,
+    effect: null,
     figureRequestVersion: 0,
     menuVisible: false,
     danceMenuVisible: false,
@@ -635,9 +640,9 @@ function isNotFoundError (error: unknown) {
 
 async function refreshAvatarFigure (avatar: AvatarState) {
   const requestVersion = ++avatar.figureRequestVersion;
-  let response: { figure: string };
+  let response: { figure: string, effect: number | null };
   try {
-    response = await $fetch<{ figure: string }>(`/api/avatars/${encodeURIComponent(avatar.login)}`);
+    response = await $fetch<{ figure: string, effect: number | null }>(`/api/avatars/${encodeURIComponent(avatar.login)}`);
   }
   catch (error) {
     if (isNotFoundError(error)) return;
@@ -647,10 +652,11 @@ async function refreshAvatarFigure (avatar: AvatarState) {
   if (
     avatar.removed
     || requestVersion !== avatar.figureRequestVersion
-    || avatar.figure === response.figure
+    || (avatar.figure === response.figure && avatar.effect === response.effect)
   ) return;
 
   avatar.figure = response.figure;
+  avatar.effect = response.effect;
   await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture);
 }
 
@@ -874,7 +880,7 @@ async function moveNextStep (avatar: AvatarState) {
 
   avatar.nextStep = next;
   const nextDirection = habboDirection(deltaColumn, deltaRow);
-  void preloadAvatar(nextDirection, "std", "std", avatar.figure);
+  void preloadAvatar(nextDirection, "std", "std", avatar.figure, avatar.effect);
 
   try {
     await updateAvatar(avatar, nextDirection, "wlk");

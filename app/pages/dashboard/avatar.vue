@@ -33,11 +33,17 @@ interface FigureSetType {
   sets: FigureSet[];
 }
 
+interface AvatarEffect {
+  id: string;
+  name: string;
+}
+
 interface AvatarCatalog {
   schemaVersion: number;
   build: string;
   palettes: Record<string, AvatarColor[]>;
   categories: FigureSetType[];
+  effects: AvatarEffect[];
 }
 
 interface OutfitPart {
@@ -73,7 +79,8 @@ const categoryNames: Record<string, string> = {
   ca: "Accessories",
   wa: "Belts",
   cc: "Jackets",
-  cp: "Chest prints"
+  cp: "Chest prints",
+  effects: "Effects"
 };
 const categoryIcons: Record<string, string> = {
   hd: "body.png",
@@ -90,7 +97,8 @@ const categoryIcons: Record<string, string> = {
   cc: "jackets.png",
   cp: "chest.png",
   pt: "pet.png",
-  mc: "extra.png"
+  mc: "extra.png",
+  effects: "wand.png"
 };
 const genderIcons: Record<Gender, string> = { M: "male.png", F: "female.png" };
 const previewDanceHeadDirectionOverrides: Partial<Record<number, number>> = {
@@ -123,6 +131,7 @@ const { data: avatar } = await useFetch(`/api/avatars/${user.value.twitchLogin}`
 });
 
 const gender = ref<Gender>(avatar.value.gender);
+const selectedEffect = ref<number | null>(avatar.value.effect);
 const activeType = ref("hr");
 const selectedParts = ref<Record<string, OutfitPart>>({});
 const savedParts = ref<Record<string, OutfitPart>>({});
@@ -221,6 +230,11 @@ const availableSets = computed(() => {
     .map(set => ({ setId: set.id, set }));
 });
 
+const availableEffects = computed(() => {
+  const query = search.value.trim().toLowerCase();
+  return catalog.effects.filter(effect => !query || effect.name.toLowerCase().includes(query));
+});
+
 const visibleSets = computed(() => availableSets.value.slice(0, visibleSetCount.value));
 
 useInfiniteScroll(
@@ -274,7 +288,8 @@ const previewUrl = computed(() => {
     gesture: "std",
     format: "webp",
     rv: 55,
-    animv: 28
+    animv: 28,
+    ...(selectedEffect.value === null ? {} : { effect: String(selectedEffect.value) })
   });
 });
 
@@ -282,7 +297,7 @@ watch(previewUrl, () => {
   previewFailed.value = false;
 });
 
-watch([figure, gender], () => {
+watch([figure, gender, selectedEffect], () => {
   if (saveState.value !== "saving") saveState.value = "idle";
 });
 
@@ -331,6 +346,15 @@ function removeActivePart () {
   const nextParts = { ...selectedParts.value };
   delete nextParts[activeType.value];
   selectedParts.value = nextParts;
+}
+
+function effectPreviewUrl (effectId: string | null): string {
+  return withQuery(imagingUrl, {
+    figure: figure.value,
+    gender: gender.value,
+    size: "m",
+    ...(effectId === null ? {} : { effect: effectId })
+  });
 }
 
 function changeGender (value: Gender) {
@@ -484,6 +508,7 @@ async function saveAvatar () {
   const partsToSave = copyOutfitParts(selectedParts.value);
   const figureToSave = figureForParts(partsToSave);
   const genderToSave = gender.value;
+  const effectToSave = selectedEffect.value;
   saveState.value = "saving";
 
   try {
@@ -492,14 +517,14 @@ async function saveAvatar () {
       body: {
         figure: figureToSave,
         gender: genderToSave,
-        effect: null
+        effect: effectToSave
       }
     });
     savedParts.value = partsToSave;
-    saveState.value = figure.value === figureToSave && gender.value === genderToSave ? "saved" : "idle";
+    saveState.value = figure.value === figureToSave && gender.value === genderToSave && selectedEffect.value === effectToSave ? "saved" : "idle";
   }
   catch {
-    saveState.value = figure.value === figureToSave && gender.value === genderToSave ? "error" : "idle";
+    saveState.value = figure.value === figureToSave && gender.value === genderToSave && selectedEffect.value === effectToSave ? "error" : "idle";
   }
 }
 
@@ -569,7 +594,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
         <div class="max-w-2xl">
           <UBadge color="primary" variant="soft" size="sm" class="uppercase">Habbo Builder</UBadge>
           <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">My Avatar</h1>
-          <p class="mt-2 text-sm leading-6 text-muted">Choose catalog items and colors to customize your avatar.</p>
+          <p class="mt-2 text-sm leading-6 text-muted">Choose catalog items, colors, and effects to customize your avatar.</p>
         </div>
         <div class="flex gap-2" role="group" aria-label="Avatar gender">
           <UButton
@@ -599,7 +624,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                 <p class="text-[10px] font-semibold tracking-widest text-primary uppercase">Catalog</p>
                 <h2 class="mt-1 text-lg font-semibold text-highlighted">Wardrobe</h2>
               </div>
-              <UBadge color="neutral" variant="subtle" size="sm">{{ availableSets.length }} items</UBadge>
+              <UBadge color="neutral" variant="subtle" size="sm">{{ activeType === 'effects' ? availableEffects.length : availableSets.length }} items</UBadge>
             </div>
           </template>
 
@@ -620,67 +645,114 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                   {{ type.sets.filter(set => !set.nft && (set.gender === 'U' || set.gender === gender)).length }}
                 </UBadge>
               </UButton>
+              <UButton
+                :color="activeType === 'effects' ? 'primary' : 'neutral'"
+                :variant="activeType === 'effects' ? 'soft' : 'ghost'"
+                :aria-pressed="activeType === 'effects'"
+                class="min-w-36 shrink-0 justify-start xl:w-full"
+                @click="activeType = 'effects'; search = ''"
+              >
+                <img :src="categoryIcon('effects')" alt="" class="size-5 shrink-0 object-contain">
+                <span class="truncate">{{ categoryName('effects') }}</span>
+                <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">{{ catalog.effects.length }}</UBadge>
+              </UButton>
             </nav>
 
             <div class="min-w-0 space-y-4 p-4">
               <div class="flex items-center gap-2">
-                <UInput v-model="search" type="search" icon="i-lucide-search" class="min-w-0 flex-1" :aria-label="`Filter ${categoryName(activeType)} by set ID`" placeholder="Filter by set ID" />
-                <UButton v-if="activeType !== 'hd' && activeType !== 'lg' && activePart" type="button" color="error" variant="ghost" icon="i-lucide-eraser" @click="removeActivePart">Remove</UButton>
+                <UInput v-model="search" type="search" icon="i-lucide-search" class="min-w-0 flex-1" :aria-label="activeType === 'effects' ? 'Filter effects by name' : `Filter ${categoryName(activeType)} by set ID`" :placeholder="activeType === 'effects' ? 'Filter by effect name' : 'Filter by set ID'" />
+                <UButton v-if="activeType === 'effects' && selectedEffect !== null" type="button" color="error" variant="ghost" icon="i-lucide-eraser" @click="selectedEffect = null">Remove effect</UButton>
+                <UButton v-else-if="activeType !== 'hd' && activeType !== 'lg' && activePart" type="button" color="error" variant="ghost" icon="i-lucide-eraser" @click="removeActivePart">Remove</UButton>
               </div>
 
-              <div ref="catalogItemsContainer" class="grid max-h-112 grid-cols-3 content-start gap-2 overflow-y-auto sm:grid-cols-4 2xl:grid-cols-5" :aria-label="`${categoryName(activeType)} options`">
+              <div v-if="activeType === 'effects'" class="grid max-h-112 grid-cols-2 content-start gap-2 overflow-y-auto sm:grid-cols-3 2xl:grid-cols-4" aria-label="Avatar effects">
                 <UButton
-                  v-for="item in visibleSets"
-                  :key="item.setId"
                   type="button"
-                  :color="activePart?.setId === item.setId ? 'primary' : 'neutral'"
-                  :variant="activePart?.setId === item.setId ? 'soft' : 'outline'"
+                  :color="selectedEffect === null ? 'primary' : 'neutral'"
+                  :variant="selectedEffect === null ? 'soft' : 'outline'"
                   class="h-auto min-w-0 flex-col items-stretch gap-2 p-2 text-left"
-                  :aria-label="`${categoryName(activeType)} set ${item.setId}`"
-                  :aria-pressed="activePart?.setId === item.setId"
-                  @click="selectSet(item.setId)"
+                  aria-label="No effect"
+                  :aria-pressed="selectedEffect === null"
+                  @click="selectedEffect = null"
                 >
                   <span class="flex h-36 w-full items-center justify-center overflow-hidden rounded bg-neutral-950">
-                    <img
-                      class="max-h-28 max-w-full scale-130 object-contain self-center"
-                      :src="itemPreviewUrl(activeType, item.setId)"
-                      alt=""
-                      loading="lazy"
-                    >
+                    <img class="max-h-28 max-w-full object-contain" :src="effectPreviewUrl(null)" alt="" loading="lazy">
                   </span>
-                  <span class="w-full truncate text-center font-mono text-xs">#{{ item.setId }}</span>
+                  <span class="w-full truncate text-center text-xs">None</span>
                 </UButton>
-                <UAlert v-if="!availableSets.length" class="col-span-full" color="neutral" variant="subtle" title="No matching items" description="Try another set ID or category." icon="i-lucide-search-x" />
+                <UButton
+                  v-for="effect in availableEffects"
+                  :key="effect.id"
+                  type="button"
+                  :color="selectedEffect === Number(effect.id) ? 'primary' : 'neutral'"
+                  :variant="selectedEffect === Number(effect.id) ? 'soft' : 'outline'"
+                  class="h-auto min-w-0 flex-col items-stretch gap-2 p-2 text-left"
+                  :aria-label="`Effect ${effect.name}`"
+                  :aria-pressed="selectedEffect === Number(effect.id)"
+                  @click="selectedEffect = Number(effect.id)"
+                >
+                  <span class="flex h-36 w-full items-center justify-center overflow-hidden rounded bg-neutral-950">
+                    <img class="max-h-28 max-w-full object-contain" :src="effectPreviewUrl(effect.id)" alt="" loading="lazy">
+                  </span>
+                  <span class="w-full truncate text-center text-xs">{{ effect.name }}</span>
+                </UButton>
+                <UAlert v-if="!availableEffects.length" class="col-span-full" color="neutral" variant="subtle" title="No matching effects" description="Try another effect name." icon="i-lucide-search-x" />
               </div>
-
-              <USeparator label="PALETTE" />
-              <div class="space-y-3">
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-xs font-semibold text-highlighted">Colors</span>
-                  <UBadge color="neutral" variant="subtle" size="xs">
-                    {{ activeSet?.colorCount ? `${activeSet.colorCount} color slots` : activeSet ? 'Fixed color' : 'Select an item' }}
-                  </UBadge>
+              <template v-else>
+                <div ref="catalogItemsContainer" class="grid max-h-112 grid-cols-3 content-start gap-2 overflow-y-auto sm:grid-cols-4 2xl:grid-cols-5" :aria-label="`${categoryName(activeType)} options`">
+                  <UButton
+                    v-for="item in visibleSets"
+                    :key="item.setId"
+                    type="button"
+                    :color="activePart?.setId === item.setId ? 'primary' : 'neutral'"
+                    :variant="activePart?.setId === item.setId ? 'soft' : 'outline'"
+                    class="h-auto min-w-0 flex-col items-stretch gap-2 p-2 text-left"
+                    :aria-label="`${categoryName(activeType)} set ${item.setId}`"
+                    :aria-pressed="activePart?.setId === item.setId"
+                    @click="selectSet(item.setId)"
+                  >
+                    <span class="flex h-36 w-full items-center justify-center overflow-hidden rounded bg-neutral-950">
+                      <img
+                        class="max-h-28 max-w-full scale-130 object-contain self-center"
+                        :src="itemPreviewUrl(activeType, item.setId)"
+                        alt=""
+                        loading="lazy"
+                      >
+                    </span>
+                    <span class="w-full truncate text-center font-mono text-xs">#{{ item.setId }}</span>
+                  </UButton>
+                  <UAlert v-if="!availableSets.length" class="col-span-full" color="neutral" variant="subtle" title="No matching items" description="Try another set ID or category." icon="i-lucide-search-x" />
                 </div>
-                <div v-if="availableColors.length && activeSet?.colorCount" class="space-y-3" aria-label="Available colors">
-                  <div v-for="colorIndex in activeSet.colorCount" :key="colorIndex" class="space-y-2">
-                    <p class="text-xs text-muted">Color {{ colorIndex }}</p>
-                    <div class="grid max-h-32 grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-2 overflow-y-auto p-0.5" :aria-label="`Available colors for slot ${colorIndex}`">
-                      <UButton
-                        v-for="[colorId, color] in availableColors"
-                        :key="colorId"
-                        class="size-7 min-w-7 rounded-none p-0 ring-1 ring-inset ring-white/20"
-                        :class="activePart?.colorIds[colorIndex - 1] === colorId ? 'ring-2 ring-primary ring-offset-2 ring-offset-default' : ''"
-                        :style="{ backgroundColor: `#${color.hex}` }"
-                        type="button"
-                        :aria-label="`Color slot ${colorIndex}: ${color.hex}, ID ${colorId}`"
-                        :aria-pressed="activePart?.colorIds[colorIndex - 1] === colorId"
-                        @click="selectColor(colorIndex - 1, colorId)"
-                      />
+
+                <USeparator label="PALETTE" />
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-xs font-semibold text-highlighted">Colors</span>
+                    <UBadge color="neutral" variant="subtle" size="xs">
+                      {{ activeSet?.colorCount ? `${activeSet.colorCount} color slots` : activeSet ? 'Fixed color' : 'Select an item' }}
+                    </UBadge>
+                  </div>
+                  <div v-if="availableColors.length && activeSet?.colorCount" class="space-y-3" aria-label="Available colors">
+                    <div v-for="colorIndex in activeSet.colorCount" :key="colorIndex" class="space-y-2">
+                      <p class="text-xs text-muted">Color {{ colorIndex }}</p>
+                      <div class="grid max-h-32 grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-2 overflow-y-auto p-0.5" :aria-label="`Available colors for slot ${colorIndex}`">
+                        <UButton
+                          v-for="[colorId, color] in availableColors"
+                          :key="colorId"
+                          class="size-7 min-w-7 rounded-none p-0 ring-1 ring-inset ring-white/20"
+                          :class="activePart?.colorIds[colorIndex - 1] === colorId ? 'ring-2 ring-primary ring-offset-2 ring-offset-default' : ''"
+                          :style="{ backgroundColor: `#${color.hex}` }"
+                          type="button"
+                          :aria-label="`Color slot ${colorIndex}: ${color.hex}, ID ${colorId}`"
+                          :aria-pressed="activePart?.colorIds[colorIndex - 1] === colorId"
+                          @click="selectColor(colorIndex - 1, colorId)"
+                        />
+                      </div>
                     </div>
                   </div>
+                  <p v-else class="text-xs text-muted">Select a set with color slots to view its palette.</p>
                 </div>
-                <p v-else class="text-xs text-muted">Select a set with color slots to view its palette.</p>
-              </div>
+              </template>
             </div>
           </div>
         </UCard>
