@@ -46,7 +46,7 @@ const avatarCatalog = avatarCatalogJson as unknown as {
 
 const catalogSetCount = avatarCatalog.categories.reduce((count, category) =>
   count + category.sets.filter(set => !set.nft).length, 0
-);
+) + (avatarCatalog?.effects?.length || 0);
 const categoryCount = avatarCatalog.categories.length + (avatarCatalog?.effects?.length ? 1 : 0);
 </script>
 
