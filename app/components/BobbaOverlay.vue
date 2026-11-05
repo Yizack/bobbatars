@@ -294,7 +294,7 @@ function isRoomTile (tile: Tile) {
   const point = positionFor(tile.column, tile.row);
   const horizontalMargin = Math.min(40, roomWidth * 0.04);
   return point.x >= horizontalMargin && point.x <= roomWidth - horizontalMargin
-    && point.y >= roomLayoutHeight * 0.18 && point.y <= roomLayoutHeight * 0.94;
+    && point.y >= roomLayoutHeight * 0.18 && point.y <= roomLayoutHeight - tileHeight / 2;
 }
 
 function placeHabbo (avatar: AvatarState) {
