@@ -83,20 +83,17 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
           </template>
 
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
-            <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-              <div class="grid gap-1">
-                <label for="obs-max-avatars" class="text-sm font-medium text-highlighted">Maximum avatars</label>
-                <p class="text-xs leading-5 text-muted">Set a room limit from 1 to 50.</p>
+            <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+              <div class="flex items-center justify-between gap-4">
+                <div class="grid gap-1">
+                  <p class="text-sm font-medium text-highlighted">Maximum avatars</p>
+                  <p class="text-xs leading-5 text-muted">Set a room limit from 1 to 50.</p>
+                </div>
               </div>
-              <UInput
-                id="obs-max-avatars"
-                v-model.number="maxAvatars"
-                type="number"
-                min="1"
-                max="50"
-                step="1"
-                class="w-20"
-                aria-label="Maximum avatars"
+              <UInputNumber
+                v-model="maxAvatars"
+                :min="1"
+                :max="50"
               />
             </div>
 
@@ -112,7 +109,7 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
                 :max="494"
                 :min="38"
                 :step="38"
-                aria-label="Room height in pixels"
+                aria-label="Room height"
               />
             </div>
 

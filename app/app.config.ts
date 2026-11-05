@@ -4,7 +4,9 @@ export default defineAppConfig({
       check: "pixelarticons:check",
       chevronDown: "pixelarticons:chevron-down",
       close: "pixelarticons:close",
-      loading: "pixelarticons:loader"
+      loading: "pixelarticons:loader",
+      plus: "pixelarticons:plus",
+      minus: "pixelarticons:minus"
     },
     button: {
       defaultVariants: {

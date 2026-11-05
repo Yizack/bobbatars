@@ -30,5 +30,7 @@ export default [
   "pixelarticons:square",
   "pixelarticons:check",
   "pixelarticons:loader",
-  "pixelarticons:settings-cog"
+  "pixelarticons:settings-cog",
+  "pixelarticons:plus",
+  "pixelarticons:minus"
 ];
