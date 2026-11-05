@@ -18,10 +18,6 @@ const props = withDefaults(defineProps<{
   embedded: false
 });
 
-const maxAvatars = computed(() => {
-  if (!Number.isInteger(props.maxAvatars)) return 50;
-  return Math.min(50, Math.max(1, props.maxAvatars));
-});
 const roomHeightSetting = computed(() => {
   if (!Number.isInteger(props.roomHeight)) return 266;
   return Math.min(500, Math.max(38, props.roomHeight));
@@ -147,6 +143,13 @@ function randomSitDirection () {
 
 const room = ref<HTMLDivElement | null>(null);
 const roomTiles = ref<RoomTile[]>([]);
+const maxAvatars = computed(() => {
+  let requestedLimit = 50;
+  if (Number.isInteger(props.maxAvatars)) {
+    requestedLimit = Math.min(50, Math.max(1, props.maxAvatars));
+  }
+  return Math.min(requestedLimit, roomTiles.value.length);
+});
 const status = ref("Conectando al chat de Twitch…");
 const avatars = ref<AvatarState[]>([]);
 const movingAvatars = new Set<AvatarState>();
@@ -437,7 +440,7 @@ function animateAvatarSteps (now: number) {
 
 function updateRoomLayout () {
   const bounds = room.value?.getBoundingClientRect();
-  if (!bounds) return;
+  if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
 
   const nextWidth = bounds.width;
   const nextHeight = bounds.height;
@@ -468,6 +471,7 @@ function updateRoomLayout () {
       }
     }
     roomTiles.value = nextRoomTiles;
+    scheduleReconciliation();
   }
 
   if (layoutChanged && avatars.value.length > 0) {
@@ -637,7 +641,11 @@ function reconcileActiveAvatars () {
     if (!user.isStreamer && now - user.lastActivity >= inactiveTimeout) activeUsers.delete(login);
   }
 
-  const streamer = [...activeUsers.values()].find(user => user.isStreamer);
+  const avatarLimit = maxAvatars.value;
+  let streamer: ActiveUser | undefined;
+  if (avatarLimit > 0) {
+    streamer = [...activeUsers.values()].find(user => user.isStreamer);
+  }
   const topUsers = [...activeUsers.values()]
     .filter(user => !user.isStreamer)
     .sort((first, second) =>
@@ -645,7 +653,7 @@ function reconcileActiveAvatars () {
       || second.lastActivity - first.lastActivity
       || first.login.localeCompare(second.login)
     )
-    .slice(0, maxAvatars.value - (streamer ? 1 : 0));
+    .slice(0, avatarLimit - (streamer ? 1 : 0));
   if (streamer) topUsers.push(streamer);
   const topLogins = new Set(topUsers.map(user => user.login));
 

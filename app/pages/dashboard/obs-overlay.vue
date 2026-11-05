@@ -93,11 +93,24 @@ useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
                     <p class="text-xs leading-5 text-muted">Set a room limit from 1 to 50.</p>
                   </div>
                 </div>
-                <UInputNumber
-                  v-model="maxAvatars"
-                  :min="1"
-                  :max="50"
-                />
+                <div class="flex items-center gap-2">
+                  <UInputNumber
+                    v-model="maxAvatars"
+                    class="min-w-0 flex-1"
+                    :min="1"
+                    :max="50"
+                  />
+                  <UButton
+                    type="button"
+                    color="neutral"
+                    variant="outline"
+                    :disabled="maxAvatars === 50"
+                    aria-label="Set maximum available avatars"
+                    @click="maxAvatars = 50"
+                  >
+                    Max
+                  </UButton>
+                </div>
               </div>
 
               <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
