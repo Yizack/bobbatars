@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { withQuery } from "ufo";
 import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
-import { DEFAULT_MALE_OUTFIT_FIGURE } from "../../data/avatar-generator/default-outfit";
+import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
 
 definePageMeta({ layout: "dashboard" });
 
@@ -10,7 +10,7 @@ const avatarCatalog = avatarCatalogJson as unknown as {
   build: string;
   categories: Array<{ type: string, sets: Array<{ id: string, nft?: boolean }> }>;
 };
-const defaultFigure = DEFAULT_MALE_OUTFIT_FIGURE;
+const defaultFigure = DEFAULT_OUTFIT_FIGURES.M;
 const defaultFigureString = `${defaultFigure}&gender=M`;
 const previewUrl = withQuery("https://habbohistory.com/habbo-imaging/avatarimage.webp", {
   head_direction: "4",

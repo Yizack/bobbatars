@@ -75,7 +75,7 @@ watch(previewUrl, () => {
       <UButton size="sm" class="col-span-2 justify-center sm:col-span-1" color="primary" icon="pixelarticons:save" :loading="saveState === 'saving'" :disabled="!canSave || saveState === 'saving'" @click="emit('save')">Save avatar</UButton>
       <UBadge class="col-span-2 justify-center sm:ml-auto sm:col-span-1" color="neutral" variant="subtle">{{ outfitCount }} parts</UBadge>
     </div>
-    <UAlert v-if="saveState === 'saved'" class="mt-3" color="success" variant="subtle" title="Avatar saved" description="Your current avatar has been saved to your account." icon="i-lucide-circle-check" />
-    <UAlert v-else-if="saveState === 'error'" class="mt-3" color="error" variant="subtle" title="Could not save avatar" description="Please try again." icon="i-lucide-circle-alert" />
+    <UAlert v-if="saveState === 'saved'" class="mt-3" color="success" variant="subtle" title="Avatar saved" description="Your current avatar has been saved to your account." icon="pixelarticons:checkbox-on" />
+    <UAlert v-else-if="saveState === 'error'" class="mt-3" color="error" variant="subtle" title="Could not save avatar" description="Please try again." icon="pixelarticons:alert" />
   </UCard>
 </template>

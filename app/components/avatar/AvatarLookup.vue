@@ -25,8 +25,8 @@ const hotels: { label: string, value: HabboHotel }[] = [
   <UCard variant="outline" class="min-w-0">
     <template #header>
       <div class="flex items-center gap-2">
-        <UIcon name="i-lucide-user-round-search" class="size-4 text-primary" />
-        <h2 class="text-sm font-semibold text-highlighted">Look up a Habbo figure</h2>
+        <UIcon name="pixelarticons:user" class="size-4 text-primary" />
+        <h2 class="text-sm font-semibold text-highlighted">Load a Habbo</h2>
       </div>
     </template>
     <div class="grid min-w-0 gap-3">
@@ -58,7 +58,7 @@ const hotels: { label: string, value: HabboHotel }[] = [
         type="button"
         class="w-full justify-center"
         color="primary"
-        icon="i-lucide-search"
+        icon="pixelarticons:search"
         :loading="state === 'loading'"
         :disabled="!username.trim() || state === 'loading'"
         @click="emit('lookup')"
@@ -73,7 +73,6 @@ const hotels: { label: string, value: HabboHotel }[] = [
       variant="subtle"
       title="Figure lookup queued"
       :description="queueMessage"
-      icon="i-lucide-clock-3"
     />
     <UAlert
       v-else-if="state === 'success'"
@@ -82,7 +81,7 @@ const hotels: { label: string, value: HabboHotel }[] = [
       variant="subtle"
       :title="`Loaded ${name}'s figure`"
       description="The figure is ready to preview and edit. Save it to keep it on your account."
-      icon="i-lucide-circle-check"
+      icon="pixelarticons:checkbox-on"
     />
     <UAlert
       v-else-if="state === 'error'"
@@ -91,7 +90,7 @@ const hotels: { label: string, value: HabboHotel }[] = [
       variant="subtle"
       title="Could not look up this figure"
       :description="error"
-      icon="i-lucide-circle-alert"
+      icon="pixelarticons:alert"
     />
   </UCard>
 </template>

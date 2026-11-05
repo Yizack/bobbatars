@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { withQuery } from "ufo";
 import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
-import { DEFAULT_MALE_OUTFIT_FIGURE, DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
-import AvatarCatalog from "../../components/avatar/AvatarCatalog.vue";
-import AvatarFigureImport from "../../components/avatar/AvatarFigureImport.vue";
-import AvatarLookup from "../../components/avatar/AvatarLookup.vue";
-import AvatarPreview from "../../components/avatar/AvatarPreview.vue";
+import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
 import type { AvatarCatalog as AvatarCatalogData, AvatarLookupState, AvatarPreviewAction, AvatarSaveState, AvatarGender as Gender, HabboHotel, OutfitPart } from "../../types/avatar";
 import { avatarImagingUrl, colorsForType, copyOutfitParts, figureForParts, paletteForType, parseFigureString } from "../../utils/avatar";
 
@@ -41,7 +37,7 @@ if (!user.value) {
 const { data: avatar } = await useFetch(`/api/avatars/${user.value.twitchLogin}`, {
   default: () => ({
     gender: "M" as const,
-    figure: DEFAULT_MALE_OUTFIT_FIGURE,
+    figure: DEFAULT_OUTFIT_FIGURES.M,
     effect: null
   })
 });
@@ -77,11 +73,10 @@ const figureTypeByCode = new Map(figureTypes.map(type => [type.type, type]));
 const outfitCount = computed(() => Object.keys(selectedParts.value).length);
 
 function defaultOutfit (forGender: Gender): Record<string, OutfitPart> {
-  if (forGender === "M") return parseFigureString(DEFAULT_MALE_OUTFIT_FIGURE);
   return parseFigureString(DEFAULT_OUTFIT_FIGURES[forGender]);
 }
 
-selectedParts.value = defaultOutfit(gender.value);
+selectedParts.value = parseFigureString(avatar.value.figure);
 savedParts.value = copyOutfitParts(selectedParts.value);
 
 const figure = computed(() => figureForParts(selectedParts.value));
@@ -324,17 +319,21 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
       </section>
 
       <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.8fr)]">
-        <AvatarCatalog
-          v-model:active-type="activeType"
-          v-model:search="search"
-          v-model:selected-parts="selectedParts"
-          v-model:selected-effect="selectedEffect"
-          :catalog="catalog"
-          :gender="gender"
-          :saved-parts="savedParts"
-        />
+        <div class="flex flex-col gap-3 order-2 xl:order-1">
+          <AvatarCatalog
+            v-model:active-type="activeType"
+            v-model:search="search"
+            v-model:selected-parts="selectedParts"
+            v-model:selected-effect="selectedEffect"
+            :catalog="catalog"
+            :gender="gender"
+            :saved-parts="savedParts"
+          />
 
-        <aside class="order-1 grid min-w-0 content-start grid-cols-2 gap-3 sm:gap-4 xl:order-2 xl:grid-cols-1" aria-label="Avatar preview and controls">
+          <AvatarFigureImport v-model="importText" :error="importError" @import="importOutfit" />
+        </div>
+
+        <aside class="order-1 content-start flex flex-col gap-3 sm:gap-4" aria-label="Avatar preview and controls">
           <AvatarPreview
             v-model:direction="previewDirection"
             v-model:action="previewAction"
@@ -357,8 +356,6 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
             :queue-message="lookupQueueMessage"
             @lookup="lookupHabboFigure"
           />
-
-          <AvatarFigureImport v-model="importText" :error="importError" @import="importOutfit" />
         </aside>
       </div>
     </div>

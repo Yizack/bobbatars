@@ -211,7 +211,7 @@ function itemPreviewUrl (type: string, setId: string): string {
 </script>
 
 <template>
-  <UCard variant="outline" class="order-2 min-w-0 xl:order-1" :ui="{ body: 'p-0 sm:p-0' }">
+  <UCard variant="outline" class="min-w-0" :ui="{ body: 'p-0 sm:p-0' }">
     <template #header>
       <div class="flex items-center justify-between gap-3">
         <div>
@@ -254,9 +254,9 @@ function itemPreviewUrl (type: string, setId: string): string {
 
       <div class="min-w-0 space-y-4 p-4">
         <div class="flex items-center gap-2">
-          <UInput v-model="search" type="search" icon="i-lucide-search" class="min-w-0 flex-1" :aria-label="activeType === 'effects' ? 'Filter effects by name' : `Filter ${categoryName(activeType)} by set ID`" :placeholder="activeType === 'effects' ? 'Filter by effect name' : 'Filter by set ID'" />
-          <UButton v-if="activeType === 'effects' && selectedEffect !== null" type="button" color="error" variant="ghost" icon="i-lucide-eraser" @click="selectedEffect = null">Remove effect</UButton>
-          <UButton v-else-if="activeType !== 'hd' && activeType !== 'lg' && activePart" type="button" color="error" variant="ghost" icon="i-lucide-eraser" @click="removeActivePart">Remove</UButton>
+          <UInput v-model="search" type="search" icon="pixelarticons:search" class="min-w-0 flex-1" :aria-label="activeType === 'effects' ? 'Filter effects by name' : `Filter ${categoryName(activeType)} by set ID`" :placeholder="activeType === 'effects' ? 'Filter by effect name' : 'Filter by set ID'" />
+          <UButton v-if="activeType === 'effects' && selectedEffect !== null" type="button" color="error" variant="ghost" icon="pixelarticons:close" @click="selectedEffect = null">Remove effect</UButton>
+          <UButton v-else-if="activeType !== 'hd' && activeType !== 'lg' && activePart" type="button" color="error" variant="ghost" icon="pixelarticons:close" @click="removeActivePart">Remove</UButton>
         </div>
 
         <div v-if="activeType === 'effects'" ref="effectItemsContainer" class="grid max-h-112 grid-cols-2 content-start gap-2 overflow-y-auto sm:grid-cols-3 2xl:grid-cols-4" aria-label="Avatar effects">
@@ -290,7 +290,7 @@ function itemPreviewUrl (type: string, setId: string): string {
             </span>
             <span class="w-full truncate text-center text-xs">{{ effect.name }}</span>
           </UButton>
-          <UAlert v-if="!availableEffects.length" class="col-span-full" color="neutral" variant="subtle" title="No matching effects" description="Try another effect name." icon="i-lucide-search-x" />
+          <UAlert v-if="!availableEffects.length" class="col-span-full" color="neutral" variant="subtle" title="No matching effects" description="Try another effect name." icon="pixelarticons:letter-x-circle" />
         </div>
         <template v-else>
           <div ref="catalogItemsContainer" class="grid max-h-112 grid-cols-3 content-start gap-2 overflow-y-auto sm:grid-cols-4 2xl:grid-cols-5" :aria-label="`${categoryName(activeType)} options`">
@@ -310,7 +310,7 @@ function itemPreviewUrl (type: string, setId: string): string {
               </span>
               <span class="w-full truncate text-center font-mono text-xs">#{{ item.setId }}</span>
             </UButton>
-            <UAlert v-if="!availableSets.length" class="col-span-full" color="neutral" variant="subtle" title="No matching items" description="Try another set ID or category." icon="i-lucide-search-x" />
+            <UAlert v-if="!availableSets.length" class="col-span-full" color="neutral" variant="subtle" title="No matching items" description="Try another set ID or category." icon="pixelarticons:letter-x-circle" />
           </div>
 
           <USeparator label="PALETTE" />
@@ -324,7 +324,7 @@ function itemPreviewUrl (type: string, setId: string): string {
             <div v-if="availableColors.length && activeSet?.colorCount" class="space-y-3" aria-label="Available colors">
               <div v-for="colorIndex in activeSet.colorCount" :key="colorIndex" class="space-y-2">
                 <p class="text-xs text-muted">Color {{ colorIndex }}</p>
-                <div class="grid max-h-32 grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-2 overflow-y-auto p-0.5" :aria-label="`Available colors for slot ${colorIndex}`">
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(1.75rem,1fr))] gap-2 overflow-y-auto p-0.5" :aria-label="`Available colors for slot ${colorIndex}`">
                   <UButton
                     v-for="[colorId, color] in availableColors"
                     :key="colorId"
