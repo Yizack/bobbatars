@@ -9,6 +9,7 @@ const avatarCatalog = avatarCatalogJson as unknown as {
   schemaVersion: number;
   build: string;
   categories: Array<{ type: string, sets: Array<{ id: string, nft?: boolean }> }>;
+  effects?: Array<{ id: string }>;
 };
 const defaultFigure = DEFAULT_OUTFIT_FIGURES.M;
 const defaultFigureString = `${defaultFigure}&gender=M`;
@@ -22,7 +23,7 @@ const previewUrl = withQuery("https://habbohistory.com/habbo-imaging/avatarimage
 const catalogSetCount = avatarCatalog.categories.reduce((count, category) =>
   count + category.sets.filter(set => !set.nft).length, 0
 );
-const categoryCount = avatarCatalog.categories.length;
+const categoryCount = avatarCatalog.categories.length + (avatarCatalog?.effects?.length ? 1 : 0);
 const previewUnavailable = ref(false);
 
 useHead({
