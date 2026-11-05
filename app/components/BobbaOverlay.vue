@@ -1045,8 +1045,8 @@ function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() *
     avatar.randomTimer = null;
     if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current) return;
     const optionsByDistance: Tile[][] = [[], [], []];
-    for (let columnStep = -3; columnStep <= 3; columnStep++) {
-      for (let rowStep = -3; rowStep <= 3; rowStep++) {
+    for (let columnStep = -4; columnStep <= 4; columnStep++) {
+      for (let rowStep = -4; rowStep <= 4; rowStep++) {
         const distance = Math.max(Math.abs(columnStep), Math.abs(rowStep));
         if (distance === 0) continue;
         const tile = {
