@@ -162,8 +162,10 @@ const figureTypeByCode = new Map(figureTypes.map(type => [type.type, type]));
 const activeCategory = computed(() => figureTypeByCode.get(activeType.value));
 const activePart = computed(() => selectedParts.value[activeType.value]);
 const catalogItemsContainer = ref<HTMLElement | null>(null);
+const effectItemsContainer = ref<HTMLElement | null>(null);
 const catalogPageSize = 18;
 const visibleSetCount = ref(catalogPageSize);
+const visibleEffectCount = ref(catalogPageSize);
 const activeSet = computed(() => {
   const part = activePart.value;
   return part ? activeCategory.value?.sets.find(set => set.id === part.setId) : undefined;
@@ -209,7 +211,7 @@ function paletteForType (type: FigureSetType | undefined): [string, AvatarColor]
 }
 
 function defaultOutfit (forGender: Gender): Record<string, OutfitPart> {
-  if (forGender === "M") return parseFigureString(avatar.value.figure);
+  if (forGender === "M") return parseFigureString(DEFAULT_MALE_OUTFIT_FIGURE);
   return parseFigureString(DEFAULT_OUTFIT_FIGURES[forGender]);
 }
 
@@ -236,6 +238,7 @@ const availableEffects = computed(() => {
 });
 
 const visibleSets = computed(() => availableSets.value.slice(0, visibleSetCount.value));
+const visibleEffects = computed(() => availableEffects.value.slice(0, visibleEffectCount.value));
 
 useInfiniteScroll(
   catalogItemsContainer,
@@ -251,6 +254,23 @@ useInfiniteScroll(
 watch(availableSets, () => {
   visibleSetCount.value = catalogPageSize;
   if (catalogItemsContainer.value) catalogItemsContainer.value.scrollTop = 0;
+}, { flush: "post" });
+
+useInfiniteScroll(
+  effectItemsContainer,
+  () => {
+    visibleEffectCount.value = Math.min(visibleEffectCount.value + catalogPageSize, availableEffects.value.length);
+  },
+  {
+    distance: 160,
+    canLoadMore: () => visibleEffectCount.value < availableEffects.value.length
+  }
+);
+
+watch([availableEffects, activeType], () => {
+  if (activeType.value !== "effects") return;
+  visibleEffectCount.value = catalogPageSize;
+  if (effectItemsContainer.value) effectItemsContainer.value.scrollTop = 0;
 }, { flush: "post" });
 
 const availableColors = computed(() => {
@@ -598,16 +618,16 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
         </div>
         <div class="flex gap-2" role="group" aria-label="Avatar gender">
           <UButton
-            :color="gender === 'M' ? 'primary' : 'neutral'"
-            :variant="gender === 'M' ? 'solid' : 'outline'"
+            color="neutral"
+            :variant="gender === 'M' ? 'subtle' : 'outline'"
             :aria-pressed="gender === 'M'"
             @click="changeGender('M')"
           >
             <img :src="genderIcon('M')" alt="" class="size-5 shrink-0 object-contain" style="object-position: 0 4px;">Male
           </UButton>
           <UButton
-            :color="gender === 'F' ? 'primary' : 'neutral'"
-            :variant="gender === 'F' ? 'solid' : 'outline'"
+            color="neutral"
+            :variant="gender === 'F' ? 'subtle' : 'outline'"
             :aria-pressed="gender === 'F'"
             @click="changeGender('F')"
           >
@@ -665,7 +685,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                 <UButton v-else-if="activeType !== 'hd' && activeType !== 'lg' && activePart" type="button" color="error" variant="ghost" icon="i-lucide-eraser" @click="removeActivePart">Remove</UButton>
               </div>
 
-              <div v-if="activeType === 'effects'" class="grid max-h-112 grid-cols-2 content-start gap-2 overflow-y-auto sm:grid-cols-3 2xl:grid-cols-4" aria-label="Avatar effects">
+              <div v-if="activeType === 'effects'" ref="effectItemsContainer" class="grid max-h-112 grid-cols-2 content-start gap-2 overflow-y-auto sm:grid-cols-3 2xl:grid-cols-4" aria-label="Avatar effects">
                 <UButton
                   type="button"
                   :color="selectedEffect === null ? 'primary' : 'neutral'"
@@ -681,7 +701,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                   <span class="w-full truncate text-center text-xs">None</span>
                 </UButton>
                 <UButton
-                  v-for="effect in availableEffects"
+                  v-for="effect in visibleEffects"
                   :key="effect.id"
                   type="button"
                   :color="selectedEffect === Number(effect.id) ? 'primary' : 'neutral'"
@@ -775,7 +795,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                     size="sm"
                     class="w-full sm:w-32"
                   />
-                  <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-rotate-3d" @click="previewDirection = (previewDirection + 1) % 8">
+                  <UButton size="sm" color="neutral" variant="outline" icon="pixelarticons:move" @click="previewDirection = (previewDirection + 1) % 8">
                     Turn · {{ previewDirection }}
                   </UButton>
                 </div>
@@ -797,9 +817,9 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
             </div>
 
             <div class="mt-3 grid grid-cols-2 items-center gap-2 sm:mt-4 sm:flex sm:flex-wrap">
-              <UButton size="sm" class="min-w-0 justify-center" color="secondary" variant="soft" icon="i-lucide-shuffle" @click="randomizeOutfit">Randomize</UButton>
-              <UButton size="sm" class="min-w-0 justify-center" color="neutral" variant="outline" icon="i-lucide-rotate-ccw" @click="selectedParts = defaultOutfit(gender)">Reset</UButton>
-              <UButton size="sm" class="col-span-2 justify-center sm:col-span-1" color="primary" icon="i-lucide-save" :loading="saveState === 'saving'" :disabled="!user?.twitchLogin || saveState === 'saving'" @click="saveAvatar">Save avatar</UButton>
+              <UButton size="sm" class="min-w-0 justify-center" color="secondary" variant="soft" icon="pixelarticons:shuffle" @click="randomizeOutfit">Randomize</UButton>
+              <UButton size="sm" class="min-w-0 justify-center" color="neutral" variant="outline" icon="pixelarticons:reload" @click="selectedParts = defaultOutfit(gender); selectedEffect = null">Reset</UButton>
+              <UButton size="sm" class="col-span-2 justify-center sm:col-span-1" color="primary" icon="pixelarticons:save" :loading="saveState === 'saving'" :disabled="!user?.twitchLogin || saveState === 'saving'" @click="saveAvatar">Save avatar</UButton>
               <UBadge class="col-span-2 justify-center sm:ml-auto sm:col-span-1" color="neutral" variant="subtle">{{ outfitCount }} parts</UBadge>
             </div>
             <UAlert v-if="saveState === 'saved'" class="mt-3" color="success" variant="subtle" title="Avatar saved" description="Your current avatar has been saved to your account." icon="i-lucide-circle-check" />
