@@ -20,6 +20,7 @@ interface ActiveUser {
   lastActivity: number;
   lastMessage: string;
   lastMessageAt: number;
+  isSitting: boolean;
   danceAction: AvatarDanceAction | null;
 }
 
@@ -35,7 +36,7 @@ interface AvatarElements {
 
 type AvatarElementRef = Element | ComponentPublicInstance | null;
 type AvatarPart = "shadow" | "image" | "label" | "popoverAnchor" | "menuAnchor";
-type AvatarAction = "std" | "wlk" | AvatarDanceAction;
+type AvatarAction = "std" | "wlk" | "sit" | AvatarDanceAction;
 
 interface AvatarState {
   login: string;
@@ -47,6 +48,7 @@ interface AvatarState {
   menuVisible: boolean;
   danceMenuVisible: boolean;
   movementPaused: boolean;
+  isSitting: boolean;
   current: Tile | null;
   visual: Tile | null;
   destination: Tile | null;
@@ -115,6 +117,10 @@ const knownChatBots = new Set([
   "wizebot"
 ]);
 
+function randomSitDirection () {
+  return Math.random() < 0.5 ? 2 : 4;
+}
+
 const room = ref<HTMLDivElement | null>(null);
 const status = ref("Conectando al chat de Twitch…");
 const avatars = ref<AvatarState[]>([]);
@@ -145,7 +151,10 @@ function imageUrl (
   figure = defaultFigure,
   effect: number | null = null
 ) {
-  const headDirection = action === "dance3" || action === "dance4" ? danceHeadDirectionOverrides[direction] ?? direction : direction;
+  let headDirection = direction;
+  if (action === "dance3" || action === "dance4") {
+    headDirection = danceHeadDirectionOverrides[direction] ?? direction;
+  }
 
   return withQuery(imageEndpoint, {
     figure,
@@ -204,7 +213,7 @@ async function updateAvatar (
   gesture = avatar.gesture
 ): Promise<void> {
   avatar.direction = direction;
-  avatar.action = avatar.danceAction ?? action;
+  avatar.action = avatar.isSitting ? "sit" : avatar.danceAction ?? action;
   avatar.gesture = gesture;
   const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture, avatar.figure, avatar.effect);
 
@@ -365,7 +374,7 @@ function animateAvatarSteps (now: number) {
     const startedAt = avatar.animationStartedAt;
     const current = avatar.current;
     const next = avatar.nextStep;
-    if (avatar.removed || startedAt === null || !current || !next) {
+    if (avatar.removed || avatar.isSitting || startedAt === null || !current || !next) {
       movingAvatars.delete(avatar);
       avatar.animationStartedAt = null;
       continue;
@@ -510,11 +519,12 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     menuVisible: false,
     danceMenuVisible: false,
     movementPaused: false,
+    isSitting: user.isSitting,
     current: { ...spawn },
     visual: { ...spawn },
     destination: { ...spawn },
-    direction: 2,
-    action: "std",
+    direction: user.isSitting ? randomSitDirection() : 2,
+    action: user.isSitting ? "sit" : "std",
     danceAction: user.danceAction,
     gesture: "std",
     currentImage: "",
@@ -544,7 +554,7 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
   placeHabbo(avatar);
   void refreshAvatarFigure(avatar)
     .catch(error => reportAvatarFetchError(avatar, error));
-  void updateAvatar(avatar, avatar.direction, "std")
+  void updateAvatar(avatar, avatar.direction, avatar.isSitting ? "sit" : "std")
     .then(() => {
       if (!avatar.removed) scheduleRandomMove(avatar);
     })
@@ -627,8 +637,19 @@ function reconcileActiveAvatars () {
 
 function setAvatarDance (avatar: AvatarState, danceAction: AvatarDanceAction | null) {
   avatar.danceAction = danceAction;
+  const user = activeUsers.get(avatar.login);
+  if (user) {
+    user.danceAction = danceAction;
+    if (danceAction !== null) user.isSitting = false;
+  }
+  if (danceAction !== null) avatar.isSitting = false;
   const action = avatar.isWalking ? "wlk" : "std";
   void updateAvatar(avatar, avatar.direction, action)
+    .then(() => {
+      if (!avatar.removed && !avatar.movementPaused && !avatar.isSitting) {
+        scheduleRandomMove(avatar);
+      }
+    })
     .catch(error => reportAvatarLoadError(avatar, error));
 }
 
@@ -691,6 +712,14 @@ function updateAvatarMenuVisibility (avatar: AvatarState, isOpen: boolean) {
 function pauseAvatarMovement (avatar: AvatarState) {
   if (avatar.removed || avatar.movementPaused) return;
   avatar.movementPaused = true;
+  stopAvatarMovement(avatar);
+  if (avatar.current) {
+    void updateAvatar(avatar, avatar.direction, "std")
+      .catch(error => reportAvatarLoadError(avatar, error));
+  }
+}
+
+function stopAvatarMovement (avatar: AvatarState) {
   avatar.movementVersion++;
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
@@ -701,17 +730,13 @@ function pauseAvatarMovement (avatar: AvatarState) {
   avatar.nextStep = null;
   avatar.destination = avatar.current ? { ...avatar.current } : null;
   avatar.visual = avatar.current ? { ...avatar.current } : null;
-  if (avatar.current) {
-    placeHabbo(avatar);
-    void updateAvatar(avatar, avatar.direction, "std")
-      .catch(error => reportAvatarLoadError(avatar, error));
-  }
+  if (avatar.current) placeHabbo(avatar);
 }
 
 function resumeAvatarMovement (avatar: AvatarState) {
   if (!avatar.movementPaused) return;
   avatar.movementPaused = false;
-  if (!avatar.removed) scheduleRandomMove(avatar);
+  if (!avatar.removed && !avatar.isSitting) scheduleRandomMove(avatar);
 }
 
 function refreshAvatarFromMenu (avatar: AvatarState) {
@@ -721,8 +746,34 @@ function refreshAvatarFromMenu (avatar: AvatarState) {
 }
 
 function setAvatarDanceFromMenu (avatar: AvatarState, danceAction: AvatarDanceAction | null) {
-  updateAvatarMenuVisibility(avatar, false);
   setAvatarDance(avatar, danceAction);
+  updateAvatarMenuVisibility(avatar, false);
+}
+
+function setAvatarSitting (avatar: AvatarState, isSitting: boolean) {
+  avatar.isSitting = isSitting;
+  avatar.danceAction = null;
+  const user = activeUsers.get(avatar.login);
+  if (user) {
+    user.isSitting = isSitting;
+    user.danceAction = null;
+  }
+
+  stopAvatarMovement(avatar);
+  if (isSitting) avatar.direction = randomSitDirection();
+
+  void updateAvatar(avatar, avatar.direction, isSitting ? "sit" : "std")
+    .then(() => {
+      if (!avatar.removed && !avatar.movementPaused && !avatar.isSitting) {
+        scheduleRandomMove(avatar);
+      }
+    })
+    .catch(error => reportAvatarLoadError(avatar, error));
+}
+
+function toggleAvatarSittingFromMenu (avatar: AvatarState) {
+  setAvatarSitting(avatar, !avatar.isSitting);
+  updateAvatarMenuVisibility(avatar, false);
 }
 
 function recordChatActivity (username: string, message: string, twitchDisplayName: string) {
@@ -731,13 +782,13 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
   if (!login || knownChatBots.has(login)) return;
   const displayName = String(twitchDisplayName || username).trim();
   const command = parseAvatarChatCommand(messageText);
-  const stopDance = command?.type === "dance" && command.action === null;
+  const stopCommand = (command?.type === "dance" && command.action === null) || command?.type === "stand";
   if (messageText.trimStart().startsWith("!") && !command) return;
 
   const now = Date.now();
   let user = activeUsers.get(login);
   if (!user || now - user.lastActivity >= inactiveTimeout) {
-    if (stopDance) return;
+    if (stopCommand) return;
     user = {
       login,
       displayName,
@@ -745,6 +796,7 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
       lastActivity: now,
       lastMessage: "",
       lastMessageAt: 0,
+      isSitting: false,
       danceAction: null
     };
     activeUsers.set(login, user);
@@ -757,8 +809,21 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
     user.lastMessage = "";
     user.lastMessageAt = 0;
     user.danceAction = command.action;
+    if (command.action !== null) user.isSitting = false;
     const avatar = avatarsByUser.get(login);
     if (avatar) setAvatarDance(avatar, command.action);
+    scheduleReconciliation();
+    return;
+  }
+
+  if (command?.type === "sit" || command?.type === "stand") {
+    user.lastMessage = "";
+    user.lastMessageAt = 0;
+    const isSitting = command.type === "sit";
+    user.isSitting = isSitting;
+    user.danceAction = null;
+    const avatar = avatarsByUser.get(login);
+    if (avatar) setAvatarSitting(avatar, isSitting);
     scheduleReconciliation();
     return;
   }
@@ -821,7 +886,7 @@ async function showChatMessage (avatar: AvatarState, message: string) {
 }
 
 async function moveNextStep (avatar: AvatarState) {
-  if (avatar.removed || avatar.movementPaused || !avatar.current || !avatar.destination) return;
+  if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current || !avatar.destination) return;
   const movementVersion = avatar.movementVersion;
   const reportError = (error: unknown) => {
     if (movementVersion === avatar.movementVersion) {
@@ -924,10 +989,10 @@ function reportAvatarLoadError (avatar: AvatarState | null, error: unknown) {
 function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() * 1800) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   avatar.randomTimer = null;
-  if (avatar.removed || avatar.movementPaused || !avatar.current) return;
+  if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current) return;
   avatar.randomTimer = window.setTimeout(() => {
     avatar.randomTimer = null;
-    if (avatar.removed || avatar.movementPaused || !avatar.current) return;
+    if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current) return;
     const optionsByDistance: Tile[][] = [[], [], []];
     for (let columnStep = -3; columnStep <= 3; columnStep++) {
       for (let rowStep = -3; rowStep <= 3; rowStep++) {
@@ -963,7 +1028,7 @@ function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() *
 function walk (avatar: AvatarState) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   avatar.randomTimer = null;
-  if (avatar.removed || avatar.movementPaused || avatar.isWalking) return;
+  if (avatar.removed || avatar.movementPaused || avatar.isSitting || avatar.isWalking) return;
   avatar.isWalking = true;
   void moveNextStep(avatar);
 }
@@ -1154,6 +1219,17 @@ onBeforeUnmount(() => {
                   @click="setAvatarDanceFromMenu(avatar, null)"
                 >
                   Stop Dance
+                </UButton>
+                <UButton
+                  type="button"
+                  size="sm"
+                  color="neutral"
+                  variant="ghost"
+                  icon="i-lucide-armchair"
+                  class="justify-start"
+                  @click="toggleAvatarSittingFromMenu(avatar)"
+                >
+                  {{ avatar.isSitting ? "Stand Up" : "Sit" }}
                 </UButton>
                 <UButton
                   type="button"

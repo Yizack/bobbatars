@@ -22,6 +22,7 @@ const emit = defineEmits<{
 const previewFailed = ref(false);
 const previewActionOptions: { label: string, value: AvatarPreviewAction }[] = [
   { label: "Stand", value: "std" },
+  { label: "Sit", value: "sit" },
   ...avatarDanceActions.map((action, index) => ({ label: `Dance ${index + 1}`, value: action }))
 ];
 

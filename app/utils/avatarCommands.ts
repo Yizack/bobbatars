@@ -3,6 +3,7 @@ export const avatarDanceActions: readonly AvatarDanceAction[] = ["dance1", "danc
 
 export type AvatarChatCommand
   = | { type: "dance", action: AvatarDanceAction | null }
+    | { type: "sit" | "stand" }
     | { type: "refresh-avatar", target: string | null };
 
 export interface AvatarChatCommandDefinition {
@@ -21,6 +22,14 @@ export const avatarChatCommandRegistry: readonly AvatarChatCommandDefinition[] =
   {
     pattern: /^!dance\s+stop$/i,
     parse: () => ({ type: "dance", action: null })
+  },
+  {
+    pattern: /^!sit$/i,
+    parse: () => ({ type: "sit" })
+  },
+  {
+    pattern: /^!up$/i,
+    parse: () => ({ type: "stand" })
   },
   {
     pattern: /^!(?:refresh|update)?avatar(?:\s+@?([\da-z_]+))?$/i,
