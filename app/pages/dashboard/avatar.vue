@@ -284,7 +284,7 @@ function genderIcon (value: Gender): string {
   return `/avatar-generator/icons/${genderIcons[value]}`;
 }
 
-useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
+useHead({ title: "Avatar | Bobbatars" });
 </script>
 
 <template>

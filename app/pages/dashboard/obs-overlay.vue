@@ -34,7 +34,7 @@ async function copyOverlayUrl () {
   }
 }
 
-useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
+useHead({ title: "OBS Overlay | Bobbatars" });
 </script>
 
 <template>
