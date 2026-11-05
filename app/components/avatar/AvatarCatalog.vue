@@ -176,6 +176,7 @@ function effectPreviewUrl (effectId: string | null): string {
     figure: figureForParts(selectedParts.value),
     gender: gender.value,
     size: "m",
+    position: "bottom",
     ...(effectId === null ? {} : { effect: effectId })
   });
 }
@@ -212,7 +213,8 @@ function itemPreviewUrl (type: string, setId: string): string {
   return withQuery(avatarImagingUrl, {
     figure: figureForParts(previewParts),
     gender: gender.value,
-    size: "m"
+    size: "m",
+    position: "bottom"
   });
 }
 </script>

@@ -98,6 +98,7 @@ const previewUrl = computed(() => {
     format: "webp",
     rv: 55,
     animv: 28,
+    position: "bottom",
     ...(selectedEffect.value === null ? {} : { effect: String(selectedEffect.value) })
   });
 });

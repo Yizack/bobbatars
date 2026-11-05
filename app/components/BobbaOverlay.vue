@@ -191,6 +191,7 @@ function imageUrl (
     format: "webp",
     rv: 55,
     animv: 28,
+    position: "bottom",
     ...(effect === null ? {} : { effect: String(effect) })
   });
 }
@@ -1197,14 +1198,14 @@ onBeforeUnmount(() => {
         <template v-for="avatar in avatars" :key="avatar.login">
           <div
             :ref="avatar.shadowRef"
-            class="pointer-events-none absolute left-1 -top-1 z-[1] h-[14px] w-[34px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
+            class="pointer-events-none absolute left-1 -top-0.5 z-[1] h-[14px] w-[34px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
             aria-hidden="true"
           />
           <img
             v-if="avatar.currentImage"
             :ref="avatar.imageRef"
             class="pointer-events-auto absolute left-1 z-[2] h-auto max-w-full cursor-pointer select-none"
-            :class="avatar.isSitting ? 'top-3' : '-top-1'"
+            :class="avatar.isSitting ? 'top-1' : '-top-2'"
             :src="avatar.currentImage"
             :alt="`Avatar de ${avatar.displayName}`"
             :aria-label="`Opciones para el avatar de ${avatar.displayName}`"
