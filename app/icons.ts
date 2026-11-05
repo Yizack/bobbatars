@@ -32,5 +32,6 @@ export default [
   "pixelarticons:loader",
   "pixelarticons:settings-cog",
   "pixelarticons:plus",
-  "pixelarticons:minus"
+  "pixelarticons:minus",
+  "simple-icons:twitch"
 ];
