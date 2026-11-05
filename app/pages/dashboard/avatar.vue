@@ -2,6 +2,7 @@
 import { withQuery } from "ufo";
 import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
 import { DEFAULT_MALE_OUTFIT_FIGURE, DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
+import { useInfiniteScroll } from "@vueuse/core";
 
 definePageMeta({ layout: "dashboard" });
 
@@ -138,6 +139,9 @@ const figureTypes = catalog.categories;
 const figureTypeByCode = new Map(figureTypes.map(type => [type.type, type]));
 const activeCategory = computed(() => figureTypeByCode.get(activeType.value));
 const activePart = computed(() => selectedParts.value[activeType.value]);
+const catalogItemsContainer = ref<HTMLElement | null>(null);
+const catalogPageSize = 18;
+const visibleSetCount = ref(catalogPageSize);
 const activeSet = computed(() => {
   const part = activePart.value;
   return part ? activeCategory.value?.sets.find(set => set.id === part.setId) : undefined;
@@ -203,6 +207,24 @@ const availableSets = computed(() => {
     .sort((left, right) => Number(left.id) - Number(right.id))
     .map(set => ({ setId: set.id, set }));
 });
+
+const visibleSets = computed(() => availableSets.value.slice(0, visibleSetCount.value));
+
+useInfiniteScroll(
+  catalogItemsContainer,
+  () => {
+    visibleSetCount.value = Math.min(visibleSetCount.value + catalogPageSize, availableSets.value.length);
+  },
+  {
+    distance: 160,
+    canLoadMore: () => visibleSetCount.value < availableSets.value.length
+  }
+);
+
+watch(availableSets, () => {
+  visibleSetCount.value = catalogPageSize;
+  if (catalogItemsContainer.value) catalogItemsContainer.value.scrollTop = 0;
+}, { flush: "post" });
 
 const availableColors = computed(() => {
   if (!activeSet.value?.colorCount) return [];
@@ -583,9 +605,9 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                 <UButton v-if="activeType !== 'hd' && activeType !== 'lg' && activePart" type="button" color="error" variant="ghost" icon="i-lucide-eraser" @click="removeActivePart">Remove</UButton>
               </div>
 
-              <div class="grid max-h-112 grid-cols-3 content-start gap-2 overflow-y-auto sm:grid-cols-4 2xl:grid-cols-5" :aria-label="`${categoryName(activeType)} options`">
+              <div ref="catalogItemsContainer" class="grid max-h-112 grid-cols-3 content-start gap-2 overflow-y-auto sm:grid-cols-4 2xl:grid-cols-5" :aria-label="`${categoryName(activeType)} options`">
                 <UButton
-                  v-for="item in availableSets"
+                  v-for="item in visibleSets"
                   :key="item.setId"
                   type="button"
                   :color="activePart?.setId === item.setId ? 'primary' : 'neutral'"
