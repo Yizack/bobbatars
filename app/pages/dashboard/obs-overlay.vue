@@ -90,7 +90,7 @@ useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
                 <div class="flex items-center justify-between gap-4">
                   <div class="grid gap-1">
                     <p class="text-sm font-medium text-highlighted">Maximum avatars</p>
-                    <p class="text-xs leading-5 text-muted">Set a room limit from 1 to 50.</p>
+                    <p class="text-xs leading-5 text-muted">Set a limit up to 50. The source resolution may reduce the cap.</p>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
