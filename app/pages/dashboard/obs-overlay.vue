@@ -97,6 +97,14 @@ useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
               />
             </div>
 
+            <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+              <label class="grid gap-1" for="obs-show-tiles">
+                <p class="text-sm font-medium text-highlighted">Show room tiles</p>
+                <p class="text-xs leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
+              </label>
+              <USwitch id="obs-show-tiles" v-model="tiles" aria-label="Show room tiles" />
+            </div>
+
             <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
               <div class="flex items-center justify-between gap-4">
                 <div class="grid gap-1">
@@ -111,14 +119,6 @@ useHead({ title: "OBS Overlay | Habbo Outfit Studio" });
                 :step="38"
                 aria-label="Room height"
               />
-            </div>
-
-            <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-              <label class="grid gap-1" for="obs-show-tiles">
-                <p class="text-sm font-medium text-highlighted">Show room tiles</p>
-                <p class="text-xs leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
-              </label>
-              <USwitch id="obs-show-tiles" v-model="tiles" aria-label="Show room tiles" />
             </div>
 
             <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
