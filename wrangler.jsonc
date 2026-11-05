@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "bobbatars",
+  "compatibility_date": "2026-11-04",
+  "main": ".output/server/index.mjs",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [
+    {
+      "pattern": "bobbatars.yizack.com",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".output/public"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bobbatars",
+      "database_id": "409fe81f-bb6b-4c1b-865e-b00a7bdc70fb",
+      "migrations_dir": ".output/server/db/migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "213b36885140432db70babe25c4e6840"
+    }
+  ]
+}
