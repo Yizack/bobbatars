@@ -86,8 +86,8 @@ const categoryIcons: Record<string, string> = {
   wa: "belts.png",
   cc: "jackets.png",
   cp: "chest.png",
-  pt: "accessories.png",
-  mc: "accessories.png"
+  pt: "pet.png",
+  mc: "extra.png"
 };
 const genderIcons: Record<Gender, string> = { M: "male.png", F: "female.png" };
 
