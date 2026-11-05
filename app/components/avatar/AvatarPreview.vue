@@ -56,7 +56,7 @@ watch(previewUrl, () => {
       </div>
     </template>
 
-    <div class="relative grid min-h-56 place-items-center overflow-hidden rounded-md bg-neutral-950 p-2 sm:min-h-72 sm:p-4">
+    <div class="relative grid min-h-56 place-items-center overflow-hidden rounded-md bg-neutral-950 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-size-[32px_32px] p-2 sm:min-h-72 sm:p-4">
       <img
         v-if="!previewFailed"
         :key="previewUrl"
