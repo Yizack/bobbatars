@@ -3,13 +3,18 @@ import { computed, navigateTo, useRoute } from "#imports";
 import type { NavigationMenuItem } from "@nuxt/ui";
 
 const route = useRoute();
+const sidebarOpen = defineModel<boolean>("open", { default: true });
+function closeSidebar () {
+  sidebarOpen.value = false;
+}
+
 const navigationItems = computed<NavigationMenuItem[][]>(() => [
   [
     {
       label: "Overview",
-      to: "/",
+      to: "/dashboard",
       icon: "pixelarticons:home",
-      active: route.path === "/dashboard"
+      onSelect: closeSidebar
     }
   ],
   [
@@ -21,7 +26,7 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
       label: "My Avatar",
       to: "/dashboard/avatar",
       icon: "pixelarticons:shirt",
-      active: route.path === "/dashboard/avatar"
+      onSelect: closeSidebar
     }
   ],
   [
@@ -30,15 +35,14 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
       type: "label"
     },
     {
-      label: "Setup OBS overlay",
+      label: "OBS overlay",
       to: "/dashboard/obs-overlay",
       icon: "pixelarticons:monitor",
-      active: route.path === "/dashboard/obs-overlay"
+      onSelect: closeSidebar
     }
   ]
 ]);
 const { clear, loggedIn, user } = useUserSession();
-const sidebarOpen = defineModel<boolean>("open", { default: true });
 
 async function logout () {
   await clear();
