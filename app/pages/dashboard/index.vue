@@ -8,7 +8,7 @@ definePageMeta({ layout: "dashboard" });
 const avatarCatalog = avatarCatalogJson as unknown as {
   schemaVersion: number;
   build: string;
-  categories: Array<{ type: string, sets: Array<{ id: string }> }>;
+  categories: Array<{ type: string, sets: Array<{ id: string, nft?: boolean }> }>;
 };
 const defaultFigure = DEFAULT_MALE_OUTFIT_FIGURE;
 const defaultFigureString = `${defaultFigure}&gender=M`;
@@ -20,7 +20,7 @@ const previewUrl = withQuery("https://habbohistory.com/habbo-imaging/avatarimage
   gender: "M"
 });
 const catalogSetCount = avatarCatalog.categories.reduce((count, category) =>
-  count + category.sets.length, 0
+  count + category.sets.filter(set => !set.nft).length, 0
 );
 const categoryCount = avatarCatalog.categories.length;
 const previewUnavailable = ref(false);
@@ -47,7 +47,7 @@ useHead({
       <section class="grid gap-3 sm:grid-cols-3" aria-label="Workspace status">
         <UCard v-for="stat in [
                  { label: 'CATEGORIES', value: `${categoryCount} outfit categories`, detail: 'Groups from the embedded catalog', icon: 'i-lucide-layout-grid' },
-                 { label: 'CATALOG SETS', value: `${catalogSetCount} outfit items`, detail: 'Across all catalog categories', icon: 'i-lucide-shirt' },
+                 { label: 'CATALOG SETS', value: `${catalogSetCount} outfit items`, detail: 'Items across categories', icon: 'i-lucide-shirt' },
                  { label: 'HOTEL CONNECTION', value: 'Not required', detail: 'Outfit strings generated locally', icon: 'i-lucide-unplug' },
                ]"
                :key="stat.label"

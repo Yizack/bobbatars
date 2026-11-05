@@ -19,6 +19,7 @@ interface FigureSet {
   id: string;
   gender: Gender | "U";
   colorCount: number;
+  nft?: boolean;
 }
 
 interface FigureSetType {
@@ -197,7 +198,7 @@ const availableSets = computed(() => {
   return activeCategory.value.sets
     .filter((set) => {
       const genderAvailable = set.gender === "U" || set.gender === gender.value;
-      return genderAvailable && (!query || set.id.includes(query));
+      return !set.nft && genderAvailable && (!query || set.id.includes(query));
     })
     .sort((left, right) => Number(left.id) - Number(right.id))
     .map(set => ({ setId: set.id, set }));
@@ -243,7 +244,7 @@ watch([figure, gender], () => {
 function selectSet (setId: string) {
   const type = activeCategory.value;
   const set = type?.sets.find(candidate => candidate.id === setId);
-  if (!type || !set || (set.gender !== "U" && set.gender !== gender.value)) return;
+  if (!type || !set || set.nft || (set.gender !== "U" && set.gender !== gender.value)) return;
 
   const previous = selectedParts.value[type.type];
   const retainedColors = previous?.colorIds.length ? previous.colorIds : colorsForType(type.type);
@@ -298,7 +299,7 @@ function randomizeOutfit () {
   const nextParts: Record<string, OutfitPart> = {};
 
   for (const type of figureTypes) {
-    const candidates = type.sets.filter(set => set.gender === "U" || set.gender === gender.value);
+    const candidates = type.sets.filter(set => !set.nft && (set.gender === "U" || set.gender === gender.value));
     const candidate = candidates[Math.floor(Math.random() * candidates.length)];
     if (!candidate) continue;
 
@@ -571,7 +572,7 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
                 <img :src="categoryIcon(type.type)" alt="" class="size-5 shrink-0 object-contain">
                 <span class="truncate">{{ categoryName(type.type) }}</span>
                 <UBadge class="ml-auto" color="neutral" variant="subtle" size="xs">
-                  {{ type.sets.filter(set => set.gender === 'U' || set.gender === gender).length }}
+                  {{ type.sets.filter(set => !set.nft && (set.gender === 'U' || set.gender === gender)).length }}
                 </UBadge>
               </UButton>
             </nav>

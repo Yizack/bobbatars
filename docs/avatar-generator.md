@@ -4,11 +4,12 @@
 
 The dashboard editor and overview use `app/data/avatar-generator/catalog.json`. The catalog
 provides category metadata, figure sets, gender restrictions, color-slot counts, and selectable
-palette colors. The editor displays all catalog sets that match the selected gender.
+palette colors. The editor omits sets marked `nft` from category options, counts, and random outfit
+generation. Existing or imported figures can still retain those parts.
 
-Starter figure strings are kept in `app/data/avatar-generator/default-outfit.ts`. The legacy
-`catalog.json` and `scripts/sync-avatargenerate-data.mjs` remain for the older AvatarGenerate data
-pipeline and are not used by the dashboard pages.
+Starter figure strings are kept in `app/data/avatar-generator/default-outfit.ts`. The old
+`scripts/sync-avatargenerate-data.mjs` still targets the previous AvatarGenerate schema and should
+not be used to regenerate the active catalog without adapting its output.
 
 ## Figure strings
 
