@@ -223,7 +223,7 @@ function itemPreviewUrl (type: string, setId: string): string {
     </template>
 
     <div class="grid xl:grid-cols-[13rem_minmax(0,1fr)]">
-      <nav class="flex flex-wrap gap-2 overflow-x-auto border-b border-default p-3 xl:flex-col xl:overflow-x-visible xl:border-b-0 xl:border-r" aria-label="Outfit categories">
+      <nav class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-1 gap-2 overflow-x-auto border-b border-default p-3 xl:overflow-x-visible xl:border-b-0 xl:border-r" aria-label="Outfit categories">
         <UButton
           v-for="type in figureTypes"
           :key="type.type"
@@ -288,7 +288,7 @@ function itemPreviewUrl (type: string, setId: string): string {
             <span class="flex h-36 w-full items-center justify-center overflow-hidden rounded bg-neutral-950">
               <img class="max-h-28 max-w-full object-contain" :src="effectPreviewUrl(effect.id)" alt="" loading="lazy">
             </span>
-            <span class="w-full truncate text-center text-xs">{{ effect.name }}</span>
+            <span class="w-full truncate text-center text-xs text-muted">{{ effect.name }}</span>
           </UButton>
           <UAlert v-if="!availableEffects.length" class="col-span-full" color="neutral" variant="subtle" title="No matching effects" description="Try another effect name." icon="pixelarticons:letter-x-circle" />
         </div>
@@ -308,7 +308,7 @@ function itemPreviewUrl (type: string, setId: string): string {
               <span class="flex h-36 w-full items-center justify-center overflow-hidden rounded bg-neutral-950">
                 <img class="max-h-28 max-w-full scale-130 object-contain self-center" :src="itemPreviewUrl(activeType, item.setId)" alt="" loading="lazy">
               </span>
-              <span class="w-full truncate text-center font-mono text-xs">#{{ item.setId }}</span>
+              <span class="w-full truncate text-center font-mono text-xs text-muted">#{{ item.setId }}</span>
             </UButton>
             <UAlert v-if="!availableSets.length" class="col-span-full" color="neutral" variant="subtle" title="No matching items" description="Try another set ID or category." icon="pixelarticons:letter-x-circle" />
           </div>
