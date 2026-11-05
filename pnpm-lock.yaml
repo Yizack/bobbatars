@@ -206,6 +206,9 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@iconify-json/pixelarticons':
+        specifier: ^1.2.10
+        version: 1.2.10
       '@libsql/client':
         specifier: ^0.18.0
         version: 0.18.0
@@ -1245,6 +1248,9 @@ packages:
 
   '@iconify-json/lucide@1.2.151':
     resolution: {integrity: sha512-OCp+cNzynOlOI7zHq8bFGhBBzmSSWFICvOSTxZrajhFJC4YizvlLiBJMbaLzzlpMaGRidmZmAA8GpovoDKiy/w==}
+
+  '@iconify-json/pixelarticons@1.2.10':
+    resolution: {integrity: sha512-bGUjTf8BRz0Abr5VNdy2rEB8eUB0evlaVtD4YlHSC16T7Yj70X8CRhEoetgHJJEbFu61veDWPcg71lp1H1NSSg==}
 
   '@iconify/collections@1.0.761':
     resolution: {integrity: sha512-ndXwMhY+SZv1OB13kieL5z70yUVkPWNI+aHPZjfpsLdenL8X42+Doo5mrADcfufPSq4Z/KTGkyq/G97b0uMu5g==}
@@ -7073,6 +7079,10 @@ snapshots:
   '@humanwhocodes/retry@0.4.3': {}
 
   '@iconify-json/lucide@1.2.151':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/pixelarticons@1.2.10':
     dependencies:
       '@iconify/types': 2.0.0
 

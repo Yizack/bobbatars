@@ -8,7 +8,7 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
     {
       label: "Overview",
       to: "/",
-      icon: "i-lucide-layout-dashboard",
+      icon: "pixelarticons:home",
       active: route.path === "/"
     }
   ],
@@ -20,7 +20,7 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
     {
       label: "My Avatar",
       to: "/dashboard/avatar",
-      icon: "i-lucide-shirt",
+      icon: "pixelarticons:user",
       active: route.path === "/dashboard/avatar"
     }
   ],
@@ -32,7 +32,7 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
     {
       label: "Setup OBS overlay",
       to: "/dashboard/obs-overlay",
-      icon: "i-lucide-monitor-play",
+      icon: "pixelarticons:monitor",
       active: route.path === "/dashboard/obs-overlay"
     }
   ]
@@ -73,7 +73,7 @@ async function logout () {
             <p class="truncate text-sm font-semibold text-default">{{ user?.twitchDisplay || user?.twitchLogin || 'Twitch user' }}</p>
             <p v-if="user?.twitchLogin" class="truncate text-xs text-muted">@{{ user.twitchLogin }}</p>
           </div>
-          <UButton color="neutral" variant="ghost" icon="i-lucide-log-out" @click="logout">
+          <UButton color="neutral" variant="ghost" icon="pixelarticons:logout" @click="logout">
             Log out
           </UButton>
         </div>

@@ -32,7 +32,12 @@ export default defineNuxtConfig({
   },
 
   ui: {
-    colorMode: true
+    colorMode: true,
+    fonts: true,
+    colors: {
+      primary: "yellow",
+      neutral: "mist"
+    }
   },
 
   features: {
