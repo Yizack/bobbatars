@@ -50,7 +50,7 @@ watch(previewUrl, () => {
             class="w-full sm:w-32"
           />
           <UButton size="sm" color="neutral" variant="outline" icon="pixelarticons:move" @click="previewDirection = (previewDirection + 1) % 8">
-            Turn · {{ previewDirection }}
+            Turn
           </UButton>
         </div>
       </div>
@@ -66,15 +66,14 @@ watch(previewUrl, () => {
         loading="eager"
         @error="previewFailed = true"
       >
-      <UAlert v-else color="warning" variant="subtle" title="Preview unavailable" description="Habbo Imaging did not return this outfit. You can still save it." icon="i-lucide-image-off" />
-      <UBadge class="absolute bottom-3 right-3 z-20" color="neutral" variant="subtle">{{ gender }} / DIR {{ previewDirection }}</UBadge>
+      <UAlert v-else color="warning" variant="subtle" title="Preview unavailable" description="Habbo Imaging did not return this outfit. You can still save it." icon="pixelarticons:image-delete" />
     </div>
 
     <div class="mt-3 grid grid-cols-2 items-center gap-2 sm:mt-4 sm:flex sm:flex-wrap">
-      <UButton size="sm" class="min-w-0 justify-center" color="secondary" variant="soft" icon="pixelarticons:shuffle" @click="emit('randomize')">Randomize</UButton>
-      <UButton size="sm" class="min-w-0 justify-center" color="neutral" variant="outline" icon="pixelarticons:reload" @click="emit('reset')">Reset</UButton>
-      <UButton size="sm" class="col-span-2 justify-center sm:col-span-1" color="primary" icon="pixelarticons:save" :loading="saveState === 'saving'" :disabled="!canSave || saveState === 'saving'" @click="emit('save')">Save avatar</UButton>
+      <UButton size="sm" class="min-w-0 justify-center" color="secondary" icon="pixelarticons:shuffle" @click="emit('randomize')">Randomize</UButton>
+      <UButton size="sm" class="min-w-0 justify-center" color="neutral" icon="pixelarticons:reload" @click="emit('reset')">Reset</UButton>
       <UBadge class="col-span-2 justify-center sm:ml-auto sm:col-span-1" color="neutral" variant="subtle">{{ outfitCount }} parts</UBadge>
+      <UButton class="col-span-2 justify-center sm:col-span-1" color="primary" icon="pixelarticons:save" :loading="saveState === 'saving'" :disabled="!canSave || saveState === 'saving'" block @click="emit('save')">Save avatar</UButton>
     </div>
     <UAlert v-if="saveState === 'saved'" class="mt-3" color="success" variant="subtle" title="Avatar saved" description="Your current avatar has been saved to your account." icon="pixelarticons:checkbox-on" />
     <UAlert v-else-if="saveState === 'error'" class="mt-3" color="error" variant="subtle" title="Could not save avatar" description="Please try again." icon="pixelarticons:alert" />

@@ -1180,8 +1180,8 @@ onBeforeUnmount(() => {
                   size="sm"
                   color="neutral"
                   variant="ghost"
-                  icon="i-lucide-music-2"
-                  :trailing-icon="avatar.danceMenuVisible ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+                  icon="pixelarticons:music"
+                  :trailing-icon="avatar.danceMenuVisible ? 'pixelarticons:chevron-up' : 'pixelarticons:chevron-down'"
                   :aria-expanded="avatar.danceMenuVisible"
                   :aria-controls="avatar.danceMenuVisible ? `dance-options-${avatar.login}` : undefined"
                   @click="toggleDanceMenu(avatar)"
@@ -1215,7 +1215,7 @@ onBeforeUnmount(() => {
                   color="neutral"
                   variant="ghost"
                   class="justify-start"
-                  icon="i-lucide-circle-stop"
+                  icon="pixelarticons:square"
                   @click="setAvatarDanceFromMenu(avatar, null)"
                 >
                   Stop Dance
@@ -1225,7 +1225,7 @@ onBeforeUnmount(() => {
                   size="sm"
                   color="neutral"
                   variant="ghost"
-                  icon="i-lucide-armchair"
+                  icon="pixelarticons:sofa"
                   class="justify-start"
                   @click="toggleAvatarSittingFromMenu(avatar)"
                 >
@@ -1236,7 +1236,7 @@ onBeforeUnmount(() => {
                   size="sm"
                   color="neutral"
                   variant="ghost"
-                  icon="i-lucide-refresh-cw"
+                  icon="pixelarticons:reload"
                   @click="refreshAvatarFromMenu(avatar)"
                 >
                   Refresh Avatar

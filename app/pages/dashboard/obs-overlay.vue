@@ -30,11 +30,9 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
     <div class="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
         <div class="max-w-2xl">
-          <UBadge color="primary" variant="soft" size="sm">TWITCH CHAT / HABBO ROOM</UBadge>
           <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">Setup OBS overlay</h1>
           <p class="mt-2 text-sm leading-6 text-muted">Preview the live chat overlay and copy its URL into an OBS Browser Source.</p>
         </div>
-        <UBadge color="neutral" variant="subtle" size="sm">CHANNEL · {{ user?.twitchDisplay }}</UBadge>
       </section>
 
       <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.8fr)]">
@@ -65,7 +63,7 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
         <UCard variant="outline" class="min-w-0">
           <template #header>
             <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-monitor-play" class="size-4 text-primary" />
+              <UIcon name="pixelarticons:monitor" class="size-4 text-primary" />
               <h2 class="text-sm font-semibold text-highlighted">Connect to OBS</h2>
             </div>
           </template>
@@ -76,7 +74,7 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
               variant="subtle"
               title="Add a Browser Source"
               description="Copy this URL and paste it into the URL field of an OBS Browser Source."
-              icon="i-lucide-info"
+              icon="pixelarticons:info-box"
             />
 
             <div class="grid gap-2">
@@ -84,7 +82,7 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
               <UInput id="obs-overlay-url" :model-value="overlayUrl" readonly aria-label="OBS Browser Source URL" />
             </div>
 
-            <UButton color="primary" :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'" @click="copyOverlayUrl">
+            <UButton color="primary" :icon="copied ? 'pixelarticons:checkbox-on' : 'pixelarticons:copy'" block @click="copyOverlayUrl">
               {{ copied ? 'Copied' : 'Copy URL for OBS' }}
             </UButton>
             <p v-if="copyError" class="-mt-2 text-xs text-error" role="alert">{{ copyError }}</p>
@@ -92,7 +90,7 @@ useHead({ title: "Setup OBS Overlay | Habbo Outfit Studio" });
 
             <NuxtLink :to="overlayUrl" target="_blank" class="inline-flex items-center gap-2 text-sm text-primary underline underline-offset-4">
               Open overlay in a new tab
-              <UIcon name="i-lucide-arrow-up-right" class="size-4" />
+              <UIcon name="pixelarticons:external-link" class="size-4" />
             </NuxtLink>
           </div>
         </UCard>

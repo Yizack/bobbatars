@@ -12,7 +12,7 @@ const sidebarOpen = ref(true);
           size="sm"
           color="neutral"
           variant="ghost"
-          icon="i-lucide-menu"
+          icon="pixelarticons:menu"
           aria-label="Open dashboard navigation"
           :aria-expanded="sidebarOpen"
           @click="sidebarOpen = !sidebarOpen"

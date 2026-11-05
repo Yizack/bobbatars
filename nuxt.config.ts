@@ -1,4 +1,5 @@
 import { defineNuxtConfig } from "nuxt/config";
+import icons from "./app/icons.ts";
 
 export default defineNuxtConfig({
   modules: [
@@ -66,6 +67,13 @@ export default defineNuxtConfig({
     config: {
       autoInit: false,
       stylistic: true
+    }
+  },
+
+  icon: {
+    provider: "none",
+    clientBundle: {
+      icons
     }
   }
 });

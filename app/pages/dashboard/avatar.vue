@@ -294,7 +294,6 @@ useHead({ title: "Avatar Studio | Habbo Outfit Studio" });
     <div class="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
         <div class="max-w-2xl">
-          <UBadge color="primary" variant="soft" size="sm" class="uppercase">Habbo Builder</UBadge>
           <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">My Avatar</h1>
           <p class="mt-2 text-sm leading-6 text-muted">Choose catalog items, colors, and effects to customize your avatar.</p>
         </div>

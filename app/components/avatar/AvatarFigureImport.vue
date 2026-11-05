@@ -20,7 +20,7 @@ const emit = defineEmits<{
     <div class="grid gap-3">
       <UTextarea id="import-figure" v-model="importText" :rows="2" placeholder="hd-3092-2.hr-831-61.ch-3438-110-1408" aria-label="Paste a Habbo figure string" />
       <UAlert v-if="error" color="error" variant="subtle" :description="error" />
-      <UButton color="primary" icon="pixelarticons:download" @click="emit('import')">Import outfit</UButton>
+      <UButton color="primary" icon="pixelarticons:download" block @click="emit('import')">Import outfit</UButton>
     </div>
   </UCard>
 </template>
