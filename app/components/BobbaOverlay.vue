@@ -355,7 +355,7 @@ function placeHabbo (avatar: AvatarState) {
   }
   if (elements?.clickTarget && avatar.imageWidth > 0) {
     const width = `${avatar.imageWidth / 4}px`;
-    const height = `${visibleImageHeight}px`;
+    const height = `${visibleImageHeight - 20}px`;
     if (elements.clickTarget.style.width !== width) elements.clickTarget.style.width = width;
     if (elements.clickTarget.style.height !== height) elements.clickTarget.style.height = height;
   }
@@ -1250,8 +1250,8 @@ onBeforeUnmount(() => {
             v-if="avatar.currentImage"
             :ref="avatar.clickTargetRef"
             type="button"
-            class="pointer-events-auto absolute left-7 z-[2] max-w-full cursor-pointer border-0 bg-transparent p-0"
-            :class="avatar.isSitting ? 'top-1' : '-top-2'"
+            class="pointer-events-auto absolute left-10 z-[2] max-w-full cursor-pointer border-0 bg-transparent p-0"
+            :class="avatar.isSitting ? 'top-6' : 'top-4'"
             :aria-label="`Opciones para el avatar de ${avatar.displayName}`"
             :aria-expanded="avatar.menuVisible"
             aria-haspopup="menu"
