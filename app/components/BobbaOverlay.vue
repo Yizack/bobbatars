@@ -49,6 +49,7 @@ interface ActiveUser {
 interface AvatarElements {
   shadow: HTMLElement | null;
   image: HTMLImageElement | null;
+  clickTarget: HTMLElement | null;
   label: HTMLElement | null;
   popoverAnchor: HTMLElement | null;
   menuAnchor: HTMLElement | null;
@@ -57,7 +58,7 @@ interface AvatarElements {
 }
 
 type AvatarElementRef = Element | ComponentPublicInstance | null;
-type AvatarPart = "shadow" | "image" | "label" | "popoverAnchor" | "menuAnchor";
+type AvatarPart = "shadow" | "image" | "clickTarget" | "label" | "popoverAnchor" | "menuAnchor";
 type AvatarAction = "std" | "wlk" | "sit" | AvatarDanceAction;
 
 interface AvatarState {
@@ -86,6 +87,7 @@ interface AvatarState {
   bubbleVisible: boolean;
   shadowRef: (element: AvatarElementRef) => void;
   imageRef: (element: AvatarElementRef) => void;
+  clickTargetRef: (element: AvatarElementRef) => void;
   labelRef: (element: AvatarElementRef) => void;
   popoverAnchorRef: (element: AvatarElementRef) => void;
   menuAnchorRef: (element: AvatarElementRef) => void;
@@ -331,10 +333,18 @@ function placeHabbo (avatar: AvatarState) {
   };
 
   setPosition(elements?.shadow ?? null, point.x - 34 * 0.6, groundY - 14 * 1.2, depth + 1);
+  const imageX = point.x - avatar.imageWidth * 0.56;
+  const imageY = groundY - visibleImageHeight;
   setPosition(
     elements?.image ?? null,
-    point.x - avatar.imageWidth * 0.56,
-    groundY - visibleImageHeight,
+    imageX,
+    imageY,
+    depth + 2
+  );
+  setPosition(
+    elements?.clickTarget ?? null,
+    imageX + avatar.imageWidth * 0.25,
+    imageY,
     depth + 2
   );
   if (elements?.image && avatar.imageWidth > 0) {
@@ -342,6 +352,12 @@ function placeHabbo (avatar: AvatarState) {
     const height = `${visibleImageHeight}px`;
     if (elements.image.style.width !== width) elements.image.style.width = width;
     if (elements.image.style.height !== height) elements.image.style.height = height;
+  }
+  if (elements?.clickTarget && avatar.imageWidth > 0) {
+    const width = `${avatar.imageWidth / 4}px`;
+    const height = `${visibleImageHeight}px`;
+    if (elements.clickTarget.style.width !== width) elements.clickTarget.style.width = width;
+    if (elements.clickTarget.style.height !== height) elements.clickTarget.style.height = height;
   }
   setPosition(
     elements?.label ?? null,
@@ -365,6 +381,7 @@ function setAvatarElement (login: string, part: AvatarPart, value: AvatarElement
   const elements = avatarElements.get(login) ?? {
     shadow: null,
     image: null,
+    clickTarget: null,
     label: null,
     popoverAnchor: null,
     menuAnchor: null,
@@ -384,7 +401,7 @@ function setAvatarElement (login: string, part: AvatarPart, value: AvatarElement
     }
   }
 
-  if (elements.shadow || elements.image || elements.label || elements.popoverAnchor || elements.menuAnchor) {
+  if (elements.shadow || elements.image || elements.clickTarget || elements.label || elements.popoverAnchor || elements.menuAnchor) {
     avatarElements.set(login, elements);
   }
   else {
@@ -590,6 +607,7 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     bubbleVisible: false,
     shadowRef: element => setAvatarElement(user.login, "shadow", element),
     imageRef: element => setAvatarElement(user.login, "image", element),
+    clickTargetRef: element => setAvatarElement(user.login, "clickTarget", element),
     labelRef: element => setAvatarElement(user.login, "label", element),
     popoverAnchorRef: element => setAvatarElement(user.login, "popoverAnchor", element),
     menuAnchorRef: element => setAvatarElement(user.login, "menuAnchor", element),
@@ -1221,19 +1239,23 @@ onBeforeUnmount(() => {
           <AvatarPreviewImage
             v-if="avatar.currentImage"
             :image-ref="avatar.imageRef"
-            class="pointer-events-auto absolute left-4 z-[2] h-auto max-w-full cursor-pointer select-none"
+            class="pointer-events-none absolute left-4 z-[2] h-auto max-w-full select-none"
             :class="avatar.isSitting ? 'top-1' : '-top-2'"
             :src="avatar.currentImage"
             :alt="`Avatar de ${avatar.displayName}`"
+            aria-hidden="true"
+            draggable="false"
+          />
+          <button
+            v-if="avatar.currentImage"
+            :ref="avatar.clickTargetRef"
+            type="button"
+            class="pointer-events-auto absolute left-7 z-[2] max-w-full cursor-pointer border-0 bg-transparent p-0"
+            :class="avatar.isSitting ? 'top-1' : '-top-2'"
             :aria-label="`Opciones para el avatar de ${avatar.displayName}`"
             :aria-expanded="avatar.menuVisible"
             aria-haspopup="menu"
-            role="button"
-            tabindex="0"
-            draggable="false"
-            @click.left="toggleAvatarMenu(avatar)"
-            @keydown.enter.prevent="toggleAvatarMenu(avatar)"
-            @keydown.space.prevent="toggleAvatarMenu(avatar)"
+            @click="toggleAvatarMenu(avatar)"
           />
           <span
             :ref="avatar.labelRef"
