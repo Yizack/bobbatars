@@ -13,7 +13,7 @@ export interface AvatarChatCommandDefinition {
 
 export const avatarChatCommandRegistry: readonly AvatarChatCommandDefinition[] = [
   {
-    pattern: /^!dance(?:\s+([1-4]))?$/i,
+    pattern: /^!dance(?:\s*([1-4]))?$/i,
     parse: match => ({
       type: "dance",
       action: avatarDanceActions[Number(match[1] ?? 1) - 1] ?? null
