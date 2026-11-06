@@ -39,6 +39,7 @@ interface ActiveUser {
   activity: number;
   lastActivity: number;
   lastMessage: string;
+  lastMessageEmoteOffsets: Map<string, string[]>;
   lastMessageAt: number;
   isStreamer: boolean;
   isSitting: boolean;
@@ -81,6 +82,7 @@ interface AvatarState {
   imageWidth: number;
   imageHeight: number;
   bubbleMessage: string;
+  bubbleEmoteOffsets: Map<string, string[]>;
   bubbleVisible: boolean;
   shadowRef: (element: AvatarElementRef) => void;
   imageRef: (element: AvatarElementRef) => void;
@@ -582,6 +584,7 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     imageWidth: 0,
     imageHeight: 0,
     bubbleMessage: "",
+    bubbleEmoteOffsets: new Map(),
     bubbleVisible: false,
     shadowRef: element => setAvatarElement(user.login, "shadow", element),
     imageRef: element => setAvatarElement(user.login, "image", element),
@@ -670,7 +673,7 @@ function reconcileActiveAvatars () {
         && user.lastMessage
         && Date.now() - user.lastMessageAt < 3000
       ) {
-        void showChatMessage(newAvatar, user.lastMessage);
+        void showChatMessage(newAvatar, user.lastMessage, user.lastMessageEmoteOffsets);
       }
       continue;
     }
@@ -834,7 +837,7 @@ function toggleAvatarSittingFromMenu (avatar: AvatarState) {
   updateAvatarMenuVisibility(avatar, false);
 }
 
-function recordChatActivity (username: string, message: string, twitchDisplayName: string) {
+function recordChatActivity (username: string, message: string, twitchDisplayName: string, emoteOffsets: Map<string, string[]>) {
   const messageText = String(message || "");
   const login = String(username || "").trim().toLowerCase();
   if (!login || knownChatBots.has(login)) return;
@@ -853,6 +856,7 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
       activity: 0,
       lastActivity: now,
       lastMessage: "",
+      lastMessageEmoteOffsets: new Map(),
       lastMessageAt: 0,
       isStreamer: login === chatChannel,
       isSitting: false,
@@ -866,6 +870,7 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
 
   if (command?.type === "dance") {
     user.lastMessage = "";
+    user.lastMessageEmoteOffsets = new Map();
     user.lastMessageAt = 0;
     user.danceAction = command.action;
     if (command.action !== null) user.isSitting = false;
@@ -877,6 +882,7 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
 
   if (command?.type === "sit" || command?.type === "stand") {
     user.lastMessage = "";
+    user.lastMessageEmoteOffsets = new Map();
     user.lastMessageAt = 0;
     const isSitting = command.type === "sit";
     user.isSitting = isSitting;
@@ -889,6 +895,7 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
 
   if (command?.type === "refresh-avatar") {
     user.lastMessage = "";
+    user.lastMessageEmoteOffsets = new Map();
     user.lastMessageAt = 0;
     const avatar = avatarsByUser.get(command.target ?? login);
     if (avatar) {
@@ -900,17 +907,19 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
   }
 
   user.lastMessage = messageText;
+  user.lastMessageEmoteOffsets = emoteOffsets;
   user.lastMessageAt = now;
 
   const avatar = avatarsByUser.get(login);
-  if (avatar && messageText.trim()) void showChatMessage(avatar, messageText);
+  if (avatar && messageText.trim()) void showChatMessage(avatar, messageText, emoteOffsets);
   scheduleReconciliation();
 }
 
-async function showChatMessage (avatar: AvatarState, message: string) {
+async function showChatMessage (avatar: AvatarState, message: string, emoteOffsets: Map<string, string[]>) {
   if (avatar.removed || !message.trim()) return;
 
   avatar.bubbleMessage = message;
+  avatar.bubbleEmoteOffsets = emoteOffsets;
   avatar.bubbleVisible = true;
   window.clearTimeout(avatar.bubbleTimer ?? undefined);
   avatar.bubbleTimer = window.setTimeout(() => {
@@ -1110,7 +1119,7 @@ async function connectToChat () {
     });
     chatClient.onMessage((channel, username, message, msg) => {
       if (channel.replace(/^#/, "").toLowerCase() === chatChannel) {
-        recordChatActivity(username, message, msg.userInfo.displayName ?? username);
+        recordChatActivity(username, message, msg.userInfo.displayName ?? username, msg.emoteOffsets);
       }
     });
     chatClient.connect();
@@ -1131,6 +1140,7 @@ function ensureStreamerActive () {
     activity: 0,
     lastActivity: Date.now(),
     lastMessage: "",
+    lastMessageEmoteOffsets: new Map(),
     lastMessageAt: 0,
     isStreamer: true,
     isSitting: false,
@@ -1248,7 +1258,7 @@ onBeforeUnmount(() => {
               />
             </template>
             <template #content>
-              <ChatEmotes :text="avatar.bubbleMessage" :user="user" />
+              <ChatEmotes :text="avatar.bubbleMessage" :emote-offsets="avatar.bubbleEmoteOffsets" :user="user" />
             </template>
           </UPopover>
           <UPopover

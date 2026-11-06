@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { fillTextPositions, parseEmotePositions } from "@twurple/chat";
+
 const props = withDefaults(defineProps<{
   text: string;
   user: string;
+  emoteOffsets?: Map<string, string[]>;
   popover?: boolean;
 }>(), {
   popover: true
@@ -13,14 +16,23 @@ const { data: emotes } = await useLazyFetch(`/api/chat/emotes/${props.user}`, {
 });
 
 const parsedParts = computed(() => {
-  const tokens = props.text.split(" ");
+  const messageParts = fillTextPositions(
+    props.text,
+    parseEmotePositions(props.text, props.emoteOffsets ?? new Map())
+  ).filter(part => part.type !== "cheer");
+  return messageParts.flatMap((part) => {
+    if (part.type === "emote") {
+      return [{
+        token: part.name,
+        url: `https://static-cdn.jtvnw.net/emoticons/v2/${part.id}/default/dark/1.0`
+      }];
+    }
 
-  if (!emotes.value) return tokens.map(token => ({ token, url: null as string | null }));
-
-  return tokens.map(token => ({
-    token,
-    url: emotes.value![token] ?? null
-  }));
+    return part.text.split(" ").map(token => ({
+      token,
+      url: emotes.value?.[token] ?? null
+    }));
+  });
 });
 </script>
 
