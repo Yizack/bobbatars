@@ -29,10 +29,11 @@ const displayName = computed(() => user.value?.twitchDisplay || twitchLogin.valu
 const previewUrl = computed(() => withQuery(avatarImagingUrl, {
   head_direction: "4",
   direction: "4",
-  size: "l",
+  size: "fl",
   figure: avatar.value.figure,
   gender: avatar.value.gender,
   format: "webp",
+  position: "bottom",
   ...(avatar.value.effect === null ? {} : { effect: String(avatar.value.effect) })
 }));
 const previewUnavailable = ref(false);
@@ -90,7 +91,7 @@ const categoryCount = avatarCatalog.categories.length + (avatarCatalog?.effects?
           </template>
 
           <div class="relative grid min-h-88 place-items-center overflow-hidden bg-neutral-950 p-6 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-size-[32px_32px]">
-            <img v-if="!previewUnavailable" class="relative z-10 max-h-72 max-w-full object-contain [image-rendering:pixelated]" :src="previewUrl" :alt="`${displayName}'s Habbo avatar`" @error="previewUnavailable = true">
+            <AvatarPreviewImage v-if="!previewUnavailable" class="relative z-10 [image-rendering:pixelated]" :src="previewUrl" @error="previewUnavailable = true" />
             <UAlert v-else class="relative z-10 max-w-sm" color="warning" variant="subtle" title="Preview unavailable" description="Your saved avatar is still available in the editor." icon="pixelarticons:image-broken" :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }" />
           </div>
 

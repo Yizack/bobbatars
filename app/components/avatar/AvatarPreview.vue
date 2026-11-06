@@ -57,15 +57,15 @@ watch(previewUrl, () => {
     </template>
 
     <div class="relative grid min-h-56 place-items-center overflow-hidden rounded-md bg-neutral-950 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-size-[32px_32px] p-2 sm:min-h-72 sm:p-4">
-      <img
+      <AvatarPreviewImage
         v-if="!previewFailed"
         :key="previewUrl"
-        class="relative z-10 max-h-56 max-w-full object-contain sm:max-h-72"
+        class="relative z-10 h-60 sm:h-60"
         :src="previewUrl"
         :alt="`${gender === 'M' ? 'Male' : 'Female'} Habbo avatar preview`"
         loading="eager"
         @error="previewFailed = true"
-      >
+      />
       <UAlert v-else color="warning" variant="subtle" title="Preview unavailable" description="Habbo Imaging did not return this outfit. You can still save it." icon="pixelarticons:image-delete" :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }" />
     </div>
 

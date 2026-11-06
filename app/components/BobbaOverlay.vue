@@ -192,7 +192,7 @@ function imageUrl (
     head_direction: headDirection,
     gesture,
     action,
-    size: "m",
+    size: "fm",
     format: "webp",
     rv: 55,
     animv: 28,
@@ -308,7 +308,7 @@ function placeHabbo (avatar: AvatarState) {
   const groundY = point.y + tileHeight * 0.34;
   const depth = Math.round(avatar.visual.column + avatar.visual.row);
   const elements = avatarElements.get(avatar.login);
-  const imageHeight = avatar.imageHeight;
+  const visibleImageHeight = avatar.imageHeight / 2;
   const labelHalfWidth = (elements?.labelWidth ?? 0) / 2;
   const labelHeight = elements?.labelHeight ?? 0;
   const labelX = Math.max(
@@ -334,28 +334,30 @@ function placeHabbo (avatar: AvatarState) {
   setPosition(
     elements?.image ?? null,
     point.x - avatar.imageWidth * 0.56,
-    groundY - imageHeight,
+    groundY - visibleImageHeight,
     depth + 2
   );
   if (elements?.image && avatar.imageWidth > 0) {
     const width = `${avatar.imageWidth}px`;
+    const height = `${visibleImageHeight}px`;
     if (elements.image.style.width !== width) elements.image.style.width = width;
+    if (elements.image.style.height !== height) elements.image.style.height = height;
   }
   setPosition(
     elements?.label ?? null,
     labelX - labelHalfWidth,
-    groundY - imageHeight - labelHeight / 2,
+    groundY - visibleImageHeight - labelHeight / 2,
     depth + 3
   );
   setPosition(
     elements?.popoverAnchor ?? null,
     point.x,
-    groundY - imageHeight - labelHeight * 0.7 + 8
+    groundY - visibleImageHeight - labelHeight * 0.7 + 8
   );
   setPosition(
     elements?.menuAnchor ?? null,
     point.x,
-    groundY - imageHeight - labelHeight * 0.7 + 8
+    groundY - visibleImageHeight - labelHeight * 0.7 + 8
   );
 }
 
@@ -1216,10 +1218,10 @@ onBeforeUnmount(() => {
             class="pointer-events-none absolute left-1 -top-0.5 z-[1] h-[14px] w-[34px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
             aria-hidden="true"
           />
-          <img
+          <AvatarPreviewImage
             v-if="avatar.currentImage"
-            :ref="avatar.imageRef"
-            class="pointer-events-auto absolute left-1 z-[2] h-auto max-w-full cursor-pointer select-none"
+            :image-ref="avatar.imageRef"
+            class="pointer-events-auto absolute left-4 z-[2] h-auto max-w-full cursor-pointer select-none"
             :class="avatar.isSitting ? 'top-1' : '-top-2'"
             :src="avatar.currentImage"
             :alt="`Avatar de ${avatar.displayName}`"
@@ -1232,7 +1234,7 @@ onBeforeUnmount(() => {
             @click.left="toggleAvatarMenu(avatar)"
             @keydown.enter.prevent="toggleAvatarMenu(avatar)"
             @keydown.space.prevent="toggleAvatarMenu(avatar)"
-          >
+          />
           <span
             :ref="avatar.labelRef"
             class="pointer-events-none absolute left-0 top-0 z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate"

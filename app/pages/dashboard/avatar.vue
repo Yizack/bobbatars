@@ -91,7 +91,7 @@ const previewUrl = computed(() => {
   return withQuery(avatarImagingUrl, {
     head_direction: String(headDirection),
     direction: String(previewDirection.value),
-    size: "l",
+    size: "fl",
     figure: figure.value,
     gender: gender.value,
     action: previewAction.value,
@@ -362,7 +362,7 @@ useHead({ title: "Avatar | Bobbatars" });
         v-model:open="mobilePreviewOpen"
         title="Avatar preview"
         :ui="{
-          content: 'w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-lg',
+          content: 'w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-lg',
           header: 'sr-only',
           body: 'p-0 sm:p-0',
         }"
@@ -373,12 +373,12 @@ useHead({ title: "Avatar | Bobbatars" });
           class="fixed bottom-5 right-4 z-40 size-20 overflow-hidden rounded-full border-2 border-primary bg-neutral-950 p-0 shadow-lg xl:hidden"
           aria-label="Show avatar preview"
         >
-          <img :src="previewUrl" alt="" class="size-full object-contain">
+          <AvatarPreviewImage :src="previewUrl" />
         </UButton>
 
         <template #content>
           <div class="grid aspect-4/5 place-items-center overflow-hidden bg-neutral-950 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-size-[24px_24px] p-3">
-            <img :src="previewUrl" :alt="`${gender === 'M' ? 'Male' : 'Female'} Habbo avatar preview`" class="max-h-full max-w-full object-contain">
+            <AvatarPreviewImage :src="previewUrl" />
           </div>
         </template>
       </UModal>
