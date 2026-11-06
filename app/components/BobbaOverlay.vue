@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useIntervalFn, useResizeObserver, useTimeoutFn } from "@vueuse/core";
-import type { ChatClient as TwitchChatClient } from "@twurple/chat";
+import { ChatClient } from "@twurple/chat";
 import { withQuery } from "ufo";
 import { type AvatarDanceAction, avatarDanceActions, parseAvatarChatCommand } from "../utils/avatarCommands";
 
@@ -167,7 +167,7 @@ let roomWidth = 0;
 let roomLayoutHeight = 0;
 let originX = 0;
 let originY = 0;
-let chatClient: TwitchChatClient | null = null;
+let chatClient: InstanceType<typeof ChatClient> | null = null;
 let chatConnected = false;
 let isUnmounting = false;
 let animationFrame: number | null = null;
@@ -1094,9 +1094,6 @@ function walk (avatar: AvatarState) {
 
 async function connectToChat () {
   try {
-    const { ChatClient } = await import("@twurple/chat");
-    if (isUnmounting) return;
-
     chatClient = new ChatClient({
       channels: [chatChannel],
       webSocket: true
