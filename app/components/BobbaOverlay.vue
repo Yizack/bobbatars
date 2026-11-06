@@ -1259,7 +1259,7 @@ onBeforeUnmount(() => {
           />
           <span
             :ref="avatar.labelRef"
-            class="pointer-events-none absolute left-0 top-0 z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate"
+            class="pointer-events-none absolute left-0 top-6 z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate"
             :title="`${avatar.displayName}: ${avatar.activity} mensajes`"
           >
             {{ avatar.displayName }}
@@ -1277,7 +1277,7 @@ onBeforeUnmount(() => {
             <template #anchor>
               <span
                 :ref="avatar.popoverAnchorRef"
-                class="pointer-events-none absolute left-0 top-0 h-0 w-0"
+                class="pointer-events-none absolute left-0 top-5 h-0 w-0"
                 aria-hidden="true"
               />
             </template>
@@ -1297,7 +1297,7 @@ onBeforeUnmount(() => {
             <template #anchor>
               <span
                 :ref="avatar.menuAnchorRef"
-                class="pointer-events-none absolute left-0 top-0 h-0 w-0"
+                class="pointer-events-none absolute left-0 top-5 h-0 w-0"
                 aria-hidden="true"
               />
             </template>
