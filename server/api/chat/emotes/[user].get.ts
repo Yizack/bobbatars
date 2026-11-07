@@ -1,7 +1,7 @@
 import { getStreamerEmotes } from "streamer-emotes";
 
 export default defineCachedEventHandler(async (event) => {
-  const { user } = getRouterParams(event)
+  const { user } = getRouterParams(event);
 
   const emoteLookup: Record<string, string> = {};
 

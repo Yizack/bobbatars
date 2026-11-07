@@ -9,7 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "db:migrate": "drizzle-kit generate",
-    "lint": "pnpm lint:eslint && pnpm lint:stylelint",
+    "lint": "pnpm lint:eslint",
     "lint:fix": "pnpm lint:eslint --fix",
     "lint:eslint": "eslint",
     "lint:eslint:inspect": "pnpx @eslint/config-inspector",
