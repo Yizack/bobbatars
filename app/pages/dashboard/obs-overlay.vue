@@ -71,7 +71,10 @@ useHead({ title: "OBS Overlay | Bobbatars" });
             </div>
           </template>
 
-          <div class="relative aspect-video overflow-hidden bg-neutral-950">
+          <div
+            class="relative aspect-video overflow-hidden"
+            :class="customBackgroundEnabled ? 'bg-white' : 'bg-neutral-950'"
+          >
             <div
               v-if="customBackgroundEnabled && backgroundWithOpacity"
               class="pointer-events-none absolute inset-0"
