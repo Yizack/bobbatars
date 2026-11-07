@@ -70,6 +70,12 @@ export default defineNuxtConfig({
     }
   },
 
+  fonts: {
+    families: [
+      { name: "Ubuntu", provider: "google", weights: [400, 500] }
+    ]
+  },
+
   icon: {
     provider: "none",
     clientBundle: {

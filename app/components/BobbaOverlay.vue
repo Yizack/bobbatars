@@ -1298,7 +1298,7 @@ onBeforeUnmount(() => {
           />
           <span
             :ref="avatar.labelRef"
-            class="pointer-events-none absolute left-0 top-6 z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate"
+            class="pointer-events-none absolute left-0 top-6 z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate font-[Ubuntu]"
             :title="`${avatar.displayName}: ${avatar.activity} mensajes`"
           >
             {{ avatar.displayName }}
@@ -1322,7 +1322,7 @@ onBeforeUnmount(() => {
               />
             </template>
             <template #content>
-              <ChatEmotes :text="avatar.bubbleMessage" :emote-offsets="avatar.bubbleEmoteOffsets" :user="user" />
+              <ChatEmotes :text="avatar.bubbleMessage" :emote-offsets="avatar.bubbleEmoteOffsets" :user="user" class="font-[Ubuntu]" />
             </template>
           </UPopover>
           <UPopover
