@@ -11,13 +11,25 @@ const tiles = ref(false);
 const chat = ref(true);
 const maxAvatars = ref(50);
 const roomHeight = ref(266);
+const customBackgroundEnabled = ref(false);
+const backgroundColor = ref("#000000");
+const backgroundOpacity = ref(100);
+const backgroundWithOpacity = computed(() => {
+  if (backgroundOpacity.value === 0) return undefined;
+  if (backgroundOpacity.value === 100) return backgroundColor.value;
+  const alpha = Math.round(backgroundOpacity.value * 255 / 100)
+    .toString(16)
+    .padStart(2, "0");
+  return `${backgroundColor.value}${alpha}`;
+});
 const overlayUrl = computed(() => withQuery(
   `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`,
   {
     tiles: tiles.value ? "true" : undefined,
     chat: chat.value ? undefined : "false",
     maxAvatars: maxAvatars.value === 50 ? undefined : String(maxAvatars.value),
-    roomHeight: roomHeight.value === 266 ? undefined : String(roomHeight.value)
+    roomHeight: roomHeight.value === 266 ? undefined : String(roomHeight.value),
+    background: customBackgroundEnabled.value ? backgroundWithOpacity.value?.slice(1) : undefined
   }
 ));
 const copyError = ref("");
@@ -60,6 +72,12 @@ useHead({ title: "OBS Overlay | Bobbatars" });
           </template>
 
           <div class="relative aspect-video overflow-hidden bg-neutral-950">
+            <div
+              v-if="customBackgroundEnabled && backgroundWithOpacity"
+              class="pointer-events-none absolute inset-0"
+              :style="{ backgroundColor: backgroundWithOpacity }"
+              aria-hidden="true"
+            />
             <BobbaOverlay
               :user="user?.twitchLogin ?? ''"
               :tiles="tiles"
@@ -72,7 +90,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
           </div>
 
           <template #footer>
-            <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Avatars appear as people chat in this Twitch channel. The overlay background is transparent in OBS.</p>
+            <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Avatars appear as people chat in this Twitch channel. The background is transparent by default.</p>
           </template>
         </UCard>
 
@@ -148,6 +166,58 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                     <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
                   </label>
                   <USwitch id="obs-show-tiles" v-model="tiles" aria-label="Show room tiles" />
+                </div>
+
+                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <div class="flex items-center justify-between gap-4">
+                    <label class="grid gap-1" for="obs-background-color">
+                      <p class="text-sm max-sm:text-xs font-medium text-highlighted">Background color</p>
+                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Enable to customize the color and opacity.</p>
+                    </label>
+                    <USwitch
+                      v-model="customBackgroundEnabled"
+                      aria-label="Enable custom background color"
+                    />
+                  </div>
+                  <div v-if="customBackgroundEnabled" class="grid gap-3">
+                    <div class="flex items-center gap-3">
+                      <UPopover>
+                        <UButton
+                          type="button"
+                          color="neutral"
+                          variant="outline"
+                          class="size-10 justify-center p-1"
+                          :aria-label="`Choose background color, currently ${backgroundColor}`"
+                        >
+                          <span
+                            class="size-6 rounded border border-default"
+                            :style="{ backgroundColor }"
+                            aria-hidden="true"
+                          />
+                        </UButton>
+                        <template #content>
+                          <div class="select-none" @pointerdown.prevent>
+                            <UColorPicker v-model="backgroundColor" size="sm" class="p-2" aria-label="Background color" />
+                          </div>
+                        </template>
+                      </UPopover>
+                      <span class="font-mono text-xs max-sm:text-[11px] text-muted">{{ backgroundColor.toUpperCase() }}</span>
+                    </div>
+                    <div class="grid gap-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <label for="obs-background-opacity" class="text-xs max-sm:text-[11px] font-medium text-highlighted">Opacity</label>
+                        <span class="font-mono text-xs max-sm:text-[11px] text-muted">{{ backgroundOpacity }}%</span>
+                      </div>
+                      <USlider
+                        id="obs-background-opacity"
+                        v-model="backgroundOpacity"
+                        :min="0"
+                        :max="100"
+                        :step="1"
+                        aria-label="Background opacity"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
