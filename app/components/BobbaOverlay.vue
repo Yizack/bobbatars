@@ -33,6 +33,12 @@ interface RoomTile extends Tile {
   y: number;
 }
 
+interface PreloadedImage {
+  image: HTMLImageElement;
+  promise: Promise<HTMLImageElement | null>;
+  loaded: boolean;
+}
+
 interface ActiveUser {
   login: string;
   displayName: string;
@@ -114,6 +120,8 @@ const danceHeadDirectionOverrides: Partial<Record<number, number>> = {
 const tileWidth = 76;
 const tileHeight = tileWidth / 2;
 const stepDuration = 320;
+const animationFrameInterval = 1000 / 30;
+const maxPreloadedImages = 128;
 const chatChannel = props.user.toLowerCase();
 const inactiveTimeout = 15 * 60 * 1000;
 const knownChatBots = new Set([
@@ -160,10 +168,7 @@ const movingAvatars = new Set<AvatarState>();
 const activeUsers = new Map<string, ActiveUser>();
 const avatarsByUser = new Map<string, AvatarState>();
 const avatarElements = new Map<string, AvatarElements>();
-const preloadedImages = new Map<string, {
-  image: HTMLImageElement;
-  promise: Promise<HTMLImageElement | null>;
-}>();
+const preloadedImages = new Map<string, PreloadedImage>();
 
 let columns = 0;
 let rows = 0;
@@ -175,6 +180,7 @@ let chatClient: InstanceType<typeof ChatClient> | null = null;
 let chatConnected = false;
 let isUnmounting = false;
 let animationFrame: number | null = null;
+let lastAnimationFrameAt = 0;
 
 function imageUrl (
   direction: number,
@@ -203,6 +209,20 @@ function imageUrl (
   });
 }
 
+function trimPreloadedImages () {
+  while (preloadedImages.size > maxPreloadedImages) {
+    let oldestLoadedUrl: string | null = null;
+    for (const [url, cached] of preloadedImages) {
+      if (cached.loaded) {
+        oldestLoadedUrl = url;
+        break;
+      }
+    }
+    if (oldestLoadedUrl === null) return;
+    preloadedImages.delete(oldestLoadedUrl);
+  }
+}
+
 function preloadAvatar (
   direction: number,
   action: AvatarState["action"],
@@ -212,31 +232,31 @@ function preloadAvatar (
 ): Promise<HTMLImageElement | null> {
   const url = imageUrl(direction, action, gesture, figure, effect);
   const cached = preloadedImages.get(url);
-  if (cached) return cached.promise;
+  if (cached) {
+    preloadedImages.delete(url);
+    preloadedImages.set(url, cached);
+    return cached.promise;
+  }
 
   const image = new Image();
   const promise = new Promise<HTMLImageElement | null>((resolve) => {
-    image.addEventListener("load", () => resolve(image), { once: true });
+    image.addEventListener("load", () => {
+      const cachedImage = preloadedImages.get(url);
+      if (cachedImage?.image === image) {
+        cachedImage.loaded = true;
+        trimPreloadedImages();
+      }
+      resolve(image);
+    }, { once: true });
     image.addEventListener("error", () => {
-      preloadedImages.delete(url);
+      if (preloadedImages.get(url)?.image === image) preloadedImages.delete(url);
       console.warn("No se pudo precargar la animación del avatar.");
       resolve(null);
     }, { once: true });
   });
-  preloadedImages.set(url, { image, promise });
+  preloadedImages.set(url, { image, promise, loaded: false });
   image.src = url;
   return promise;
-}
-
-async function preloadAllWalkAnimations () {
-  let nextDirection = 0;
-  const loadNext = async () => {
-    while (nextDirection < 8) {
-      const directionToLoad = nextDirection++;
-      await preloadAvatar(directionToLoad, "wlk");
-    }
-  };
-  await Promise.all([loadNext(), loadNext()]);
 }
 
 async function updateAvatar (
@@ -429,6 +449,12 @@ function stopAvatarAnimation (avatar: AvatarState) {
 
 function animateAvatarSteps (now: number) {
   animationFrame = null;
+  if (now - lastAnimationFrameAt < animationFrameInterval) {
+    if (movingAvatars.size > 0) scheduleAvatarAnimation();
+    return;
+  }
+  lastAnimationFrameAt = now;
+
   for (const avatar of movingAvatars) {
     const startedAt = avatar.animationStartedAt;
     const current = avatar.current;
@@ -552,6 +578,21 @@ function sameTile (first: Tile | null, second: Tile | null) {
     && first.row === second.row;
 }
 
+function tileKey (tile: Tile) {
+  return `${tile.column},${tile.row}`;
+}
+
+function occupiedTileKeys (movingAvatar: AvatarState | null) {
+  const occupiedTiles = new Set<string>();
+  for (const avatar of avatars.value) {
+    if (avatar === movingAvatar) continue;
+    if (avatar.current) occupiedTiles.add(tileKey(avatar.current));
+    if (avatar.nextStep) occupiedTiles.add(tileKey(avatar.nextStep));
+    if (avatar.destination) occupiedTiles.add(tileKey(avatar.destination));
+  }
+  return occupiedTiles;
+}
+
 function tileUnavailable (tile: Tile, movingAvatar: AvatarState | null) {
   return avatars.value.some(other => other !== movingAvatar && (
     sameTile(tile, other.current)
@@ -566,11 +607,11 @@ function updateChatStatus () {
 }
 
 function findFreeTile (): Tile | null {
+  const occupiedTiles = occupiedTileKeys(null);
   const freeTiles: Tile[] = [];
-  for (let column = 0; column < columns; column++) {
-    for (let row = 0; row < rows; row++) {
-      const tile = { column, row };
-      if (isRoomTile(tile) && !tileUnavailable(tile, null)) freeTiles.push(tile);
+  for (const roomTile of roomTiles.value) {
+    if (!occupiedTiles.has(tileKey(roomTile))) {
+      freeTiles.push({ column: roomTile.column, row: roomTile.row });
     }
   }
   if (freeTiles.length === 0) return null;
@@ -1081,6 +1122,7 @@ function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() *
   avatar.randomTimer = window.setTimeout(() => {
     avatar.randomTimer = null;
     if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current) return;
+    const occupiedTiles = occupiedTileKeys(avatar);
     const optionsByDistance: Tile[][] = [[], [], []];
     for (let columnStep = -4; columnStep <= 4; columnStep++) {
       for (let rowStep = -4; rowStep <= 4; rowStep++) {
@@ -1090,7 +1132,7 @@ function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() *
           column: avatar.current.column + columnStep,
           row: avatar.current.row + rowStep
         };
-        if (isRoomTile(tile) && !tileUnavailable(tile, avatar)) {
+        if (isRoomTile(tile) && !occupiedTiles.has(tileKey(tile))) {
           optionsByDistance[distance - 1]?.push(tile);
         }
       }
@@ -1183,9 +1225,6 @@ onMounted(() => {
   ensureStreamerActive();
   reconcileActiveAvatars();
   avatarReconcileInterval.resume();
-  void preloadAvatar(2, "std").then((image) => {
-    if (image) return preloadAllWalkAnimations();
-  });
   void connectToChat();
 });
 
@@ -1265,7 +1304,8 @@ onBeforeUnmount(() => {
             {{ avatar.displayName }}
           </span>
           <UPopover
-            :open="props.chat && avatar.bubbleVisible"
+            v-if="props.chat && avatar.bubbleVisible"
+            :open="true"
             :dismissible="false"
             :content="{ side: 'top', sideOffset: 8, collisionPadding: 8, updatePositionStrategy: 'always' }"
             arrow
@@ -1286,6 +1326,7 @@ onBeforeUnmount(() => {
             </template>
           </UPopover>
           <UPopover
+            v-if="avatar.menuVisible"
             v-model:open="avatar.menuVisible"
             arrow
             :content="{ side: 'top', sideOffset: 8, collisionPadding: 8, updatePositionStrategy: 'always' }"
