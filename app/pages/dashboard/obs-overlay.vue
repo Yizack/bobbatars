@@ -80,77 +80,6 @@ useHead({ title: "OBS Overlay | Bobbatars" });
           <UCard variant="outline" class="min-w-0">
             <template #header>
               <div class="flex items-center gap-2">
-                <UIcon name="pixelarticons:settings-cog" class="size-4 text-primary" />
-                <h2 class="text-sm max-sm:text-xs font-semibold text-highlighted">Settings</h2>
-              </div>
-            </template>
-
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
-              <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-                <div class="flex items-center justify-between gap-4">
-                  <div class="grid gap-1">
-                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Maximum avatars</p>
-                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set a limit up to 50. The source resolution may reduce the cap.</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <UInputNumber
-                    v-model="maxAvatars"
-                    class="min-w-0 flex-1"
-                    :min="1"
-                    :max="50"
-                  />
-                  <UButton
-                    type="button"
-                    class="max-sm:text-xs"
-                    color="neutral"
-                    variant="outline"
-                    :disabled="maxAvatars === 50"
-                    aria-label="Set maximum available avatars"
-                    @click="maxAvatars = 50"
-                  >
-                    Max
-                  </UButton>
-                </div>
-              </div>
-
-              <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-                <label class="grid gap-1" for="obs-show-tiles">
-                  <p class="text-sm max-sm:text-xs font-medium text-highlighted">Show room tiles</p>
-                  <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
-                </label>
-                <USwitch id="obs-show-tiles" v-model="tiles" aria-label="Show room tiles" />
-              </div>
-
-              <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-                <div class="flex items-center justify-between gap-4">
-                  <div class="grid gap-1">
-                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Room height</p>
-                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set the room height.</p>
-                  </div>
-                </div>
-                <USlider
-                  v-model="roomHeight"
-                  :max="494"
-                  :min="38"
-                  :step="38"
-                  aria-label="Room height"
-                />
-              </div>
-
-              <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-                <label class="grid gap-1" for="obs-chat-bubbles">
-                  <p class="text-sm max-sm:text-xs font-medium text-highlighted">Chat bubbles</p>
-                  <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Show chat messages above avatars.</p>
-                </label>
-                <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
-              </div>
-            </div>
-          </UCard>
-
-          <UCard variant="outline" class="min-w-0">
-            <template #header>
-              <div class="flex items-center gap-2">
                 <UIcon name="pixelarticons:monitor" class="size-4 text-primary" />
                 <h2 class="text-sm max-sm:text-xs font-semibold text-highlighted">Connect to OBS</h2>
               </div>
@@ -181,6 +110,70 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                 Open overlay in a new tab
                 <UIcon name="pixelarticons:external-link" class="size-4" />
               </NuxtLink>
+              <p class="text-xs max-sm:text-[11px] leading-5 text-muted">
+                Adjust the settings below to customize the OBS overlay.
+              </p>
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <div class="flex items-center justify-between gap-4">
+                    <div class="grid gap-1">
+                      <p class="text-sm max-sm:text-xs font-medium text-highlighted">Maximum avatars</p>
+                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set a limit up to 50. The source resolution may reduce the cap.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <UInputNumber
+                      v-model="maxAvatars"
+                      class="min-w-0 flex-1"
+                      :min="1"
+                      :max="50"
+                    />
+                    <UButton
+                      type="button"
+                      class="max-sm:text-xs"
+                      color="neutral"
+                      variant="outline"
+                      :disabled="maxAvatars === 50"
+                      aria-label="Set maximum available avatars"
+                      @click="maxAvatars = 50"
+                    >
+                      Max
+                    </UButton>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <label class="grid gap-1" for="obs-show-tiles">
+                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Show room tiles</p>
+                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Display the room floor in the preview and OBS overlay.</p>
+                  </label>
+                  <USwitch id="obs-show-tiles" v-model="tiles" aria-label="Show room tiles" />
+                </div>
+
+                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <div class="flex items-center justify-between gap-4">
+                    <div class="grid gap-1">
+                      <p class="text-sm max-sm:text-xs font-medium text-highlighted">Room height</p>
+                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set the room height.</p>
+                    </div>
+                  </div>
+                  <USlider
+                    v-model="roomHeight"
+                    :max="494"
+                    :min="38"
+                    :step="38"
+                    aria-label="Room height"
+                  />
+                </div>
+
+                <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <label class="grid gap-1" for="obs-chat-bubbles">
+                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Chat bubbles</p>
+                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Show chat messages above avatars.</p>
+                  </label>
+                  <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
+                </div>
+              </div>
             </div>
           </UCard>
         </div>
