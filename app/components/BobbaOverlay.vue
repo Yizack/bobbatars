@@ -1344,6 +1344,14 @@ onBeforeUnmount(() => {
             </template>
             <template #content>
               <div role="group" :aria-label="`Opciones para ${avatar.displayName}`" class="flex flex-col gap-1">
+                <p
+                  role="heading"
+                  aria-level="2"
+                  :title="avatar.displayName"
+                  class="mb-1 max-w-[min(220px,calc(100vw_-_40px))] border-b border-[rgba(198,219,233,0.2)] px-2 pb-2 pt-1 text-sm font-semibold leading-tight text-[#f5f2e9] whitespace-normal [overflow-wrap:anywhere]"
+                >
+                  {{ avatar.displayName }}
+                </p>
                 <UButton
                   type="button"
                   size="sm"
