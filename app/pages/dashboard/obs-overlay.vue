@@ -11,9 +11,8 @@ const tiles = ref(false);
 const chat = ref(true);
 const maxAvatars = ref(50);
 const roomHeight = ref(266);
-const customBackgroundEnabled = ref(false);
-const backgroundColor = ref("#000000");
-const backgroundOpacity = ref(100);
+const backgroundColor = ref("#FFFFFF");
+const backgroundOpacity = ref(0);
 const backgroundWithOpacity = computed(() => {
   if (backgroundOpacity.value === 0) return undefined;
   if (backgroundOpacity.value === 100) return backgroundColor.value;
@@ -29,7 +28,7 @@ const overlayUrl = computed(() => withQuery(
     chat: chat.value ? undefined : "false",
     maxAvatars: maxAvatars.value === 50 ? undefined : String(maxAvatars.value),
     roomHeight: roomHeight.value === 266 ? undefined : String(roomHeight.value),
-    background: customBackgroundEnabled.value ? backgroundWithOpacity.value?.slice(1) : undefined
+    background: backgroundWithOpacity.value?.slice(1)
   }
 ));
 const copyError = ref("");
@@ -71,12 +70,9 @@ useHead({ title: "OBS Overlay | Bobbatars" });
             </div>
           </template>
 
-          <div
-            class="relative aspect-video overflow-hidden"
-            :class="customBackgroundEnabled ? 'bg-white' : 'bg-neutral-950'"
-          >
+          <div class="relative aspect-video overflow-hidden bg-white">
             <div
-              v-if="customBackgroundEnabled && backgroundWithOpacity"
+              v-if="backgroundWithOpacity"
               class="pointer-events-none absolute inset-0"
               :style="{ backgroundColor: backgroundWithOpacity }"
               aria-hidden="true"
@@ -173,16 +169,34 @@ useHead({ title: "OBS Overlay | Bobbatars" });
 
                 <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
                   <div class="flex items-center justify-between gap-4">
-                    <label class="grid gap-1" for="obs-background-color">
-                      <p class="text-sm max-sm:text-xs font-medium text-highlighted">Background color</p>
-                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Enable to customize the color and opacity.</p>
-                    </label>
-                    <USwitch
-                      v-model="customBackgroundEnabled"
-                      aria-label="Enable custom background color"
-                    />
+                    <div class="grid gap-1">
+                      <p class="text-sm max-sm:text-xs font-medium text-highlighted">Room height</p>
+                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set the room height.</p>
+                    </div>
                   </div>
-                  <div v-if="customBackgroundEnabled" class="grid gap-3">
+                  <USlider
+                    v-model="roomHeight"
+                    :max="494"
+                    :min="38"
+                    :step="38"
+                    aria-label="Room height"
+                  />
+                </div>
+
+                <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <label class="grid gap-1" for="obs-chat-bubbles">
+                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Chat bubbles</p>
+                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Show chat messages above avatars.</p>
+                  </label>
+                  <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
+                </div>
+
+                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <div class="grid gap-1">
+                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Background color</p>
+                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Customize the color and opacity.</p>
+                  </div>
+                  <div class="grid gap-3">
                     <div class="flex items-center gap-3">
                       <UPopover>
                         <UButton
@@ -221,30 +235,6 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                       />
                     </div>
                   </div>
-                </div>
-
-                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-                  <div class="flex items-center justify-between gap-4">
-                    <div class="grid gap-1">
-                      <p class="text-sm max-sm:text-xs font-medium text-highlighted">Room height</p>
-                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set the room height.</p>
-                    </div>
-                  </div>
-                  <USlider
-                    v-model="roomHeight"
-                    :max="494"
-                    :min="38"
-                    :step="38"
-                    aria-label="Room height"
-                  />
-                </div>
-
-                <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-                  <label class="grid gap-1" for="obs-chat-bubbles">
-                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Chat bubbles</p>
-                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Show chat messages above avatars.</p>
-                  </label>
-                  <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
                 </div>
               </div>
             </div>
