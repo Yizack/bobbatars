@@ -11,7 +11,8 @@ const props = withDefaults(defineProps<{
 });
 
 const { data: emotes } = await useLazyFetch(`/api/chat/emotes/${props.user}`, {
-  key: "chat:emotes",
+  key: `chat:emotes:${props.user}`,
+  dedupe: "defer",
   getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key]
 });
 
