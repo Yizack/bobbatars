@@ -26,7 +26,7 @@ const roomHeightSetting = computed(() => {
   return Math.min(OVERLAY_LIMITS.roomHeight.max, Math.max(OVERLAY_LIMITS.roomHeight.min, props.roomHeight));
 });
 const normalizedTileColor = computed(() => {
-  const digits = (parseHexColor(props.tileColor) ?? OVERLAY_DEFAULTS.tileColor).slice(1).toUpperCase();
+  const digits = (parseHexColor(props.tileColor) ?? `#${OVERLAY_DEFAULTS.tileColor}`).slice(1).toUpperCase();
   const rgb = digits.length === 3 ? [...digits].map(digit => digit.repeat(2)).join("") : digits.slice(0, 6);
   return `#${rgb}${digits.length === 8 ? digits.slice(6) : ""}`;
 });

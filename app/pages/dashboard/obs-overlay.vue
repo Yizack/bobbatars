@@ -14,13 +14,13 @@ const roomHeight = ref(OVERLAY_DEFAULTS.roomHeight);
 const backgroundSettings = useHexColor(OVERLAY_DEFAULTS.backgroundHex);
 const { color: backgroundColor, opacity: backgroundOpacity, field: backgroundHexField, error: backgroundHexError } = backgroundSettings;
 const backgroundWithOpacity = computed(() => backgroundOpacity.value === 0 ? undefined : backgroundSettings.value.value);
-const tilesColorSettings = useHexColor(OVERLAY_DEFAULTS.tileColor.slice(1));
+const tilesColorSettings = useHexColor(OVERLAY_DEFAULTS.tileColor);
 const { color: tilesColor, opacity: tilesOpacity, field: tilesColorHexField, value: tilesColorValue, error: tilesColorHexError } = tilesColorSettings;
 const overlayUrl = computed(() => withQuery(
   `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`,
   {
     tiles: tiles.value === OVERLAY_DEFAULTS.tiles ? undefined : String(tiles.value),
-    tileColor: tilesColorSettings.value.value === OVERLAY_DEFAULTS.tileColor ? undefined : tilesColorSettings.value.value?.slice(1),
+    tileColor: tilesColorValue.value?.slice(1) === OVERLAY_DEFAULTS.tileColor ? undefined : tilesColorValue.value?.slice(1),
     chat: chat.value === OVERLAY_DEFAULTS.chat ? undefined : String(chat.value),
     maxAvatars: maxAvatars.value === OVERLAY_DEFAULTS.maxAvatars ? undefined : String(maxAvatars.value),
     roomHeight: roomHeight.value === OVERLAY_DEFAULTS.roomHeight ? undefined : String(roomHeight.value),
@@ -273,7 +273,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                             class="w-32"
                             :disabled="!tiles"
                             maxlength="8"
-                            :placeholder="OVERLAY_DEFAULTS.tileColor.slice(1)"
+                            :placeholder="OVERLAY_DEFAULTS.tileColor"
                             aria-label="Hexadecimal tiles color"
                             :aria-invalid="Boolean(tilesColorHexError)"
                             :aria-describedby="tilesColorHexError ? 'obs-tiles-hex-error' : undefined"
