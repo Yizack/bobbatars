@@ -1,18 +1,15 @@
 <script setup lang="ts">
-import { z } from "zod";
-
-const route = useRoute("overlay-user");
+const route = useRoute("overlay-user") as {
+  params: { user: string };
+  query: Record<string, string | undefined>;
+};
 const { user } = route.params;
 definePageMeta({ layout: false });
 
 const tiles = computed(() => route.query.tiles === "true");
 const chat = computed(() => route.query.chat !== "false");
-const backgroundSchema = z.string()
-  .regex(/^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/)
-  .transform(value => value.startsWith("#") ? value : `#${value}`);
 const background = computed(() => {
-  const result = backgroundSchema.safeParse(route.query.background);
-  return result.success ? result.data : "transparent";
+  return parseHexColor(route.query.background) ?? "transparent";
 });
 const maxAvatars = computed(() => {
   const queryValue = route.query.maxAvatars;

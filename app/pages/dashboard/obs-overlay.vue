@@ -11,15 +11,59 @@ const tiles = ref(false);
 const chat = ref(true);
 const maxAvatars = ref(50);
 const roomHeight = ref(266);
-const backgroundColor = ref("#FFFFFF");
-const backgroundOpacity = ref(0);
+const backgroundHexInput = ref("00000000");
+const parsedBackgroundHex = computed(() => parseHexColor(backgroundHexInput.value));
+const backgroundHexError = computed(() => {
+  if (parsedBackgroundHex.value) return "";
+  return "Enter 3, 6, or 8 hexadecimal digits.";
+});
+const backgroundColor = computed({
+  get: () => {
+    const hex = parsedBackgroundHex.value;
+    if (!hex) return "#000000";
+    const digits = hex.slice(1).toUpperCase();
+    const color = digits.length === 3 ? [...digits].map(digit => digit.repeat(2)).join("") : digits.slice(0, 6);
+    return `#${color}`;
+  },
+  set: (value: string) => {
+    const color = value.replace(/^#/, "").slice(0, 6).toUpperCase();
+    const hex = parsedBackgroundHex.value;
+    const digits = hex?.slice(1).toUpperCase() ?? "";
+    const alpha = hex ? digits.length === 8 ? digits.slice(6) : "" : "00";
+    backgroundHexInput.value = `${color}${alpha}`;
+  }
+});
+const backgroundOpacity = computed({
+  get: () => {
+    const hex = parsedBackgroundHex.value;
+    if (!hex) return 0;
+    const digits = hex.slice(1);
+    return digits.length === 8 ? Math.round(Number.parseInt(digits.slice(6), 16) * 100 / 255) : 100;
+  },
+  set: (value: number) => {
+    const opacity = Math.min(100, Math.max(0, Math.round(value)));
+    const color = backgroundColor.value.slice(1);
+    const alpha = Math.round(opacity * 255 / 100).toString(16).padStart(2, "0").toUpperCase();
+    backgroundHexInput.value = opacity === 100 ? color : `${color}${alpha}`;
+  }
+});
+const backgroundHexField = computed({
+  get: () => {
+    const hex = parsedBackgroundHex.value;
+    if (!hex) return backgroundHexInput.value;
+    const digits = hex.slice(1).toUpperCase();
+    if (digits.length === 8 && backgroundOpacity.value === 100) return digits.slice(0, 6);
+    if (digits.length === 8 && backgroundOpacity.value === 0) return `${digits.slice(0, 6)}00`;
+    return digits;
+  },
+  set: (value: string) => {
+    backgroundHexInput.value = value.trim().replace(/^#/, "").slice(0, 8).toUpperCase();
+  }
+});
 const backgroundWithOpacity = computed(() => {
-  if (backgroundOpacity.value === 0) return undefined;
+  if (!parsedBackgroundHex.value || backgroundOpacity.value === 0) return undefined;
   if (backgroundOpacity.value === 100) return backgroundColor.value;
-  const alpha = Math.round(backgroundOpacity.value * 255 / 100)
-    .toString(16)
-    .padStart(2, "0");
-  return `${backgroundColor.value}${alpha}`;
+  return `${backgroundColor.value}${parsedBackgroundHex.value.slice(-2).toUpperCase()}`;
 });
 const overlayUrl = computed(() => withQuery(
   `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`,
@@ -70,7 +114,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
             </div>
           </template>
 
-          <div class="relative aspect-video overflow-hidden bg-white">
+          <div class="relative aspect-video overflow-hidden">
             <div
               v-if="backgroundWithOpacity"
               class="pointer-events-none absolute inset-0"
@@ -197,36 +241,57 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                     <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Customize the color and opacity.</p>
                   </div>
                   <div class="grid gap-3">
-                    <div class="flex items-center gap-3">
-                      <UPopover>
-                        <UButton
-                          type="button"
-                          color="neutral"
-                          variant="outline"
-                          class="size-10 justify-center p-1"
-                          :aria-label="`Choose background color, currently ${backgroundColor}`"
-                        >
-                          <span
-                            class="size-6 rounded border border-default"
-                            :style="{ backgroundColor }"
-                            aria-hidden="true"
+                    <div class="grid gap-1">
+                      <div class="flex items-center gap-3">
+                        <UPopover>
+                          <UButton
+                            type="button"
+                            color="neutral"
+                            variant="outline"
+                            class="size-10 justify-center p-1"
+                            :aria-label="`Choose background color, currently ${backgroundColor}`"
+                          >
+                            <span
+                              class="size-6 rounded border border-default"
+                              :style="{ backgroundColor }"
+                              aria-hidden="true"
+                            />
+                          </UButton>
+                          <template #content>
+                            <div class="select-none" @pointerdown.prevent>
+                              <UColorPicker
+                                v-model="backgroundColor"
+                                size="sm"
+                                class="p-2"
+                                aria-label="Background color"
+                              />
+                            </div>
+                          </template>
+                        </UPopover>
+                        <div class="flex items-center gap-1">
+                          <span class="text-sm text-muted" aria-hidden="true">#</span>
+                          <UInput
+                            v-model="backgroundHexField"
+                            class="w-32"
+                            maxlength="8"
+                            placeholder="FFFFFF00"
+                            aria-label="Hexadecimal background color"
+                            :aria-invalid="Boolean(backgroundHexError)"
+                            :aria-describedby="backgroundHexError ? 'obs-background-hex-error' : undefined"
                           />
-                        </UButton>
-                        <template #content>
-                          <div class="select-none" @pointerdown.prevent>
-                            <UColorPicker v-model="backgroundColor" size="sm" class="p-2" aria-label="Background color" />
-                          </div>
-                        </template>
-                      </UPopover>
-                      <span class="font-mono text-xs max-sm:text-[11px] text-muted">{{ backgroundColor.toUpperCase() }}</span>
+                        </div>
+                      </div>
+                      <p v-if="backgroundHexError" id="obs-background-hex-error" class="text-xs text-error" role="alert">
+                        {{ backgroundHexError }}
+                      </p>
                     </div>
                     <div class="grid gap-2">
                       <div class="flex items-center justify-between gap-2">
-                        <label for="obs-background-opacity" class="text-xs max-sm:text-[11px] font-medium text-highlighted">Opacity</label>
+                        <label for="obs-background-opacity-slider" class="text-xs max-sm:text-[11px] font-medium text-highlighted">Opacity</label>
                         <span class="font-mono text-xs max-sm:text-[11px] text-muted">{{ backgroundOpacity }}%</span>
                       </div>
                       <USlider
-                        id="obs-background-opacity"
+                        id="obs-background-opacity-slider"
                         v-model="backgroundOpacity"
                         :min="0"
                         :max="100"
