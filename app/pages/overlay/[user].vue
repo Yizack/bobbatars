@@ -7,6 +7,7 @@ const { user } = route.params;
 definePageMeta({ layout: false });
 
 const tiles = computed(() => route.query.tiles === "true");
+const tileColor = computed(() => parseHexColor(route.query.tileColor) ?? "#5091A933");
 const chat = computed(() => route.query.chat !== "false");
 const background = computed(() => {
   return parseHexColor(route.query.background) ?? "transparent";
@@ -40,6 +41,7 @@ useHead({
     <BobbaOverlay
       :user="user"
       :tiles="tiles"
+      :tile-color="tileColor"
       :chat="chat"
       :max-avatars="maxAvatars"
       :room-height="roomHeight"

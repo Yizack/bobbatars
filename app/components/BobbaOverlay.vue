@@ -7,12 +7,14 @@ import { type AvatarDanceAction, avatarDanceActions, parseAvatarChatCommand } fr
 const props = withDefaults(defineProps<{
   user: string;
   tiles?: boolean;
+  tileColor?: string;
   chat?: boolean;
   maxAvatars?: number;
   roomHeight?: number;
   embedded?: boolean;
 }>(), {
   chat: true,
+  tileColor: "#5091A933",
   maxAvatars: 50,
   roomHeight: 266,
   embedded: false
@@ -21,6 +23,27 @@ const props = withDefaults(defineProps<{
 const roomHeightSetting = computed(() => {
   if (!Number.isInteger(props.roomHeight)) return 266;
   return Math.min(500, Math.max(38, props.roomHeight));
+});
+const normalizedTileColor = computed(() => {
+  const digits = (parseHexColor(props.tileColor) ?? "#5091A933").slice(1).toUpperCase();
+  const rgb = digits.length === 3 ? [...digits].map(digit => digit.repeat(2)).join("") : digits.slice(0, 6);
+  return `#${rgb}${digits.length === 8 ? digits.slice(6) : ""}`;
+});
+const alternateTileColor = computed(() => {
+  const digits = normalizedTileColor.value.slice(1);
+  const red = Number.parseInt(digits.slice(0, 2), 16);
+  const green = Number.parseInt(digits.slice(2, 4), 16);
+  const blue = Number.parseInt(digits.slice(4, 6), 16);
+  const opacity = digits.length === 8 ? Number.parseInt(digits.slice(6), 16) / 255 : 1;
+  const darken = 0.95;
+  // Keep the alternate tile slightly darker while preserving its original opacity ratio.
+  return `rgba(${Math.round(red * darken)}, ${Math.round(green * darken)}, ${Math.round(blue * darken)}, ${opacity * 13 / 18})`;
+});
+const tileStrokeColor = computed(() => normalizedTileColor.value.slice(0, 7));
+const tileStrokeOpacity = computed(() => {
+  const digits = normalizedTileColor.value.slice(1);
+  const opacity = digits.length === 8 ? Number.parseInt(digits.slice(6), 16) / 255 : 1;
+  return Math.min(1, opacity * 0.42 / 0.18);
 });
 
 interface Tile {
@@ -1258,8 +1281,9 @@ onBeforeUnmount(() => {
             v-for="tile in roomTiles"
             :key="`${tile.column}-${tile.row}`"
             :points="tilePoints(tile)"
-            :fill="(tile.column + tile.row) % 2 === 0 ? 'rgba(80, 145, 169, 0.18)' : 'rgba(43, 101, 125, 0.13)'"
-            stroke="rgba(169, 217, 230, 0.42)"
+            :fill="(tile.column + tile.row) % 2 === 0 ? normalizedTileColor : alternateTileColor"
+            :stroke="tileStrokeColor"
+            :stroke-opacity="tileStrokeOpacity"
             stroke-width="1"
             vector-effect="non-scaling-stroke"
           />

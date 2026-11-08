@@ -7,68 +7,21 @@ definePageMeta({ layout: "dashboard" });
 const { user } = useUserSession();
 
 const requestUrl = useRequestURL();
+const defaultTilesColor = "#5091A933";
 const tiles = ref(false);
 const chat = ref(true);
 const maxAvatars = ref(50);
 const roomHeight = ref(266);
-const backgroundHexInput = ref("00000000");
-const parsedBackgroundHex = computed(() => parseHexColor(backgroundHexInput.value));
-const backgroundHexError = computed(() => {
-  if (parsedBackgroundHex.value) return "";
-  return "Enter 3, 6, or 8 hexadecimal digits.";
-});
-const backgroundColor = computed({
-  get: () => {
-    const hex = parsedBackgroundHex.value;
-    if (!hex) return "#000000";
-    const digits = hex.slice(1).toUpperCase();
-    const color = digits.length === 3 ? [...digits].map(digit => digit.repeat(2)).join("") : digits.slice(0, 6);
-    return `#${color}`;
-  },
-  set: (value: string) => {
-    const color = value.replace(/^#/, "").slice(0, 6).toUpperCase();
-    const hex = parsedBackgroundHex.value;
-    const digits = hex?.slice(1).toUpperCase() ?? "";
-    const alpha = hex ? digits.length === 8 ? digits.slice(6) : "" : "00";
-    backgroundHexInput.value = `${color}${alpha}`;
-  }
-});
-const backgroundOpacity = computed({
-  get: () => {
-    const hex = parsedBackgroundHex.value;
-    if (!hex) return 0;
-    const digits = hex.slice(1);
-    return digits.length === 8 ? Math.round(Number.parseInt(digits.slice(6), 16) * 100 / 255) : 100;
-  },
-  set: (value: number) => {
-    const opacity = Math.min(100, Math.max(0, Math.round(value)));
-    const color = backgroundColor.value.slice(1);
-    const alpha = Math.round(opacity * 255 / 100).toString(16).padStart(2, "0").toUpperCase();
-    backgroundHexInput.value = opacity === 100 ? color : `${color}${alpha}`;
-  }
-});
-const backgroundHexField = computed({
-  get: () => {
-    const hex = parsedBackgroundHex.value;
-    if (!hex) return backgroundHexInput.value;
-    const digits = hex.slice(1).toUpperCase();
-    if (digits.length === 8 && backgroundOpacity.value === 100) return digits.slice(0, 6);
-    if (digits.length === 8 && backgroundOpacity.value === 0) return `${digits.slice(0, 6)}00`;
-    return digits;
-  },
-  set: (value: string) => {
-    backgroundHexInput.value = value.trim().replace(/^#/, "").slice(0, 8).toUpperCase();
-  }
-});
-const backgroundWithOpacity = computed(() => {
-  if (!parsedBackgroundHex.value || backgroundOpacity.value === 0) return undefined;
-  if (backgroundOpacity.value === 100) return backgroundColor.value;
-  return `${backgroundColor.value}${parsedBackgroundHex.value.slice(-2).toUpperCase()}`;
-});
+const backgroundSettings = useHexColor("00000000");
+const { color: backgroundColor, opacity: backgroundOpacity, field: backgroundHexField, error: backgroundHexError } = backgroundSettings;
+const backgroundWithOpacity = computed(() => backgroundOpacity.value === 0 ? undefined : backgroundSettings.value.value);
+const tilesColorSettings = useHexColor(defaultTilesColor.slice(1));
+const { color: tilesColor, opacity: tilesOpacity, field: tilesColorHexField, value: tilesColorValue, error: tilesColorHexError } = tilesColorSettings;
 const overlayUrl = computed(() => withQuery(
   `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`,
   {
     tiles: tiles.value ? "true" : undefined,
+    tileColor: tilesColorSettings.value.value === defaultTilesColor ? undefined : tilesColorSettings.value.value?.slice(1),
     chat: chat.value ? undefined : "false",
     maxAvatars: maxAvatars.value === 50 ? undefined : String(maxAvatars.value),
     roomHeight: roomHeight.value === 266 ? undefined : String(roomHeight.value),
@@ -124,6 +77,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
             <BobbaOverlay
               :user="user?.twitchLogin ?? ''"
               :tiles="tiles"
+              :tile-color="tilesColorValue"
               :chat="chat"
               :max-avatars="maxAvatars"
               :room-height="roomHeight"
@@ -212,30 +166,6 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                 </div>
 
                 <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-                  <div class="flex items-center justify-between gap-4">
-                    <div class="grid gap-1">
-                      <p class="text-sm max-sm:text-xs font-medium text-highlighted">Room height</p>
-                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set the room height.</p>
-                    </div>
-                  </div>
-                  <USlider
-                    v-model="roomHeight"
-                    :max="494"
-                    :min="38"
-                    :step="38"
-                    aria-label="Room height"
-                  />
-                </div>
-
-                <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
-                  <label class="grid gap-1" for="obs-chat-bubbles">
-                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Chat bubbles</p>
-                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Show chat messages above avatars.</p>
-                  </label>
-                  <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
-                </div>
-
-                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
                   <div class="grid gap-1">
                     <p class="text-sm max-sm:text-xs font-medium text-highlighted">Background color</p>
                     <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Customize the color and opacity.</p>
@@ -300,6 +230,101 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                       />
                     </div>
                   </div>
+                </div>
+
+                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <div class="grid gap-1">
+                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Tiles color</p>
+                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Customize the tile color and opacity.</p>
+                  </div>
+                  <div class="grid gap-3">
+                    <div class="grid gap-1">
+                      <div class="flex items-center gap-3">
+                        <UPopover>
+                          <UButton
+                            type="button"
+                            color="neutral"
+                            variant="outline"
+                            class="size-10 justify-center p-1"
+                            :disabled="!tiles"
+                            :aria-label="`Choose tiles color, currently ${tilesColor}`"
+                          >
+                            <span
+                              class="size-6 rounded border border-default"
+                              :style="{ backgroundColor: tilesColor }"
+                              aria-hidden="true"
+                            />
+                          </UButton>
+                          <template #content>
+                            <div class="select-none" @pointerdown.prevent>
+                              <UColorPicker
+                                v-model="tilesColor"
+                                size="sm"
+                                class="p-2"
+                                :disabled="!tiles"
+                                aria-label="Tiles color"
+                              />
+                            </div>
+                          </template>
+                        </UPopover>
+                        <div class="flex items-center gap-1">
+                          <span class="text-sm text-muted" aria-hidden="true">#</span>
+                          <UInput
+                            v-model="tilesColorHexField"
+                            class="w-32"
+                            :disabled="!tiles"
+                            maxlength="8"
+                            placeholder="5091A933"
+                            aria-label="Hexadecimal tiles color"
+                            :aria-invalid="Boolean(tilesColorHexError)"
+                            :aria-describedby="tilesColorHexError ? 'obs-tiles-hex-error' : undefined"
+                          />
+                        </div>
+                      </div>
+                      <p v-if="tilesColorHexError" id="obs-tiles-hex-error" class="text-xs text-error" role="alert">
+                        {{ tilesColorHexError }}
+                      </p>
+                    </div>
+                    <div class="grid gap-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <label for="obs-tiles-opacity-slider" class="text-xs max-sm:text-[11px] font-medium text-highlighted">Opacity</label>
+                        <span class="font-mono text-xs max-sm:text-[11px] text-muted">{{ tilesOpacity }}%</span>
+                      </div>
+                      <USlider
+                        id="obs-tiles-opacity-slider"
+                        v-model="tilesOpacity"
+                        :min="0"
+                        :max="100"
+                        :step="1"
+                        :disabled="!tiles"
+                        aria-label="Tiles opacity"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <div class="flex items-center justify-between gap-4">
+                    <div class="grid gap-1">
+                      <p class="text-sm max-sm:text-xs font-medium text-highlighted">Room height</p>
+                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set the room height.</p>
+                    </div>
+                  </div>
+                  <USlider
+                    v-model="roomHeight"
+                    :max="494"
+                    :min="38"
+                    :step="38"
+                    aria-label="Room height"
+                  />
+                </div>
+
+                <div class="flex items-center justify-between gap-4 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <label class="grid gap-1" for="obs-chat-bubbles">
+                    <p class="text-sm max-sm:text-xs font-medium text-highlighted">Chat bubbles</p>
+                    <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Show chat messages above avatars.</p>
+                  </label>
+                  <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
                 </div>
               </div>
             </div>
