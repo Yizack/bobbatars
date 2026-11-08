@@ -7,24 +7,23 @@ definePageMeta({ layout: "dashboard" });
 const { user } = useUserSession();
 
 const requestUrl = useRequestURL();
-const defaultTilesColor = "#5091A933";
-const tiles = ref(false);
-const chat = ref(true);
-const maxAvatars = ref(50);
-const roomHeight = ref(266);
-const backgroundSettings = useHexColor("00000000");
+const tiles = ref(OVERLAY_DEFAULTS.tiles);
+const chat = ref(OVERLAY_DEFAULTS.chat);
+const maxAvatars = ref(OVERLAY_DEFAULTS.maxAvatars);
+const roomHeight = ref(OVERLAY_DEFAULTS.roomHeight);
+const backgroundSettings = useHexColor(OVERLAY_DEFAULTS.backgroundHex);
 const { color: backgroundColor, opacity: backgroundOpacity, field: backgroundHexField, error: backgroundHexError } = backgroundSettings;
 const backgroundWithOpacity = computed(() => backgroundOpacity.value === 0 ? undefined : backgroundSettings.value.value);
-const tilesColorSettings = useHexColor(defaultTilesColor.slice(1));
+const tilesColorSettings = useHexColor(OVERLAY_DEFAULTS.tileColor.slice(1));
 const { color: tilesColor, opacity: tilesOpacity, field: tilesColorHexField, value: tilesColorValue, error: tilesColorHexError } = tilesColorSettings;
 const overlayUrl = computed(() => withQuery(
   `${requestUrl.origin}/overlay/${user?.value?.twitchLogin}`,
   {
-    tiles: tiles.value ? "true" : undefined,
-    tileColor: tilesColorSettings.value.value === defaultTilesColor ? undefined : tilesColorSettings.value.value?.slice(1),
-    chat: chat.value ? undefined : "false",
-    maxAvatars: maxAvatars.value === 50 ? undefined : String(maxAvatars.value),
-    roomHeight: roomHeight.value === 266 ? undefined : String(roomHeight.value),
+    tiles: tiles.value === OVERLAY_DEFAULTS.tiles ? undefined : String(tiles.value),
+    tileColor: tilesColorSettings.value.value === OVERLAY_DEFAULTS.tileColor ? undefined : tilesColorSettings.value.value?.slice(1),
+    chat: chat.value === OVERLAY_DEFAULTS.chat ? undefined : String(chat.value),
+    maxAvatars: maxAvatars.value === OVERLAY_DEFAULTS.maxAvatars ? undefined : String(maxAvatars.value),
+    roomHeight: roomHeight.value === OVERLAY_DEFAULTS.roomHeight ? undefined : String(roomHeight.value),
     background: backgroundWithOpacity.value?.slice(1)
   }
 ));
@@ -133,24 +132,24 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                   <div class="flex items-center justify-between gap-4">
                     <div class="grid gap-1">
                       <p class="text-sm max-sm:text-xs font-medium text-highlighted">Maximum avatars</p>
-                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set a limit up to 50. The source resolution may reduce the cap.</p>
+                      <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Set a limit up to {{ OVERLAY_LIMITS.maxAvatars.max }}. The source resolution may reduce the cap.</p>
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
                     <UInputNumber
                       v-model="maxAvatars"
                       class="min-w-0 flex-1"
-                      :min="1"
-                      :max="50"
+                      :min="OVERLAY_LIMITS.maxAvatars.min"
+                      :max="OVERLAY_LIMITS.maxAvatars.max"
                     />
                     <UButton
                       type="button"
                       class="max-sm:text-xs"
                       color="neutral"
                       variant="outline"
-                      :disabled="maxAvatars === 50"
+                      :disabled="maxAvatars === OVERLAY_DEFAULTS.maxAvatars"
                       aria-label="Set maximum available avatars"
-                      @click="maxAvatars = 50"
+                      @click="maxAvatars = OVERLAY_DEFAULTS.maxAvatars"
                     >
                       Max
                     </UButton>
@@ -274,7 +273,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                             class="w-32"
                             :disabled="!tiles"
                             maxlength="8"
-                            placeholder="5091A933"
+                            :placeholder="OVERLAY_DEFAULTS.tileColor.slice(1)"
                             aria-label="Hexadecimal tiles color"
                             :aria-invalid="Boolean(tilesColorHexError)"
                             :aria-describedby="tilesColorHexError ? 'obs-tiles-hex-error' : undefined"
@@ -312,9 +311,9 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                   </div>
                   <USlider
                     v-model="roomHeight"
-                    :max="494"
-                    :min="38"
-                    :step="38"
+                    :max="OVERLAY_LIMITS.roomHeight.sliderMax"
+                    :min="OVERLAY_LIMITS.roomHeight.min"
+                    :step="OVERLAY_LIMITS.roomHeight.step"
                     aria-label="Room height"
                   />
                 </div>

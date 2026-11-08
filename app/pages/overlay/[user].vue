@@ -6,23 +6,23 @@ const route = useRoute("overlay-user") as {
 const { user } = route.params;
 definePageMeta({ layout: false });
 
-const tiles = computed(() => route.query.tiles === "true");
-const tileColor = computed(() => parseHexColor(route.query.tileColor) ?? "#5091A933");
-const chat = computed(() => route.query.chat !== "false");
+const tiles = computed(() => route.query.tiles === undefined ? OVERLAY_DEFAULTS.tiles : route.query.tiles === "true");
+const tileColor = computed(() => parseHexColor(route.query.tileColor) ?? OVERLAY_DEFAULTS.tileColor);
+const chat = computed(() => route.query.chat === undefined ? OVERLAY_DEFAULTS.chat : route.query.chat !== "false");
 const background = computed(() => {
-  return parseHexColor(route.query.background) ?? "transparent";
+  return parseHexColor(route.query.background) ?? OVERLAY_DEFAULTS.background;
 });
 const maxAvatars = computed(() => {
   const queryValue = route.query.maxAvatars;
-  const parsedValue = typeof queryValue === "string" ? Number(queryValue) : 50;
-  if (!Number.isInteger(parsedValue)) return 50;
-  return Math.min(50, Math.max(1, parsedValue));
+  const parsedValue = typeof queryValue === "string" ? Number(queryValue) : OVERLAY_DEFAULTS.maxAvatars;
+  if (!Number.isInteger(parsedValue)) return OVERLAY_DEFAULTS.maxAvatars;
+  return Math.min(OVERLAY_LIMITS.maxAvatars.max, Math.max(OVERLAY_LIMITS.maxAvatars.min, parsedValue));
 });
 const roomHeight = computed(() => {
   const queryValue = route.query.roomHeight;
-  const parsedValue = typeof queryValue === "string" ? Number(queryValue) : 266;
-  if (!Number.isInteger(parsedValue)) return 266;
-  return Math.min(500, Math.max(38, parsedValue));
+  const parsedValue = typeof queryValue === "string" ? Number(queryValue) : OVERLAY_DEFAULTS.roomHeight;
+  if (!Number.isInteger(parsedValue)) return OVERLAY_DEFAULTS.roomHeight;
+  return Math.min(OVERLAY_LIMITS.roomHeight.max, Math.max(OVERLAY_LIMITS.roomHeight.min, parsedValue));
 });
 
 useHead({

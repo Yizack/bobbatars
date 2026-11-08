@@ -13,19 +13,20 @@ const props = withDefaults(defineProps<{
   roomHeight?: number;
   embedded?: boolean;
 }>(), {
-  chat: true,
-  tileColor: "#5091A933",
-  maxAvatars: 50,
-  roomHeight: 266,
+  tiles: OVERLAY_DEFAULTS.tiles,
+  chat: OVERLAY_DEFAULTS.chat,
+  tileColor: OVERLAY_DEFAULTS.tileColor,
+  maxAvatars: OVERLAY_DEFAULTS.maxAvatars,
+  roomHeight: OVERLAY_DEFAULTS.roomHeight,
   embedded: false
 });
 
 const roomHeightSetting = computed(() => {
-  if (!Number.isInteger(props.roomHeight)) return 266;
-  return Math.min(500, Math.max(38, props.roomHeight));
+  if (!Number.isInteger(props.roomHeight)) return OVERLAY_DEFAULTS.roomHeight;
+  return Math.min(OVERLAY_LIMITS.roomHeight.max, Math.max(OVERLAY_LIMITS.roomHeight.min, props.roomHeight));
 });
 const normalizedTileColor = computed(() => {
-  const digits = (parseHexColor(props.tileColor) ?? "#5091A933").slice(1).toUpperCase();
+  const digits = (parseHexColor(props.tileColor) ?? OVERLAY_DEFAULTS.tileColor).slice(1).toUpperCase();
   const rgb = digits.length === 3 ? [...digits].map(digit => digit.repeat(2)).join("") : digits.slice(0, 6);
   return `#${rgb}${digits.length === 8 ? digits.slice(6) : ""}`;
 });
@@ -179,9 +180,9 @@ function randomSitDirection () {
 const room = ref<HTMLDivElement | null>(null);
 const roomTiles = ref<RoomTile[]>([]);
 const maxAvatars = computed(() => {
-  let requestedLimit = 50;
+  let requestedLimit: number = OVERLAY_DEFAULTS.maxAvatars;
   if (Number.isInteger(props.maxAvatars)) {
-    requestedLimit = Math.min(50, Math.max(1, props.maxAvatars));
+    requestedLimit = Math.min(OVERLAY_LIMITS.maxAvatars.max, Math.max(OVERLAY_LIMITS.maxAvatars.min, props.maxAvatars));
   }
   return Math.min(requestedLimit, roomTiles.value.length);
 });
