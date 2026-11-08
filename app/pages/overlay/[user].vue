@@ -9,8 +9,8 @@ definePageMeta({ layout: false });
 const tiles = computed(() => route.query.tiles === undefined ? OVERLAY_DEFAULTS.tiles : route.query.tiles === "true");
 const tileColor = computed(() => parseHexColor(route.query.tileColor) ?? OVERLAY_DEFAULTS.tileColor);
 const chat = computed(() => route.query.chat === undefined ? OVERLAY_DEFAULTS.chat : route.query.chat !== "false");
-const background = computed(() => {
-  return parseHexColor(route.query.background) ?? OVERLAY_DEFAULTS.background;
+const backgroundColor = computed(() => {
+  return parseHexColor(route.query.backgroundColor) ?? OVERLAY_DEFAULTS.backgroundColor;
 });
 const maxAvatars = computed(() => {
   const queryValue = route.query.maxAvatars;
@@ -31,7 +31,7 @@ useHead({
   },
   bodyAttrs: {
     class: "m-0 overflow-hidden",
-    style: computed(() => `background-color: ${background.value}`)
+    style: computed(() => `background-color: ${backgroundColor.value}`)
   }
 });
 </script>

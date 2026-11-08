@@ -24,7 +24,7 @@ const overlayUrl = computed(() => withQuery(
     chat: chat.value === OVERLAY_DEFAULTS.chat ? undefined : String(chat.value),
     maxAvatars: maxAvatars.value === OVERLAY_DEFAULTS.maxAvatars ? undefined : String(maxAvatars.value),
     roomHeight: roomHeight.value === OVERLAY_DEFAULTS.roomHeight ? undefined : String(roomHeight.value),
-    background: backgroundWithOpacity.value?.slice(1)
+    backgroundColor: backgroundWithOpacity.value?.slice(1)
   }
 ));
 const copyError = ref("");

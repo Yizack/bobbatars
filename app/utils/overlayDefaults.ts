@@ -1,7 +1,7 @@
 export const OVERLAY_DEFAULTS = {
   tiles: false,
   chat: true,
-  background: "transparent",
+  backgroundColor: "transparent",
   backgroundHex: "00000000",
   tileColor: "#5091A933",
   maxAvatars: 50,
