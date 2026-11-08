@@ -1297,14 +1297,14 @@ onBeforeUnmount(() => {
         <template v-for="avatar in avatars" :key="avatar.login">
           <div
             :ref="avatar.shadowRef"
-            class="pointer-events-none absolute left-1 -top-0.5 z-[1] h-[14px] w-[34px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
+            class="pointer-events-none absolute left-0.5 -top-1 z-[1] h-[18px] w-[38px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
             aria-hidden="true"
           />
           <AvatarPreviewImage
             v-if="avatar.currentImage"
             :image-ref="avatar.imageRef"
-            class="pointer-events-none absolute left-4 z-[2] h-auto max-w-full select-none"
-            :class="avatar.isSitting ? 'top-1' : '-top-2'"
+            class="pointer-events-none absolute left-3.5 z-[2] h-auto max-w-full select-none"
+            :class="avatar.isSitting ? 'top-1' : '-top-1.5'"
             :src="avatar.currentImage"
             :alt="`Avatar de ${avatar.displayName}`"
             aria-hidden="true"
