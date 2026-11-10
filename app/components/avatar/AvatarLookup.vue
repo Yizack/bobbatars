@@ -30,30 +30,30 @@ const hotels: { label: string, value: HabboHotel }[] = [
       </div>
     </template>
     <div class="grid min-w-0 gap-3">
-      <label class="grid min-w-0 gap-1 text-sm max-sm:text-xs font-medium text-highlighted">
-        <span>Hotel</span>
+      <UFormField
+        label="Hotel"
+      >
         <USelect
           v-model="hotel"
           :items="hotels"
           value-key="value"
           label-key="label"
-          aria-label="Habbo hotel"
           class="w-full"
           :disabled="state === 'loading'"
         />
-      </label>
-      <label class="grid min-w-0 gap-1 text-sm max-sm:text-xs font-medium text-highlighted">
-        <span>Username</span>
+      </UFormField>
+      <UFormField
+        label="Username"
+      >
         <UInput
           v-model="username"
           autocomplete="off"
-          aria-label="Habbo username"
           placeholder="Enter a Habbo username"
           class="w-full"
           :disabled="state === 'loading'"
           @keydown.enter.prevent="emit('lookup')"
         />
-      </label>
+      </UFormField>
       <UButton
         type="button"
         class="w-full justify-center max-sm:text-xs"
