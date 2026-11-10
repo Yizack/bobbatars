@@ -11,6 +11,11 @@ interface AvatarCommand {
 
 const commands: AvatarCommand[] = [
   {
+    command: "!avatar",
+    description: "Refresh your saved Habbo outfit. To refresh another viewer's avatar, add @username.",
+    alias: ["!refreshavatar", "!updateavatar"]
+  },
+  {
     command: "!dance",
     description: "Make your avatar do the basic dance.",
     alias: ["!dance 1"]
@@ -36,12 +41,7 @@ const commands: AvatarCommand[] = [
     description: "Make your avatar sit down and stop any current dance." },
   {
     command: "!up",
-    description: "Make your avatar stand up and stop any current dance." },
-  {
-    command: "!avatar",
-    description: "Refresh your saved Habbo outfit. To refresh another viewer's avatar, add @username.",
-    alias: ["!refreshavatar", "!updateavatar"]
-  }
+    description: "Make your avatar stand up and stop any current dance." }
 ];
 
 const columns: TableColumn<AvatarCommand>[] = [
