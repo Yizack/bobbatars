@@ -33,5 +33,6 @@ export default [
   "pixelarticons:settings-cog",
   "pixelarticons:plus",
   "pixelarticons:minus",
-  "simple-icons:twitch"
+  "simple-icons:twitch",
+  "pixelarticons:message-text"
 ];
