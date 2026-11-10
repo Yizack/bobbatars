@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from "@nuxt/ui";
 import { useIntervalFn, useResizeObserver, useTimeoutFn } from "@vueuse/core";
 import { ChatClient } from "@twurple/chat";
 import { withQuery } from "ufo";
@@ -99,7 +100,6 @@ interface AvatarState {
   effect: number | null;
   figureRequestVersion: number;
   menuVisible: boolean;
-  danceMenuVisible: boolean;
   movementPaused: boolean;
   isSitting: boolean;
   current: Tile | null;
@@ -654,7 +654,6 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     effect: null,
     figureRequestVersion: 0,
     menuVisible: false,
-    danceMenuVisible: false,
     movementPaused: false,
     isSitting: user.isSitting,
     current: { ...spawn },
@@ -833,16 +832,13 @@ function reportAvatarFetchError (avatar: AvatarState, error: unknown) {
   console.info(error);
 }
 
-function toggleAvatarMenu (avatar: AvatarState) {
-  const shouldOpen = !avatar.menuVisible;
-  for (const otherAvatar of avatars.value) {
-    if (otherAvatar !== avatar) updateAvatarMenuVisibility(otherAvatar, false);
+function handleAvatarMenuOpenChange (avatar: AvatarState, isOpen: boolean) {
+  if (isOpen) {
+    for (const otherAvatar of avatars.value) {
+      if (otherAvatar !== avatar) updateAvatarMenuVisibility(otherAvatar, false);
+    }
   }
-  updateAvatarMenuVisibility(avatar, shouldOpen);
-}
-
-function toggleDanceMenu (avatar: AvatarState) {
-  avatar.danceMenuVisible = !avatar.danceMenuVisible;
+  updateAvatarMenuVisibility(avatar, isOpen);
 }
 
 function updateAvatarMenuVisibility (avatar: AvatarState, isOpen: boolean) {
@@ -851,7 +847,6 @@ function updateAvatarMenuVisibility (avatar: AvatarState, isOpen: boolean) {
     pauseAvatarMovement(avatar);
     return;
   }
-  avatar.danceMenuVisible = false;
   resumeAvatarMovement(avatar);
 }
 
@@ -920,6 +915,42 @@ function setAvatarSitting (avatar: AvatarState, isSitting: boolean) {
 function toggleAvatarSittingFromMenu (avatar: AvatarState) {
   setAvatarSitting(avatar, !avatar.isSitting);
   updateAvatarMenuVisibility(avatar, false);
+}
+
+function avatarMenuItems (avatar: AvatarState): DropdownMenuItem[] {
+  const items: DropdownMenuItem[] = [
+    {
+      label: "Dances",
+      icon: "pixelarticons:music",
+      children: avatarDanceActions.map((danceAction, index) => ({
+        label: `Dance ${index + 1}`,
+        onSelect: () => setAvatarDanceFromMenu(avatar, danceAction)
+      }))
+    }
+  ];
+
+  if (avatar.danceAction !== null) {
+    items.push({
+      label: "Stop Dance",
+      icon: "pixelarticons:square",
+      onSelect: () => setAvatarDanceFromMenu(avatar, null)
+    });
+  }
+
+  items.push(
+    {
+      label: avatar.isSitting ? "Stand Up" : "Sit",
+      icon: "pixelarticons:sofa",
+      onSelect: () => toggleAvatarSittingFromMenu(avatar)
+    },
+    {
+      label: "Refresh Avatar",
+      icon: "pixelarticons:reload",
+      onSelect: () => refreshAvatarFromMenu(avatar)
+    }
+  );
+
+  return items;
 }
 
 function recordChatActivity (username: string, message: string, twitchDisplayName: string, emoteOffsets: Map<string, string[]>) {
@@ -1310,16 +1341,51 @@ onBeforeUnmount(() => {
             aria-hidden="true"
             draggable="false"
           />
-          <button
+          <UDropdownMenu
             v-if="avatar.currentImage"
-            :ref="avatar.clickTargetRef"
-            type="button"
-            class="pointer-events-auto absolute left-10 z-[2] max-w-full cursor-pointer border-0 bg-transparent p-0"
-            :class="avatar.isSitting ? 'top-6' : 'top-4'"
-            :aria-label="`Opciones para el avatar de ${avatar.displayName}`"
-            :aria-expanded="avatar.menuVisible"
-            aria-haspopup="menu"
-            @click="toggleAvatarMenu(avatar)"
+            :open="avatar.menuVisible"
+            :items="avatarMenuItems(avatar)"
+            size="sm"
+            :content="{
+              side: 'top',
+              sideOffset: 8,
+              collisionPadding: 8,
+              updatePositionStrategy: 'always',
+              reference: avatarElements.get(avatar.login)?.menuAnchor ?? undefined,
+            }"
+            :modal="false"
+            arrow
+            :ui="{
+              content: 'z-50 w-max rounded-[8px] border border-[rgba(198,219,233,0.3)] bg-[rgba(15,21,29,0.96)] p-0 shadow-lg ring-0',
+              group: 'flex flex-col gap-1 p-1 isolate',
+              item: 'justify-start text-[#f5f2e9]',
+              arrow: 'fill-[rgba(15,21,29,0.96)]',
+            }"
+            @update:open="isOpen => handleAvatarMenuOpenChange(avatar, isOpen)"
+          >
+            <button
+              :ref="avatar.clickTargetRef"
+              type="button"
+              class="pointer-events-auto absolute left-10 z-[2] max-w-full cursor-pointer border-0 bg-transparent p-0"
+              :class="avatar.isSitting ? 'top-6' : 'top-4'"
+              :aria-label="`Opciones para el avatar de ${avatar.displayName}`"
+            />
+            <template #content-top="{ sub }">
+              <p
+                v-if="!sub"
+                role="heading"
+                aria-level="2"
+                :title="avatar.displayName"
+                class="mb-1 max-w-[min(220px,calc(100vw_-_40px))] border-b border-[rgba(198,219,233,0.2)] px-2 p-1 text-sm font-semibold leading-tight text-[#f5f2e9] whitespace-normal [overflow-wrap:anywhere]"
+              >
+                {{ avatar.displayName }}
+              </p>
+            </template>
+          </UDropdownMenu>
+          <span
+            :ref="avatar.menuAnchorRef"
+            class="pointer-events-none absolute left-0 top-5 h-0 w-0"
+            aria-hidden="true"
           />
           <span
             :ref="avatar.labelRef"
@@ -1348,102 +1414,6 @@ onBeforeUnmount(() => {
             </template>
             <template #content>
               <ChatEmotes :text="avatar.bubbleMessage" :emote-offsets="avatar.bubbleEmoteOffsets" :user="user" class="font-[Ubuntu]" />
-            </template>
-          </UPopover>
-          <UPopover
-            v-if="avatar.menuVisible"
-            v-model:open="avatar.menuVisible"
-            arrow
-            :content="{ side: 'top', sideOffset: 8, collisionPadding: 8, updatePositionStrategy: 'always' }"
-            :ui="{
-              content: 'z-50 w-max rounded-[8px] border border-[rgba(198,219,233,0.3)] bg-[rgba(15,21,29,0.96)] p-1 shadow-lg',
-            }"
-            @update:open="isOpen => updateAvatarMenuVisibility(avatar, isOpen)"
-          >
-            <template #anchor>
-              <span
-                :ref="avatar.menuAnchorRef"
-                class="pointer-events-none absolute left-0 top-5 h-0 w-0"
-                aria-hidden="true"
-              />
-            </template>
-            <template #content>
-              <div role="group" :aria-label="`Opciones para ${avatar.displayName}`" class="flex flex-col gap-1">
-                <p
-                  role="heading"
-                  aria-level="2"
-                  :title="avatar.displayName"
-                  class="mb-1 max-w-[min(220px,calc(100vw_-_40px))] border-b border-[rgba(198,219,233,0.2)] px-2 pb-2 pt-1 text-sm font-semibold leading-tight text-[#f5f2e9] whitespace-normal [overflow-wrap:anywhere]"
-                >
-                  {{ avatar.displayName }}
-                </p>
-                <UButton
-                  type="button"
-                  size="sm"
-                  color="neutral"
-                  variant="ghost"
-                  icon="pixelarticons:music"
-                  :trailing-icon="avatar.danceMenuVisible ? 'pixelarticons:chevron-up' : 'pixelarticons:chevron-down'"
-                  :aria-expanded="avatar.danceMenuVisible"
-                  :aria-controls="avatar.danceMenuVisible ? `dance-options-${avatar.login}` : undefined"
-                  @click="toggleDanceMenu(avatar)"
-                >
-                  Dances
-                </UButton>
-                <div
-                  v-if="avatar.danceMenuVisible"
-                  :id="`dance-options-${avatar.login}`"
-                  role="group"
-                  :aria-label="`Dances para ${avatar.displayName}`"
-                  class="ml-2 flex flex-col gap-1 border-l border-[rgba(198,219,233,0.3)] pl-2"
-                >
-                  <UButton
-                    v-for="(danceAction, index) in avatarDanceActions"
-                    :key="danceAction"
-                    type="button"
-                    size="sm"
-                    color="neutral"
-                    variant="ghost"
-                    class="justify-start"
-                    @click="setAvatarDanceFromMenu(avatar, danceAction)"
-                  >
-                    Dance {{ index + 1 }}
-                  </UButton>
-                </div>
-                <UButton
-                  v-if="avatar.danceAction !== null"
-                  type="button"
-                  size="sm"
-                  color="neutral"
-                  variant="ghost"
-                  class="justify-start"
-                  icon="pixelarticons:square"
-                  @click="setAvatarDanceFromMenu(avatar, null)"
-                >
-                  Stop Dance
-                </UButton>
-                <UButton
-                  type="button"
-                  size="sm"
-                  color="neutral"
-                  variant="ghost"
-                  icon="pixelarticons:sofa"
-                  class="justify-start"
-                  @click="toggleAvatarSittingFromMenu(avatar)"
-                >
-                  {{ avatar.isSitting ? "Stand Up" : "Sit" }}
-                </UButton>
-                <UButton
-                  type="button"
-                  size="sm"
-                  color="neutral"
-                  variant="ghost"
-                  icon="pixelarticons:reload"
-                  @click="refreshAvatarFromMenu(avatar)"
-                >
-                  Refresh Avatar
-                </UButton>
-              </div>
             </template>
           </UPopover>
         </template>
