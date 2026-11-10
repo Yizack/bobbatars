@@ -5,7 +5,7 @@ import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outf
 import type { AvatarCatalog as AvatarCatalogData, AvatarLookupState, AvatarPreviewAction, AvatarSaveState, AvatarGender as Gender, HabboHotel, OutfitPart } from "../../types/avatar";
 import { avatarImagingUrl, colorsForType, copyOutfitParts, figureForParts, paletteForType, parseFigureString } from "../../utils/avatar";
 
-definePageMeta({ layout: "dashboard" });
+definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
 interface HabboFigureLookup {
   queued?: boolean;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TableColumn } from "@nuxt/ui";
 
-definePageMeta({ layout: "dashboard" });
+definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
 interface AvatarCommand {
   command: string;

@@ -2,7 +2,7 @@
 import { useClipboard } from "@vueuse/core";
 import { withQuery } from "ufo";
 
-definePageMeta({ layout: "dashboard" });
+definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
 const { user } = useUserSession();
 

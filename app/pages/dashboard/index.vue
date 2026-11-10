@@ -4,7 +4,7 @@ import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outf
 import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
 import { avatarImagingUrl } from "../../utils/avatar";
 
-definePageMeta({ layout: "dashboard" });
+definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
 const { user } = useUserSession();
 
