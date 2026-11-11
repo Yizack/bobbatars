@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useClipboard } from "@vueuse/core";
 import { withQuery } from "ufo";
+import SceneOverlay from "~/components/SceneOverlay.vue";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
@@ -73,7 +74,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
               :style="{ backgroundColor: backgroundWithOpacity }"
               aria-hidden="true"
             />
-            <BobbaOverlay
+            <SceneOverlay
               :user="user?.twitchLogin ?? ''"
               :tiles="tiles"
               :tile-color="tilesColorValue"

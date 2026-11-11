@@ -38,7 +38,7 @@ useHead({
 
 <template>
   <main>
-    <BobbaOverlay
+    <SceneOverlay
       :user="user"
       :tiles="tiles"
       :tile-color="tileColor"
