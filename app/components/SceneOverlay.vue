@@ -1788,7 +1788,7 @@ onBeforeUnmount(() => {
             size="sm"
             :content="{
               side: 'top',
-              sideOffset: 8,
+              sideOffset: avatar.avatarType === 'penguin' ? -100 : 8,
               collisionPadding: 8,
               updatePositionStrategy: 'always',
               reference: avatarElements.get(avatar.login)?.menuAnchor ?? undefined,
@@ -1796,12 +1796,12 @@ onBeforeUnmount(() => {
             :modal="false"
             arrow
             :ui="{
-              content: 'z-50 w-max rounded-[8px] border border-[rgba(198,219,233,0.3)] bg-[rgba(15,21,29,0.96)] p-0 shadow-lg ring-0',
+              content: 'z-[60] w-max rounded-[8px] border border-[rgba(198,219,233,0.3)] bg-[rgba(15,21,29,0.96)] p-0 shadow-lg ring-0',
               group: 'flex flex-col gap-1 p-1 isolate',
               item: 'justify-start text-[#f5f2e9]',
               arrow: 'fill-[rgba(15,21,29,0.96)]',
             }"
-            :class="avatar.avatarType === 'penguin' ? 'top-30' : 'top-5'"
+            :class="avatar.avatarType === 'penguin' ? 'top-19' : 'top-5'"
             @update:open="isOpen => handleAvatarMenuOpenChange(avatar, isOpen)"
           >
             <button
