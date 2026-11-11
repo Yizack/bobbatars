@@ -33,7 +33,7 @@ const props = withDefaults(defineProps<{
   roomHeight: OVERLAY_DEFAULTS.roomHeight,
   embedded: false
 });
-const mediaCdnUrl = useRuntimeConfig().public.mediaCdnUrl;
+const penguinMediaCDN = useRuntimeConfig().public.penguinMediaCDN;
 
 const roomHeightSetting = computed(() => {
   if (!Number.isInteger(props.roomHeight)) return OVERLAY_DEFAULTS.roomHeight;
@@ -1172,7 +1172,7 @@ async function applyAvatarFigureResponse (avatar: AvatarState, response: AvatarF
   avatar.danceAction = danceAction;
   if (danceAction !== null) avatar.direction = 0;
   avatar.gesture = "std";
-  const resources = await loadPenguinRenderResources(appearance, mediaCdnUrl);
+  const resources = await loadPenguinRenderResources(appearance, penguinMediaCDN);
   if (avatar.removed || requestVersion !== avatar.figureRequestVersion) return;
   penguinResourcesByLogin.set(avatar.login, resources);
   await updateAvatar(avatar, avatar.direction, avatar.isWalking ? "wlk" : "std");

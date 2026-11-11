@@ -19,7 +19,8 @@ export default defineNuxtConfig({
       charset: "utf-8",
       viewport: "width=device-width, initial-scale=1",
       link: [
-        { rel: "preconnect", href: "https://habbohistory.com" }
+        { rel: "preconnect", href: "https://habbohistory.com" },
+        { rel: "preconnect", href: "https://penguin-assets.ahmedrangel.com" }
       ]
     }
   },
@@ -42,9 +43,9 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    mediaSourceUrl: "https://media.cplegacy.com/assets/media",
+    penguinMediaURL: "https://media.cplegacy.com/assets/media",
     public: {
-      mediaCdnUrl: "https://penguin-assets.ahmedrangel.com"
+      penguinMediaCDN: "https://penguin-assets.ahmedrangel.com"
     }
   },
 

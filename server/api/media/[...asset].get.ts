@@ -89,8 +89,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = useRuntimeConfig(event);
-  const cdnUrl = new URL(`${config.public.mediaCdnUrl.replace(/\/+$/, "")}/${mediaPath}`);
-  const sourceUrl = new URL(`${config.mediaSourceUrl.replace(/\/+$/, "")}/${mediaPath}`);
+  const cdnUrl = new URL(`${config.public.penguinMediaCDN.replace(/\/+$/, "")}/${mediaPath}`);
+  const sourceUrl = new URL(`${config.penguinMediaURL.replace(/\/+$/, "")}/${mediaPath}`);
   for (const url of [cdnUrl, sourceUrl]) {
     if (url.protocol !== "https:" && url.protocol !== "http:") {
       throw createError({ statusCode: 500, statusMessage: "Invalid media URL configuration." });
