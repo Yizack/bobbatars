@@ -3,6 +3,15 @@ import type { DropdownMenuItem } from "@nuxt/ui";
 import { useIntervalFn, useResizeObserver, useTimeoutFn } from "@vueuse/core";
 import { ChatClient } from "@twurple/chat";
 import { withQuery } from "ufo";
+import { EMPTY_CLOTHING_PARTS } from "#shared/clothing";
+import type { AvatarDanceAction, AvatarGender, AvatarType, DefaultAvatarType } from "../types/avatar";
+import type { PenguinAppearance, PenguinDirection } from "../types/penguin";
+import {
+  type PenguinRenderResources,
+  drawPenguinFrame,
+  loadPenguinRenderResources,
+  spriteSequenceForPose
+} from "../utils/penguinSprites";
 
 const props = withDefaults(defineProps<{
   user: string;
@@ -10,6 +19,8 @@ const props = withDefaults(defineProps<{
   tileColor?: string;
   chat?: boolean;
   maxAvatars?: number;
+  inactiveTimeoutMinutes?: number;
+  defaultAvatarType?: DefaultAvatarType;
   roomHeight?: number;
   embedded?: boolean;
 }>(), {
@@ -17,13 +28,26 @@ const props = withDefaults(defineProps<{
   chat: OVERLAY_DEFAULTS.chat,
   tileColor: OVERLAY_DEFAULTS.tileColor,
   maxAvatars: OVERLAY_DEFAULTS.maxAvatars,
+  inactiveTimeoutMinutes: OVERLAY_DEFAULTS.inactiveTimeoutMinutes,
+  defaultAvatarType: OVERLAY_DEFAULTS.defaultAvatarType,
   roomHeight: OVERLAY_DEFAULTS.roomHeight,
   embedded: false
 });
+const mediaCdnUrl = useRuntimeConfig().public.mediaCdnUrl;
 
 const roomHeightSetting = computed(() => {
   if (!Number.isInteger(props.roomHeight)) return OVERLAY_DEFAULTS.roomHeight;
   return Math.min(OVERLAY_LIMITS.roomHeight.max, Math.max(OVERLAY_LIMITS.roomHeight.min, props.roomHeight));
+});
+const inactiveTimeoutMs = computed(() => {
+  if (!Number.isInteger(props.inactiveTimeoutMinutes)) {
+    return OVERLAY_DEFAULTS.inactiveTimeoutMinutes * 60 * 1000;
+  }
+  const minutes = Math.min(
+    OVERLAY_LIMITS.inactiveTimeoutMinutes.max,
+    Math.max(OVERLAY_LIMITS.inactiveTimeoutMinutes.min, props.inactiveTimeoutMinutes)
+  );
+  return minutes * 60 * 1000;
 });
 const normalizedTileColor = computed(() => {
   const digits = (parseHexColor(props.tileColor) ?? `#${OVERLAY_DEFAULTS.tileColor}`).slice(1).toUpperCase();
@@ -78,7 +102,7 @@ interface ActiveUser {
 
 interface AvatarElements {
   shadow: HTMLElement | null;
-  image: HTMLImageElement | null;
+  image: HTMLImageElement | HTMLCanvasElement | null;
   clickTarget: HTMLElement | null;
   label: HTMLElement | null;
   popoverAnchor: HTMLElement | null;
@@ -89,15 +113,23 @@ interface AvatarElements {
 
 type AvatarElementRef = Element | ComponentPublicInstance | null;
 type AvatarPart = "shadow" | "image" | "clickTarget" | "label" | "popoverAnchor" | "menuAnchor";
-type AvatarAction = "std" | "wlk" | "sit" | AvatarDanceAction;
+type AvatarAction = "std" | "wlk" | "sit" | "snowball" | AvatarDanceAction;
+type AvatarFigureResponse
+  = | { avatarType: "habbo", figure: string, gender: AvatarGender, effect: number | null }
+    | ({ avatarType: "penguin" } & PenguinAppearance);
 
 interface AvatarState {
   login: string;
   displayName: string;
   activity: number;
+  avatarType: AvatarType;
+  profileStatus: "pending" | "registered" | "unregistered";
+  fallbackAvatarType: AvatarType;
   figure: string;
   effect: number | null;
+  penguinAppearance: PenguinAppearance;
   figureRequestVersion: number;
+  avatarFigureReady: boolean;
   menuVisible: boolean;
   movementPaused: boolean;
   isSitting: boolean;
@@ -126,14 +158,28 @@ interface AvatarState {
   movementVersion: number;
   randomTimer: number | null;
   waitTimer: number | null;
+  snowballTimer: number | null;
   bubbleTimer: number | null;
   gestureTimer: number | null;
   speechVersion: number;
   removed: boolean;
 }
 
+interface RenderedPenguinFrame {
+  resources: PenguinRenderResources;
+  appearance: PenguinAppearance;
+  direction: number;
+  action: AvatarAction;
+  frameIndex: number;
+  bounds: ReturnType<typeof drawPenguinFrame>;
+}
+
 const imageEndpoint = "https://habbohistory.com/habbo-imaging/avatarimage.webp";
 const defaultFigure = "hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80";
+const defaultPenguinAppearance: PenguinAppearance = {
+  ...EMPTY_CLOTHING_PARTS,
+  color: "#003366"
+};
 const danceHeadDirectionOverrides: Partial<Record<number, number>> = {
   3: 2,
   4: 5,
@@ -144,9 +190,11 @@ const tileWidth = 76;
 const tileHeight = tileWidth / 2;
 const stepDuration = 320;
 const animationFrameInterval = 1000 / 30;
+const penguinDanceFrameInterval = 1000 / 24;
+// Atlas groups 27-30 contain 28 frames each.
+const penguinSnowballFrameCount = 28;
 const maxPreloadedImages = 128;
 const chatChannel = props.user.toLowerCase();
-const inactiveTimeout = 15 * 60 * 1000;
 const knownChatBots = new Set([
   "ankhbot",
   "blerp",
@@ -172,11 +220,29 @@ const knownChatBots = new Set([
   "wizebot"
 ]);
 
-function randomSitDirection () {
+function randomSitDirection (): PenguinDirection {
   return Math.random() < 0.5 ? 2 : 4;
 }
 
+function resolveDefaultAvatarType (defaultAvatarType: DefaultAvatarType): AvatarType {
+  if (defaultAvatarType === "random") return Math.random() < 0.5 ? "habbo" : "penguin";
+  return defaultAvatarType;
+}
+
+function fallbackAvatarResponse (avatarType: AvatarType): AvatarFigureResponse {
+  if (avatarType === "penguin") {
+    return { avatarType, ...defaultPenguinAppearance };
+  }
+  return {
+    avatarType,
+    figure: defaultFigure,
+    gender: "M",
+    effect: null
+  };
+}
+
 const room = ref<HTMLDivElement | null>(null);
+const roomFrame = ref<HTMLElement | null>(null);
 const roomTiles = ref<RoomTile[]>([]);
 const maxAvatars = computed(() => {
   let requestedLimit: number = OVERLAY_DEFAULTS.maxAvatars;
@@ -188,10 +254,14 @@ const maxAvatars = computed(() => {
 const status = ref("Conectando al chat de Twitch…");
 const avatars = ref<AvatarState[]>([]);
 const movingAvatars = new Set<AvatarState>();
+const animatingPenguins = new Set<AvatarState>();
 const activeUsers = new Map<string, ActiveUser>();
 const avatarsByUser = new Map<string, AvatarState>();
 const avatarElements = new Map<string, AvatarElements>();
+const renderedPenguinFrames = new WeakMap<HTMLCanvasElement, RenderedPenguinFrame>();
 const preloadedImages = new Map<string, PreloadedImage>();
+const penguinResourcesByLogin = new Map<string, PenguinRenderResources>();
+const pendingSnowballs = new Map<string, string | null>();
 
 let columns = 0;
 let rows = 0;
@@ -289,6 +359,18 @@ async function updateAvatar (
   gesture = avatar.gesture
 ): Promise<void> {
   avatar.direction = direction;
+  if (avatar.avatarType === "penguin") {
+    if (avatar.isSitting) avatar.action = "sit";
+    else if (avatar.danceAction !== null) avatar.action = avatar.danceAction;
+    else if (action === "wlk" || action === "snowball") avatar.action = action;
+    else avatar.action = "std";
+    avatar.gesture = "std";
+    avatar.currentImage = "penguin";
+    await nextTick();
+    if (!avatar.removed) placeHabbo(avatar);
+    return;
+  }
+
   avatar.action = avatar.isSitting ? "sit" : avatar.danceAction ?? action;
   avatar.gesture = gesture;
   const nextImage = imageUrl(avatar.direction, avatar.action, avatar.gesture, avatar.figure, avatar.effect);
@@ -320,6 +402,68 @@ async function updateAvatar (
   placeHabbo(avatar);
 }
 
+function renderPenguin (avatar: AvatarState, now = performance.now()): ReturnType<typeof drawPenguinFrame> | null {
+  const image = avatarElements.get(avatar.login)?.image;
+  const resources = penguinResourcesByLogin.get(avatar.login);
+  if (!(image instanceof HTMLCanvasElement) || !resources) return null;
+
+  let action: AvatarAction;
+  if (avatar.isSitting) action = "sit";
+  else if (avatar.action === "snowball") action = "snowball";
+  else if (avatar.danceAction !== null) action = avatar.danceAction;
+  else if (avatar.action === "wlk") action = "wlk";
+  else action = "std";
+  const sequence = spriteSequenceForPose(resources.body, avatar.direction as PenguinDirection, action);
+  const elapsed = avatar.animationStartedAt === null ? 0 : Math.max(0, now - avatar.animationStartedAt);
+  const isSnowballing = action === "snowball";
+  const isAnimated = action === "wlk" || isSnowballing || (avatar.danceAction !== null && !avatar.isSitting);
+  const frameDuration = action === "wlk" ? stepDuration / sequence.length : penguinDanceFrameInterval;
+  const elapsedFrames = Math.floor(elapsed / frameDuration);
+  let frameIndex = 0;
+  if (isSnowballing) frameIndex = Math.min(elapsedFrames, sequence.length - 1);
+  else if (isAnimated) frameIndex = elapsedFrames % sequence.length;
+  const appearance = avatar.penguinAppearance;
+  const cachedFrame = renderedPenguinFrames.get(image);
+  let bounds: ReturnType<typeof drawPenguinFrame>;
+  if (
+    cachedFrame
+    && cachedFrame.resources === resources
+    && cachedFrame.direction === avatar.direction
+    && cachedFrame.action === action
+    && cachedFrame.frameIndex === frameIndex
+    && cachedFrame.appearance.head === appearance.head
+    && cachedFrame.appearance.face === appearance.face
+    && cachedFrame.appearance.neck === appearance.neck
+    && cachedFrame.appearance.body === appearance.body
+    && cachedFrame.appearance.hand === appearance.hand
+    && cachedFrame.appearance.feet === appearance.feet
+    && cachedFrame.appearance.color === appearance.color
+  ) {
+    bounds = cachedFrame.bounds;
+  }
+  else {
+    bounds = drawPenguinFrame(
+      image,
+      resources,
+      appearance,
+      avatar.direction as PenguinDirection,
+      action,
+      frameIndex
+    );
+    renderedPenguinFrames.set(image, {
+      resources,
+      appearance: { ...appearance },
+      direction: avatar.direction,
+      action,
+      frameIndex,
+      bounds
+    });
+  }
+  avatar.imageWidth = bounds.width * 1.08;
+  avatar.imageHeight = bounds.height * 1.08;
+  return bounds;
+}
+
 function positionFor (column: number, row: number) {
   return {
     x: originX + (column - row) * tileWidth / 2,
@@ -347,13 +491,14 @@ function isRoomTile (tile: Tile) {
     && point.y >= roomLayoutHeight * 0.18 && point.y <= roomLayoutHeight - tileHeight / 2;
 }
 
-function placeHabbo (avatar: AvatarState) {
+function placeHabbo (avatar: AvatarState, now = performance.now()) {
   if (!avatar.visual) return;
+  const penguinBounds = avatar.avatarType === "penguin" ? renderPenguin(avatar, now) : null;
   const point = positionFor(avatar.visual.column, avatar.visual.row);
   const groundY = point.y + tileHeight * 0.34;
   const depth = Math.round(avatar.visual.column + avatar.visual.row);
   const elements = avatarElements.get(avatar.login);
-  const visibleImageHeight = avatar.imageHeight / 2;
+  const visibleImageHeight = avatar.avatarType === "penguin" ? avatar.imageHeight : avatar.imageHeight / 2;
   const labelHalfWidth = (elements?.labelWidth ?? 0) / 2;
   const labelHeight = elements?.labelHeight ?? 0;
   const labelX = Math.max(
@@ -376,8 +521,27 @@ function placeHabbo (avatar: AvatarState) {
   };
 
   setPosition(elements?.shadow ?? null, point.x - 34 * 0.6, groundY - 14 * 1.2, depth + 1);
-  const imageX = point.x - avatar.imageWidth * 0.56;
+  const imageX = avatar.avatarType === "penguin" ? point.x - avatar.imageWidth / 2 : point.x - avatar.imageWidth * 0.56;
   const imageY = groundY - visibleImageHeight;
+  const penguinScaleX = penguinBounds ? avatar.imageWidth / penguinBounds.width : 0;
+  const penguinScaleY = penguinBounds ? avatar.imageHeight / penguinBounds.height : 0;
+  const clickTargetBounds = penguinBounds?.content;
+  let clickTargetX = imageX + avatar.imageWidth * 0.25;
+  let clickTargetY = imageY;
+  let clickTargetWidth = avatar.imageWidth / 4;
+  let clickTargetHeight = visibleImageHeight - 20;
+  let clickTargetClipPath = "";
+  if (clickTargetBounds) {
+    clickTargetX = imageX;
+    clickTargetY = imageY;
+    clickTargetWidth = avatar.imageWidth;
+    clickTargetHeight = visibleImageHeight;
+    const clipTop = clickTargetBounds.y * penguinScaleY;
+    const clipRight = avatar.imageWidth - (clickTargetBounds.x + clickTargetBounds.width) * penguinScaleX;
+    const clipBottom = visibleImageHeight - (clickTargetBounds.y + clickTargetBounds.height) * penguinScaleY;
+    const clipLeft = clickTargetBounds.x * penguinScaleX;
+    clickTargetClipPath = `inset(${clipTop}px ${clipRight}px ${clipBottom}px ${clipLeft}px)`;
+  }
   setPosition(
     elements?.image ?? null,
     imageX,
@@ -386,8 +550,8 @@ function placeHabbo (avatar: AvatarState) {
   );
   setPosition(
     elements?.clickTarget ?? null,
-    imageX + avatar.imageWidth * 0.25,
-    imageY,
+    clickTargetX,
+    clickTargetY,
     depth + 2
   );
   if (elements?.image && avatar.imageWidth > 0) {
@@ -397,10 +561,13 @@ function placeHabbo (avatar: AvatarState) {
     if (elements.image.style.height !== height) elements.image.style.height = height;
   }
   if (elements?.clickTarget && avatar.imageWidth > 0) {
-    const width = `${avatar.imageWidth / 4}px`;
-    const height = `${visibleImageHeight - 20}px`;
+    const width = `${clickTargetWidth}px`;
+    const height = `${clickTargetHeight}px`;
     if (elements.clickTarget.style.width !== width) elements.clickTarget.style.width = width;
     if (elements.clickTarget.style.height !== height) elements.clickTarget.style.height = height;
+    if (elements.clickTarget.style.clipPath !== clickTargetClipPath) {
+      elements.clickTarget.style.clipPath = clickTargetClipPath;
+    }
   }
   setPosition(
     elements?.label ?? null,
@@ -433,7 +600,10 @@ function setAvatarElement (login: string, part: AvatarPart, value: AvatarElement
   };
 
   if (part === "image") {
-    elements.image = typeof HTMLImageElement !== "undefined" && value instanceof HTMLImageElement ? value : null;
+    elements.image = (
+      (typeof HTMLImageElement !== "undefined" && value instanceof HTMLImageElement)
+      || (typeof HTMLCanvasElement !== "undefined" && value instanceof HTMLCanvasElement)
+    ) ? value : null;
   }
   else {
     const element = typeof HTMLElement !== "undefined" && value instanceof HTMLElement ? value : null;
@@ -463,8 +633,9 @@ function scheduleAvatarAnimation () {
 
 function stopAvatarAnimation (avatar: AvatarState) {
   movingAvatars.delete(avatar);
-  avatar.animationStartedAt = null;
-  if (movingAvatars.size === 0 && animationFrame !== null) {
+  avatar.animationStartedAt = avatar.avatarType === "penguin" && avatar.danceAction !== null ? performance.now() : null;
+  animatingPenguins.delete(avatar);
+  if (movingAvatars.size === 0 && animatingPenguins.size === 0 && animationFrame !== null) {
     window.cancelAnimationFrame(animationFrame);
     animationFrame = null;
   }
@@ -473,7 +644,7 @@ function stopAvatarAnimation (avatar: AvatarState) {
 function animateAvatarSteps (now: number) {
   animationFrame = null;
   if (now - lastAnimationFrameAt < animationFrameInterval) {
-    if (movingAvatars.size > 0) scheduleAvatarAnimation();
+    if (movingAvatars.size > 0 || animatingPenguins.size > 0) scheduleAvatarAnimation();
     return;
   }
   lastAnimationFrameAt = now;
@@ -493,7 +664,7 @@ function animateAvatarSteps (now: number) {
       column: current.column + (next.column - current.column) * progress,
       row: current.row + (next.row - current.row) * progress
     };
-    placeHabbo(avatar);
+    placeHabbo(avatar, now);
 
     if (progress === 1) {
       avatar.animationStartedAt = null;
@@ -505,11 +676,23 @@ function animateAvatarSteps (now: number) {
     }
   }
 
-  if (movingAvatars.size > 0) scheduleAvatarAnimation();
+  for (const avatar of animatingPenguins) {
+    if (
+      avatar.removed
+      || avatar.avatarType !== "penguin"
+      || (avatar.danceAction === null && avatar.action !== "snowball")
+    ) {
+      animatingPenguins.delete(avatar);
+      continue;
+    }
+    placeHabbo(avatar, now);
+  }
+
+  if (movingAvatars.size > 0 || animatingPenguins.size > 0) scheduleAvatarAnimation();
 }
 
 function updateRoomLayout () {
-  const bounds = room.value?.getBoundingClientRect();
+  const bounds = roomFrame.value?.getBoundingClientRect();
   if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
 
   const nextWidth = bounds.width;
@@ -529,7 +712,8 @@ function updateRoomLayout () {
   columns = gridSize;
   rows = gridSize;
   originX = roomWidth / 2;
-  originY = roomLayoutHeight / 2 - (columns + rows - 2) * tileHeight / 4;
+  const floorDiagonal = (columns + rows) / 2;
+  originY = roomLayoutHeight - tileHeight / 2 - floorDiagonal * tileHeight / 2;
 
   if (layoutChanged) {
     const nextRoomTiles: RoomTile[] = [];
@@ -577,8 +761,8 @@ function updateRoomLayout () {
   avatars.value.forEach(placeHabbo);
 }
 
-function habboDirection (deltaColumn: number, deltaRow: number) {
-  const directions: Record<string, number> = {
+function habboDirection (deltaColumn: number, deltaRow: number): PenguinDirection {
+  const directions: Record<string, PenguinDirection> = {
     "1,0": 2,
     "-1,0": 6,
     "0,1": 4,
@@ -593,6 +777,17 @@ function habboDirection (deltaColumn: number, deltaRow: number) {
     throw new Error(`Dirección Habbo no válida: ${deltaColumn},${deltaRow}`);
   }
   return direction;
+}
+
+function penguinDirectionTowardAvatar (avatar: AvatarState, target: AvatarState): PenguinDirection {
+  const origin = avatar.visual ?? avatar.current;
+  const destination = target.visual ?? target.current;
+  if (!origin || !destination) return avatar.direction as PenguinDirection;
+
+  const deltaColumn = Math.sign(destination.column - origin.column);
+  const deltaRow = Math.sign(destination.row - origin.row);
+  if (deltaColumn === 0 && deltaRow === 0) return avatar.direction as PenguinDirection;
+  return habboDirection(deltaColumn, deltaRow);
 }
 
 function sameTile (first: Tile | null, second: Tile | null) {
@@ -649,9 +844,14 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     login: user.login,
     displayName: user.displayName,
     activity: user.activity,
+    avatarType: "habbo",
+    profileStatus: "pending",
+    fallbackAvatarType: resolveDefaultAvatarType(props.defaultAvatarType),
     figure: defaultFigure,
     effect: null,
+    penguinAppearance: { ...defaultPenguinAppearance },
     figureRequestVersion: 0,
+    avatarFigureReady: false,
     menuVisible: false,
     movementPaused: false,
     isSitting: user.isSitting,
@@ -680,6 +880,7 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     movementVersion: 0,
     randomTimer: null,
     waitTimer: null,
+    snowballTimer: null,
     bubbleTimer: null,
     gestureTimer: null,
     speechVersion: 0,
@@ -702,10 +903,12 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
 function clearAvatarTimers (avatar: AvatarState) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
+  if (avatar.snowballTimer !== null) window.clearTimeout(avatar.snowballTimer);
   if (avatar.bubbleTimer !== null) window.clearTimeout(avatar.bubbleTimer);
   if (avatar.gestureTimer !== null) window.clearTimeout(avatar.gestureTimer);
   avatar.randomTimer = null;
   avatar.waitTimer = null;
+  avatar.snowballTimer = null;
   avatar.bubbleTimer = null;
   avatar.gestureTimer = null;
 }
@@ -713,9 +916,12 @@ function clearAvatarTimers (avatar: AvatarState) {
 function removeAvatarState (avatar: AvatarState) {
   avatar.removed = true;
   avatar.movementVersion++;
+  pendingSnowballs.delete(avatar.login);
+  animatingPenguins.delete(avatar);
   stopAvatarAnimation(avatar);
   clearAvatarTimers(avatar);
   avatarElements.delete(avatar.login);
+  penguinResourcesByLogin.delete(avatar.login);
   avatarsByUser.delete(avatar.login);
   const index = avatars.value.indexOf(avatar);
   if (index >= 0) avatars.value.splice(index, 1);
@@ -724,7 +930,7 @@ function removeAvatarState (avatar: AvatarState) {
 function reconcileActiveAvatars () {
   const now = Date.now();
   for (const [login, user] of activeUsers) {
-    if (!user.isStreamer && now - user.lastActivity >= inactiveTimeout) activeUsers.delete(login);
+    if (!user.isStreamer && now - user.lastActivity >= inactiveTimeoutMs.value) activeUsers.delete(login);
   }
 
   const avatarLimit = maxAvatars.value;
@@ -777,16 +983,43 @@ function reconcileActiveAvatars () {
   }
 
   updateChatStatus();
+  for (const login of pendingSnowballs.keys()) {
+    const avatar = avatarsByUser.get(login);
+    if (!avatar) pendingSnowballs.delete(login);
+    else {
+      const targetLogin = pendingSnowballs.get(login) ?? null;
+      if (targetLogin !== null && !avatarsByUser.has(targetLogin)) pendingSnowballs.delete(login);
+      else if (avatar.avatarFigureReady) resolvePendingSnowball(avatar);
+    }
+  }
 }
 
 function setAvatarDance (avatar: AvatarState, danceAction: AvatarDanceAction | null) {
-  avatar.danceAction = danceAction;
+  if (avatar.removed) return;
   const user = activeUsers.get(avatar.login);
   if (user) {
     user.danceAction = danceAction;
     if (danceAction !== null) user.isSitting = false;
   }
   if (danceAction !== null) avatar.isSitting = false;
+  if (avatar.avatarType === "penguin") {
+    stopAvatarMovement(avatar);
+    avatar.danceAction = danceAction;
+    if (danceAction === null) {
+      animatingPenguins.delete(avatar);
+      avatar.animationStartedAt = null;
+    }
+    else {
+      avatar.direction = 0;
+      avatar.animationStartedAt = performance.now();
+      animatingPenguins.add(avatar);
+      scheduleAvatarAnimation();
+    }
+  }
+  else {
+    avatar.danceAction = danceAction;
+  }
+
   const action = avatar.isWalking ? "wlk" : "std";
   void updateAvatar(avatar, avatar.direction, action)
     .then(() => {
@@ -797,6 +1030,51 @@ function setAvatarDance (avatar: AvatarState, danceAction: AvatarDanceAction | n
     .catch(error => reportAvatarLoadError(avatar, error));
 }
 
+function throwPenguinSnowball (avatar: AvatarState, targetLogin: string | null) {
+  if (avatar.removed || avatar.avatarType !== "penguin") return;
+  const target = targetLogin === null ? null : avatarsByUser.get(targetLogin);
+  if (targetLogin !== null && (!target || target === avatar || target.removed)) return;
+
+  stopAvatarMovement(avatar);
+  let direction: PenguinDirection;
+  if (target) direction = penguinDirectionTowardAvatar(avatar, target);
+  else direction = Math.floor(Math.random() * 8) as PenguinDirection;
+  const user = activeUsers.get(avatar.login);
+  if (user) {
+    user.isSitting = false;
+    user.danceAction = null;
+  }
+  avatar.isSitting = false;
+  avatar.danceAction = null;
+  avatar.animationStartedAt = performance.now();
+  void updateAvatar(avatar, direction, "snowball")
+    .catch(error => reportAvatarLoadError(avatar, error));
+  animatingPenguins.add(avatar);
+  avatar.snowballTimer = window.setTimeout(() => {
+    avatar.snowballTimer = null;
+    if (avatar.removed || avatar.action !== "snowball") return;
+    avatar.action = avatar.isSitting ? "sit" : avatar.danceAction ?? "std";
+    stopAvatarAnimation(avatar);
+    if (avatar.visual) placeHabbo(avatar);
+    if (!avatar.movementPaused && !avatar.isSitting) scheduleRandomMove(avatar);
+  }, penguinSnowballFrameCount * penguinDanceFrameInterval);
+  scheduleAvatarAnimation();
+}
+
+function resolvePendingSnowball (avatar: AvatarState) {
+  if (!avatar.avatarFigureReady || !pendingSnowballs.has(avatar.login)) return;
+  const target = pendingSnowballs.get(avatar.login) ?? null;
+  if (target !== null && !avatarsByUser.has(target)) return;
+  pendingSnowballs.delete(avatar.login);
+  if (avatar.avatarType === "penguin") throwPenguinSnowball(avatar, target);
+}
+
+function cancelPenguinSnowball (avatar: AvatarState) {
+  if (avatar.snowballTimer !== null) window.clearTimeout(avatar.snowballTimer);
+  avatar.snowballTimer = null;
+  if (avatar.action === "snowball") avatar.action = avatar.isSitting ? "sit" : avatar.danceAction ?? "std";
+}
+
 function isNotFoundError (error: unknown) {
   return error instanceof Error
     && (("statusCode" in error && error.statusCode === 404)
@@ -805,25 +1083,121 @@ function isNotFoundError (error: unknown) {
 
 async function refreshAvatarFigure (avatar: AvatarState) {
   const requestVersion = ++avatar.figureRequestVersion;
-  let response: { figure: string, effect: number | null };
+  let succeeded = false;
   try {
-    response = await $fetch<{ figure: string, effect: number | null }>(`/api/avatars/${encodeURIComponent(avatar.login)}`);
+    await loadAvatarFigure(avatar, requestVersion);
+    succeeded = true;
+  }
+  finally {
+    if (!avatar.removed && requestVersion === avatar.figureRequestVersion) {
+      avatar.avatarFigureReady = true;
+      if (succeeded) resolvePendingSnowball(avatar);
+      else pendingSnowballs.delete(avatar.login);
+    }
+  }
+}
+
+async function loadAvatarFigure (avatar: AvatarState, requestVersion: number) {
+  let response: AvatarFigureResponse;
+  let isUnregistered = false;
+  try {
+    response = await $fetch<AvatarFigureResponse>(`/api/avatars/${encodeURIComponent(avatar.login)}`);
   }
   catch (error) {
-    if (isNotFoundError(error)) return;
-    throw error;
+    if (!isNotFoundError(error)) throw error;
+    isUnregistered = true;
+    response = fallbackAvatarResponse(avatar.fallbackAvatarType);
   }
 
-  if (
-    avatar.removed
-    || requestVersion !== avatar.figureRequestVersion
-    || (avatar.figure === response.figure && avatar.effect === response.effect)
-  ) return;
-
-  avatar.figure = response.figure;
-  avatar.effect = response.effect;
-  await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture);
+  if (avatar.removed || requestVersion !== avatar.figureRequestVersion) return;
+  avatar.profileStatus = isUnregistered ? "unregistered" : "registered";
+  await applyAvatarFigureResponse(avatar, response, requestVersion);
 }
+
+async function applyAvatarFigureResponse (avatar: AvatarState, response: AvatarFigureResponse, requestVersion: number) {
+  if (avatar.removed || requestVersion !== avatar.figureRequestVersion) return;
+  if (response.avatarType === "habbo") {
+    if (
+      avatar.avatarType === "habbo"
+      && avatar.figure === response.figure
+      && avatar.effect === response.effect
+    ) return;
+
+    if (avatar.avatarType === "penguin") {
+      cancelPenguinSnowball(avatar);
+      animatingPenguins.delete(avatar);
+      avatar.animationStartedAt = null;
+    }
+    avatar.avatarType = "habbo";
+    avatar.figure = response.figure;
+    avatar.effect = response.effect;
+    avatar.currentImage = "";
+    await updateAvatar(avatar, avatar.direction, avatar.action, avatar.gesture);
+    return;
+  }
+
+  const appearance: PenguinAppearance = {
+    head: response.head,
+    face: response.face,
+    neck: response.neck,
+    body: response.body,
+    hand: response.hand,
+    feet: response.feet,
+    color: response.color
+  };
+  const activeUser = activeUsers.get(avatar.login);
+  const isSitting = activeUser ? activeUser.isSitting : avatar.isSitting;
+  const danceAction = isSitting ? null : activeUser ? activeUser.danceAction : avatar.danceAction;
+  const appearanceChanged = avatar.avatarType !== "penguin"
+    || avatar.penguinAppearance.head !== appearance.head
+    || avatar.penguinAppearance.face !== appearance.face
+    || avatar.penguinAppearance.neck !== appearance.neck
+    || avatar.penguinAppearance.body !== appearance.body
+    || avatar.penguinAppearance.hand !== appearance.hand
+    || avatar.penguinAppearance.feet !== appearance.feet
+    || avatar.penguinAppearance.color !== appearance.color;
+  if (!appearanceChanged && penguinResourcesByLogin.has(avatar.login)) return;
+
+  cancelPenguinSnowball(avatar);
+  if (isSitting) animatingPenguins.delete(avatar);
+  if (danceAction !== null || isSitting) stopAvatarMovement(avatar);
+  if (isSitting && activeUser) activeUser.danceAction = null;
+  if (avatar.avatarType !== "penguin") {
+    avatar.menuVisible = false;
+    avatar.movementPaused = false;
+  }
+  avatar.avatarType = "penguin";
+  avatar.penguinAppearance = appearance;
+  avatar.isSitting = isSitting;
+  avatar.danceAction = danceAction;
+  if (danceAction !== null) avatar.direction = 0;
+  avatar.gesture = "std";
+  const resources = await loadPenguinRenderResources(appearance, mediaCdnUrl);
+  if (avatar.removed || requestVersion !== avatar.figureRequestVersion) return;
+  penguinResourcesByLogin.set(avatar.login, resources);
+  await updateAvatar(avatar, avatar.direction, avatar.isWalking ? "wlk" : "std");
+  if (!avatar.removed && avatar.danceAction !== null) {
+    avatar.animationStartedAt = performance.now();
+    animatingPenguins.add(avatar);
+    scheduleAvatarAnimation();
+  }
+  if (!avatar.removed && !avatar.movementPaused && !avatar.isWalking && avatar.randomTimer === null) {
+    scheduleRandomMove(avatar);
+  }
+}
+
+watch(() => props.defaultAvatarType, (defaultAvatarType) => {
+  for (const avatar of avatars.value) {
+    avatar.fallbackAvatarType = resolveDefaultAvatarType(defaultAvatarType);
+    if (avatar.profileStatus !== "unregistered") continue;
+    const requestVersion = ++avatar.figureRequestVersion;
+    void applyAvatarFigureResponse(
+      avatar,
+      fallbackAvatarResponse(avatar.fallbackAvatarType),
+      requestVersion
+    ).catch(error => reportAvatarLoadError(avatar, error));
+  }
+});
 
 function reportAvatarFetchError (avatar: AvatarState, error: unknown) {
   if (avatar.removed) return;
@@ -852,6 +1226,14 @@ function updateAvatarMenuVisibility (avatar: AvatarState, isOpen: boolean) {
 function pauseAvatarMovement (avatar: AvatarState) {
   if (avatar.removed || avatar.movementPaused) return;
   avatar.movementPaused = true;
+  if (avatar.avatarType === "penguin" && avatar.danceAction !== null) {
+    avatar.movementVersion++;
+    if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
+    if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
+    avatar.randomTimer = null;
+    avatar.waitTimer = null;
+    return;
+  }
   stopAvatarMovement(avatar);
   if (avatar.current) {
     void updateAvatar(avatar, avatar.direction, "std")
@@ -865,6 +1247,7 @@ function stopAvatarMovement (avatar: AvatarState) {
   if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
   avatar.randomTimer = null;
   avatar.waitTimer = null;
+  cancelPenguinSnowball(avatar);
   stopAvatarAnimation(avatar);
   avatar.isWalking = false;
   avatar.nextStep = null;
@@ -891,6 +1274,7 @@ function setAvatarDanceFromMenu (avatar: AvatarState, danceAction: AvatarDanceAc
 }
 
 function setAvatarSitting (avatar: AvatarState, isSitting: boolean) {
+  if (avatar.removed) return;
   avatar.isSitting = isSitting;
   avatar.danceAction = null;
   const user = activeUsers.get(avatar.login);
@@ -899,7 +1283,9 @@ function setAvatarSitting (avatar: AvatarState, isSitting: boolean) {
     user.danceAction = null;
   }
 
+  animatingPenguins.delete(avatar);
   stopAvatarMovement(avatar);
+  avatar.animationStartedAt = null;
   if (isSitting) avatar.direction = randomSitDirection();
 
   void updateAvatar(avatar, avatar.direction, isSitting ? "sit" : "std")
@@ -917,16 +1303,24 @@ function toggleAvatarSittingFromMenu (avatar: AvatarState) {
 }
 
 function avatarMenuItems (avatar: AvatarState): DropdownMenuItem[] {
-  const items: DropdownMenuItem[] = [
-    {
+  const items: DropdownMenuItem[] = [];
+  if (avatar.avatarType === "penguin") {
+    items.push({
+      label: "Dance",
+      icon: "pixelarticons:music",
+      onSelect: () => setAvatarDanceFromMenu(avatar, "dance1")
+    });
+  }
+  else {
+    items.push({
       label: "Dances",
       icon: "pixelarticons:music",
       children: avatarDanceActions.map((danceAction, index) => ({
         label: `Dance ${index + 1}`,
         onSelect: () => setAvatarDanceFromMenu(avatar, danceAction)
       }))
-    }
-  ];
+    });
+  }
 
   if (avatar.danceAction !== null) {
     items.push({
@@ -936,18 +1330,16 @@ function avatarMenuItems (avatar: AvatarState): DropdownMenuItem[] {
     });
   }
 
-  items.push(
-    {
-      label: avatar.isSitting ? "Stand Up" : "Sit",
-      icon: "pixelarticons:sofa",
-      onSelect: () => toggleAvatarSittingFromMenu(avatar)
-    },
-    {
-      label: "Refresh Avatar",
-      icon: "pixelarticons:reload",
-      onSelect: () => refreshAvatarFromMenu(avatar)
-    }
-  );
+  items.push({
+    label: avatar.isSitting ? "Stand Up" : "Sit",
+    icon: "pixelarticons:sofa",
+    onSelect: () => toggleAvatarSittingFromMenu(avatar)
+  });
+  items.push({
+    label: "Refresh Avatar",
+    icon: "pixelarticons:reload",
+    onSelect: () => refreshAvatarFromMenu(avatar)
+  });
 
   return items;
 }
@@ -963,7 +1355,7 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
 
   const now = Date.now();
   let user = activeUsers.get(login);
-  if (!user || (!user.isStreamer && now - user.lastActivity >= inactiveTimeout)) {
+  if (!user || (!user.isStreamer && now - user.lastActivity >= inactiveTimeoutMs.value)) {
     if (stopCommand) return;
     user = {
       login,
@@ -991,6 +1383,22 @@ function recordChatActivity (username: string, message: string, twitchDisplayNam
     if (command.action !== null) user.isSitting = false;
     const avatar = avatarsByUser.get(login);
     if (avatar) setAvatarDance(avatar, command.action);
+    scheduleReconciliation();
+    return;
+  }
+
+  if (command?.type === "snowball") {
+    user.lastMessage = "";
+    user.lastMessageEmoteOffsets = new Map();
+    user.lastMessageAt = 0;
+    const avatar = avatarsByUser.get(login);
+    if (
+      avatar?.avatarFigureReady
+      && (command.target === null || avatarsByUser.has(command.target))
+    ) {
+      throwPenguinSnowball(avatar, command.target);
+    }
+    else pendingSnowballs.set(login, command.target);
     scheduleReconciliation();
     return;
   }
@@ -1069,7 +1477,7 @@ async function showChatMessage (avatar: AvatarState, message: string, emoteOffse
 }
 
 async function moveNextStep (avatar: AvatarState) {
-  if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current || !avatar.destination) return;
+  if (avatar.removed || avatar.movementPaused || avatar.isSitting || avatar.danceAction !== null || !avatar.current || !avatar.destination) return;
   const movementVersion = avatar.movementVersion;
   const reportError = (error: unknown) => {
     if (movementVersion === avatar.movementVersion) {
@@ -1128,7 +1536,9 @@ async function moveNextStep (avatar: AvatarState) {
 
   avatar.nextStep = next;
   const nextDirection = habboDirection(deltaColumn, deltaRow);
-  void preloadAvatar(nextDirection, "std", "std", avatar.figure, avatar.effect);
+  if (avatar.avatarType === "habbo") {
+    void preloadAvatar(nextDirection, "std", "std", avatar.figure, avatar.effect);
+  }
 
   try {
     await updateAvatar(avatar, nextDirection, "wlk");
@@ -1165,17 +1575,31 @@ function reportAvatarLoadError (avatar: AvatarState | null, error: unknown) {
     if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
     avatar.waitTimer = null;
   }
-  status.value = "No se pudo cargar la imagen del avatar. Revisa tu conexión con habbohistory.com.";
+  status.value = avatar?.avatarType === "penguin" ? "No se pudieron cargar los sprites del pingüino." : "No se pudo cargar la imagen del avatar. Revisa tu conexión con habbohistory.com.";
   console.info(error);
 }
 
 function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() * 3800) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   avatar.randomTimer = null;
-  if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current) return;
+  if (
+    avatar.removed
+    || avatar.movementPaused
+    || avatar.isSitting
+    || avatar.danceAction !== null
+    || avatar.action === "snowball"
+    || !avatar.current
+  ) return;
   avatar.randomTimer = window.setTimeout(() => {
     avatar.randomTimer = null;
-    if (avatar.removed || avatar.movementPaused || avatar.isSitting || !avatar.current) return;
+    if (
+      avatar.removed
+      || avatar.movementPaused
+      || avatar.isSitting
+      || avatar.danceAction !== null
+      || avatar.action === "snowball"
+      || !avatar.current
+    ) return;
     const occupiedTiles = occupiedTileKeys(avatar);
     const optionsByDistance: Tile[][] = [[], [], []];
     for (let columnStep = -4; columnStep <= 4; columnStep++) {
@@ -1212,7 +1636,7 @@ function scheduleRandomMove (avatar: AvatarState, delay = 1200 + Math.random() *
 function walk (avatar: AvatarState) {
   if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
   avatar.randomTimer = null;
-  if (avatar.removed || avatar.movementPaused || avatar.isSitting || avatar.isWalking) return;
+  if (avatar.removed || avatar.movementPaused || avatar.isSitting || avatar.danceAction !== null || avatar.isWalking) return;
   avatar.isWalking = true;
   void moveNextStep(avatar);
 }
@@ -1267,24 +1691,32 @@ function ensureStreamerActive () {
 const avatarReconcileInterval = useIntervalFn(reconcileActiveAvatars, 5000, {
   immediate: false
 });
+const avatarDataRefreshInterval = useIntervalFn(() => {
+  for (const avatar of avatars.value) {
+    void refreshAvatarFigure(avatar)
+      .catch(error => reportAvatarFetchError(avatar, error));
+  }
+}, 30_000, { immediate: false });
 const {
   start: scheduleReconciliation,
   stop: stopReconciliation
 } = useTimeoutFn(reconcileActiveAvatars, 250, { immediate: false });
 
-useResizeObserver(room, () => updateRoomLayout());
+useResizeObserver(roomFrame, () => updateRoomLayout());
 
 onMounted(() => {
   updateRoomLayout();
   ensureStreamerActive();
   reconcileActiveAvatars();
   avatarReconcileInterval.resume();
+  avatarDataRefreshInterval.resume();
   void connectToChat();
 });
 
 onBeforeUnmount(() => {
   isUnmounting = true;
   avatarReconcileInterval.pause();
+  avatarDataRefreshInterval.pause();
   stopReconciliation();
   chatClient?.quit();
   chatClient = null;
@@ -1299,12 +1731,13 @@ onBeforeUnmount(() => {
 <template>
   <div
     :class="props.embedded ? 'absolute inset-0' : 'fixed inset-0'"
-    class="flex w-full items-end overflow-hidden [font-family:Trebuchet_MS,Arial,sans-serif]"
+    class="flex w-full items-end overflow-clip [font-family:Trebuchet_MS,Arial,sans-serif]"
   >
     <section
+      ref="roomFrame"
       :style="{ height: `min(${roomHeightSetting}px, ${props.embedded ? '100%' : '100vh'})` }"
       class="w-full"
-      aria-label="Sala Habbo"
+      aria-label="Sala Habbo y Club Penguin"
     >
       <div ref="room" class="relative h-full w-full">
         <svg v-if="props.tiles" class="pointer-events-none absolute inset-0 z-0 size-full" aria-hidden="true">
@@ -1326,12 +1759,13 @@ onBeforeUnmount(() => {
 
         <template v-for="avatar in avatars" :key="avatar.login">
           <div
+            v-if="avatar.avatarType === 'habbo'"
             :ref="avatar.shadowRef"
             class="pointer-events-none absolute left-0.5 -top-1 z-[1] h-[18px] w-[38px] rounded-[50%] bg-[rgba(15,21,29,0.42)]"
             aria-hidden="true"
           />
-          <AvatarPreviewImage
-            v-if="avatar.currentImage"
+          <HabboPreviewImage
+            v-if="avatar.avatarType === 'habbo' && avatar.currentImage"
             :image-ref="avatar.imageRef"
             class="pointer-events-none absolute left-3.5 z-[2] h-auto max-w-full select-none"
             :class="avatar.isSitting ? 'top-1' : '-top-1.5'"
@@ -1339,6 +1773,13 @@ onBeforeUnmount(() => {
             :alt="`Avatar de ${avatar.displayName}`"
             aria-hidden="true"
             draggable="false"
+          />
+          <canvas
+            v-else-if="avatar.avatarType === 'penguin' && avatar.currentImage"
+            :ref="avatar.imageRef"
+            class="pointer-events-none absolute left-0 top-19 z-[2] max-w-full select-none [image-rendering:pixelated]"
+            :aria-label="`Avatar de ${avatar.displayName}`"
+            aria-hidden="true"
           />
           <UDropdownMenu
             v-if="avatar.currentImage"
@@ -1360,13 +1801,16 @@ onBeforeUnmount(() => {
               item: 'justify-start text-[#f5f2e9]',
               arrow: 'fill-[rgba(15,21,29,0.96)]',
             }"
+            :class="avatar.avatarType === 'penguin' ? 'top-30' : 'top-5'"
             @update:open="isOpen => handleAvatarMenuOpenChange(avatar, isOpen)"
           >
             <button
               :ref="avatar.clickTargetRef"
               type="button"
-              class="pointer-events-auto absolute left-10 z-[2] max-w-full cursor-pointer border-0 bg-transparent p-0"
-              :class="avatar.isSitting ? 'top-6' : 'top-4'"
+              class="pointer-events-auto absolute z-[2] max-w-full cursor-pointer border-0 bg-transparent p-0"
+              :class="avatar.avatarType === 'penguin'
+                ? 'left-0'
+                : ['left-10', avatar.isSitting ? 'top-6' : 'top-4']"
               :aria-label="`Opciones para el avatar de ${avatar.displayName}`"
             />
             <template #content-top="{ sub }">
@@ -1388,7 +1832,8 @@ onBeforeUnmount(() => {
           />
           <span
             :ref="avatar.labelRef"
-            class="pointer-events-none absolute left-0 top-6 z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate font-[Ubuntu]"
+            class="pointer-events-none absolute left-0 z-[3] w-max max-w-[min(180px,calc(100%_-_16px))] overflow-hidden rounded-[5px] border border-[rgba(198,219,233,0.2)] bg-[rgba(15,21,29,0.86)] px-[6px] py-[2px] text-[11px] leading-[1.2] text-[#f5f2e9] truncate font-[Ubuntu]"
+            :class="avatar.avatarType === 'penguin' ? 'top-32' : 'top-7'"
             :title="`${avatar.displayName}: ${avatar.activity} mensajes`"
           >
             {{ avatar.displayName }}
@@ -1407,7 +1852,8 @@ onBeforeUnmount(() => {
             <template #anchor>
               <span
                 :ref="avatar.popoverAnchorRef"
-                class="pointer-events-none absolute left-0 top-5 h-0 w-0"
+                class="pointer-events-none absolute left-0 h-0 w-0"
+                :class="avatar.avatarType === 'penguin' ? 'top-30' : 'top-5'"
                 aria-hidden="true"
               />
             </template>

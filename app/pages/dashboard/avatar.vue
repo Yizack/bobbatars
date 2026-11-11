@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { withQuery } from "ufo";
-import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
-import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
+import habboCatalogJson from "../../data/avatar-generator/habbo-catalog.json";
+import penguinCatalogJson from "../../data/avatar-generator/penguin-catalog.json";
+import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/habbo-default-outfit";
+import { CLOTHING_PARTS, clothingPartsFromSelection, clothingSelectionFromParts, orderedClothingParts } from "#shared/clothing";
+import type { PenguinAction, PenguinAppearance, PenguinCatalogItem, PenguinClothingCategory, PenguinDirection } from "../../types/penguin";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
@@ -13,7 +16,11 @@ interface HabboFigureLookup {
   figureString?: string | null;
 }
 
-const catalog = avatarCatalogJson as unknown as AvatarCatalog;
+const catalog = habboCatalogJson as unknown as AvatarCatalog;
+const penguinCatalog = penguinCatalogJson as PenguinCatalogItem[];
+const clothingCategories: PenguinClothingCategory[] = CLOTHING_PARTS.map(({ type, label }) => ({ type, label }));
+const clothingCategoryTypes = new Set<number>(CLOTHING_PARTS.map(part => part.type));
+const wearableItems = penguinCatalog.filter(item => clothingCategoryTypes.has(item.type));
 const genderIcons: Record<AvatarGender, string> = { M: "male.png", F: "female.png" };
 const previewDanceHeadDirectionOverrides: Partial<Record<number, number>> = {
   3: 2,
@@ -32,19 +39,41 @@ if (!user.value) {
   });
 }
 
-const { data: avatar } = await useFetch(`/api/avatars/${user.value.twitchLogin}`, {
-  default: () => ({
-    gender: "M" as const,
-    figure: DEFAULT_OUTFIT_FIGURES.M,
-    effect: null
-  })
+type AvatarPreviewState
+  = | { avatarType: "habbo", gender: AvatarGender, figure: string, effect: number | null }
+    | ({ avatarType: "penguin" } & PenguinAppearance);
+
+const defaultHabboAvatar: AvatarPreviewState = {
+  avatarType: "habbo",
+  gender: "M",
+  figure: DEFAULT_OUTFIT_FIGURES.M,
+  effect: null
+};
+const defaultPenguinAvatar: PenguinAppearance = {
+  head: null,
+  face: null,
+  neck: null,
+  body: null,
+  hand: null,
+  feet: null,
+  color: "#003366"
+};
+
+const { data: avatar } = await useFetch<AvatarPreviewState>(`/api/avatars/${user.value.twitchLogin}`, {
+  default: () => defaultHabboAvatar
 });
 
-const gender = ref<AvatarGender>(avatar.value.gender);
-const selectedEffect = ref<number | null>(avatar.value.effect);
-const activeType = ref("hr");
+const avatarType = ref<AvatarType>(avatar.value.avatarType);
+const gender = ref<AvatarGender>(avatar.value.avatarType === "habbo" ? avatar.value.gender : "M");
+const selectedEffect = ref<number | null>(avatar.value.avatarType === "habbo" ? avatar.value.effect : null);
+const typeLoadError = ref("");
+const typeLoading = ref(false);
+const activeFigureType = ref("hr");
+const activeFigureTypeNumber = ref(clothingCategories[0]?.type ?? 2);
 const selectedParts = ref<Record<string, OutfitPart>>({});
 const savedParts = ref<Record<string, OutfitPart>>({});
+const selectedByType = ref<Record<number, number>>({});
+const penguinColor = ref(defaultPenguinAvatar.color);
 const search = ref("");
 const importText = ref("");
 const importError = ref("");
@@ -55,8 +84,12 @@ const lookupName = ref("");
 const lookupError = ref("");
 const lookupQueueMessage = ref("");
 const saveState = ref<AvatarSaveState>("idle");
+const penguinSaveState = ref<AvatarSaveState>("idle");
+const penguinSaveError = ref("");
 const previewDirection = ref(4);
 const previewAction = ref<AvatarPreviewAction>("std");
+const penguinDirection = ref<PenguinDirection>(4);
+const penguinAction = ref<PenguinAction>("std");
 const mobilePreviewOpen = ref(false);
 
 watch([lookupHotel, lookupUsername], () => {
@@ -70,13 +103,37 @@ watch([lookupHotel, lookupUsername], () => {
 const figureTypes = catalog.categories;
 const figureTypeByCode = new Map(figureTypes.map(type => [type.type, type]));
 const outfitCount = computed(() => Object.keys(selectedParts.value).length);
+const penguinAppearance = computed<PenguinAppearance>(() => ({
+  ...clothingPartsFromSelection(selectedByType.value),
+  color: penguinColor.value
+}));
+const penguinOutfitCount = computed(() => orderedClothingParts(penguinAppearance.value).length);
+const loadedAvatarTypes = new Set<AvatarType>([avatar.value.avatarType]);
+
+if (avatar.value.avatarType === "habbo") {
+  selectedParts.value = parseFigureString(avatar.value.figure);
+  savedParts.value = copyOutfitParts(selectedParts.value);
+  gender.value = avatar.value.gender;
+  selectedEffect.value = avatar.value.effect;
+}
+else {
+  const savedPenguin: PenguinAppearance = {
+    ...defaultPenguinAvatar,
+    head: avatar.value.head ?? null,
+    face: avatar.value.face ?? null,
+    neck: avatar.value.neck ?? null,
+    body: avatar.value.body ?? null,
+    hand: avatar.value.hand ?? null,
+    feet: avatar.value.feet ?? null,
+    color: avatar.value.color ?? defaultPenguinAvatar.color
+  };
+  selectedByType.value = clothingSelectionFromParts(savedPenguin);
+  penguinColor.value = savedPenguin.color;
+}
 
 function defaultOutfit (forGender: AvatarGender): Record<string, OutfitPart> {
   return parseFigureString(DEFAULT_OUTFIT_FIGURES[forGender]);
 }
-
-selectedParts.value = parseFigureString(avatar.value.figure);
-savedParts.value = copyOutfitParts(selectedParts.value);
 
 const figure = computed(() => figureForParts(selectedParts.value));
 
@@ -105,6 +162,60 @@ const previewUrl = computed(() => {
 watch([figure, gender, selectedEffect], () => {
   if (saveState.value !== "saving") saveState.value = "idle";
 });
+
+watch([selectedByType, penguinColor], () => {
+  if (penguinSaveState.value !== "saving") penguinSaveState.value = "idle";
+}, { deep: true });
+
+async function loadAvatarTypeData (type: AvatarType): Promise<void> {
+  const twitchLogin = user.value?.twitchLogin;
+  if (!twitchLogin) throw new Error("User not authenticated.");
+
+  const result = await $fetch<AvatarPreviewState>(`/api/avatars/${encodeURIComponent(twitchLogin)}`, {
+    query: { type }
+  });
+  if (result.avatarType !== type) throw new Error(`The server returned an unexpected ${type} avatar.`);
+
+  if (result.avatarType === "habbo") {
+    const parts = parseFigureString(result.figure);
+    selectedParts.value = parts;
+    savedParts.value = copyOutfitParts(parts);
+    gender.value = result.gender;
+    selectedEffect.value = result.effect;
+  }
+  else {
+    const appearance: PenguinAppearance = {
+      head: result.head,
+      face: result.face,
+      neck: result.neck,
+      body: result.body,
+      hand: result.hand,
+      feet: result.feet,
+      color: result.color
+    };
+    selectedByType.value = clothingSelectionFromParts(appearance);
+    penguinColor.value = appearance.color;
+  }
+  loadedAvatarTypes.add(type);
+}
+
+async function selectAvatarType (type: AvatarType): Promise<void> {
+  if (type === avatarType.value || typeLoading.value) return;
+
+  typeLoading.value = true;
+  typeLoadError.value = "";
+  try {
+    if (!loadedAvatarTypes.has(type)) await loadAvatarTypeData(type);
+    avatarType.value = type;
+    search.value = "";
+  }
+  catch (error) {
+    typeLoadError.value = error instanceof Error ? error.message : "Could not load this avatar type.";
+  }
+  finally {
+    typeLoading.value = false;
+  }
+}
 
 function changeGender (value: AvatarGender) {
   if (gender.value === value) return;
@@ -141,6 +252,25 @@ function randomizeOutfit () {
   selectedParts.value = nextParts;
 }
 
+function randomizePenguinOutfit (): void {
+  const next: Record<number, number> = {};
+  for (const category of clothingCategories) {
+    const candidates = wearableItems.filter(item => item.type === category.type);
+    const candidate = candidates[Math.floor(Math.random() * candidates.length)];
+    if (candidate) next[category.type] = candidate.paper_item_id;
+  }
+  selectedByType.value = next;
+}
+
+function resetPenguinOutfit (): void {
+  selectedByType.value = {};
+  penguinColor.value = defaultPenguinAvatar.color;
+  penguinAction.value = "std";
+  penguinDirection.value = 4;
+  activeFigureTypeNumber.value = clothingCategories[0]?.type ?? 2;
+  search.value = "";
+}
+
 function importOutfit (allowUnlistedParts = false) {
   const source = importText.value.trim();
   let rawFigure = source.split("&")[0] || "";
@@ -175,7 +305,7 @@ function importOutfit (allowUnlistedParts = false) {
   const firstType = tokens
     .map(token => token.split("-")[0])
     .find(type => type && figureTypeByCode.has(type));
-  if (firstType) activeType.value = firstType;
+  if (firstType) activeFigureType.value = firstType;
   importError.value = "";
 }
 
@@ -265,6 +395,7 @@ async function saveAvatar () {
     await $fetch(`/api/avatars/${encodeURIComponent(twitchLogin)}`, {
       method: "POST",
       body: {
+        avatarType: "habbo",
         figure: figureToSave,
         gender: genderToSave,
         effect: effectToSave
@@ -275,6 +406,28 @@ async function saveAvatar () {
   }
   catch {
     saveState.value = figure.value === figureToSave && gender.value === genderToSave && selectedEffect.value === effectToSave ? "error" : "idle";
+  }
+}
+
+async function savePenguinAvatar (): Promise<void> {
+  const twitchLogin = user.value?.twitchLogin;
+  if (!twitchLogin || penguinSaveState.value === "saving") return;
+
+  const appearanceToSave = { ...penguinAppearance.value };
+  penguinSaveState.value = "saving";
+  penguinSaveError.value = "";
+  try {
+    await $fetch(`/api/avatars/${encodeURIComponent(twitchLogin)}`, {
+      method: "POST",
+      body: { avatarType: "penguin", ...appearanceToSave }
+    });
+    const unchanged = JSON.stringify(penguinAppearance.value) === JSON.stringify(appearanceToSave);
+    penguinSaveState.value = unchanged ? "saved" : "idle";
+  }
+  catch (error) {
+    penguinSaveError.value = error instanceof Error ? error.message : "Could not save your penguin avatar.";
+    const unchanged = JSON.stringify(penguinAppearance.value) === JSON.stringify(appearanceToSave);
+    penguinSaveState.value = unchanged ? "error" : "idle";
   }
 }
 
@@ -291,34 +444,69 @@ useHead({ title: "Avatar | Bobbatars" });
       <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
         <div class="max-w-2xl">
           <h1 id="page-title" class="mt-3 text-3xl max-sm:text-2xl font-semibold tracking-normal text-highlighted sm:text-4xl">My Avatar</h1>
-          <p class="mt-2 text-sm max-sm:text-xs leading-6 text-muted">Choose catalog items, colors, and effects to customize your avatar.</p>
+          <p class="mt-2 text-sm max-sm:text-xs leading-6 text-muted">Choose your avatar type and customize it with items from the matching catalog.</p>
         </div>
-        <div class="flex gap-2" role="group" aria-label="Avatar gender">
-          <UButton
-            class="max-sm:text-xs"
-            color="neutral"
-            :variant="gender === 'M' ? 'subtle' : 'outline'"
-            :aria-pressed="gender === 'M'"
-            @click="changeGender('M')"
-          >
-            <img :src="genderIcon('M')" alt="" class="size-5 shrink-0 object-contain" style="object-position: 0 4px;">Male
-          </UButton>
-          <UButton
-            class="max-sm:text-xs"
-            color="neutral"
-            :variant="gender === 'F' ? 'subtle' : 'outline'"
-            :aria-pressed="gender === 'F'"
-            @click="changeGender('F')"
-          >
-            <img :src="genderIcon('F')" alt="" class="size-5 shrink-0 object-contain">Female
-          </UButton>
+        <div class="grid gap-2">
+          <div class="flex gap-2" role="group" aria-label="Avatar type">
+            <UButton
+              class="max-sm:text-xs"
+              color="primary"
+              :variant="avatarType === 'habbo' ? 'solid' : 'subtle'"
+              :aria-pressed="avatarType === 'habbo'"
+              :loading="typeLoading"
+              :disabled="typeLoading"
+              @click="selectAvatarType('habbo')"
+            >
+              Habbo
+            </UButton>
+            <UButton
+              class="max-sm:text-xs"
+              color="info"
+              :variant="avatarType === 'penguin' ? 'solid' : 'subtle'"
+              :aria-pressed="avatarType === 'penguin'"
+              :loading="typeLoading"
+              :disabled="typeLoading"
+              @click="selectAvatarType('penguin')"
+            >
+              Club Penguin
+            </UButton>
+          </div>
+          <div v-if="avatarType === 'habbo'" class="flex gap-2" role="group" aria-label="Avatar gender">
+            <UButton
+              class="max-sm:text-xs"
+              color="neutral"
+              :variant="gender === 'M' ? 'subtle' : 'outline'"
+              :aria-pressed="gender === 'M'"
+              @click="changeGender('M')"
+            >
+              <img :src="genderIcon('M')" alt="" class="size-5 shrink-0 object-contain" style="object-position: 0 4px;">Male
+            </UButton>
+            <UButton
+              class="max-sm:text-xs"
+              color="neutral"
+              :variant="gender === 'F' ? 'subtle' : 'outline'"
+              :aria-pressed="gender === 'F'"
+              @click="changeGender('F')"
+            >
+              <img :src="genderIcon('F')" alt="" class="size-5 shrink-0 object-contain">Female
+            </UButton>
+          </div>
         </div>
       </section>
 
+      <UAlert
+        v-if="typeLoadError"
+        color="error"
+        variant="subtle"
+        title="Could not load avatar type"
+        :description="typeLoadError"
+        icon="pixelarticons:alert"
+      />
+
       <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.8fr)]">
-        <div class="flex flex-col gap-3 order-2 xl:order-1">
-          <AvatarCatalog
-            v-model:active-type="activeType"
+        <div v-if="avatarType === 'habbo'" class="flex flex-col gap-3 order-2 xl:order-1">
+          <HabboCatalog
+            v-model:active-type="activeFigureType"
             v-model:search="search"
             v-model:selected-parts="selectedParts"
             v-model:selected-effect="selectedEffect"
@@ -327,31 +515,56 @@ useHead({ title: "Avatar | Bobbatars" });
             :saved-parts="savedParts"
           />
 
-          <AvatarFigureImport v-model="importText" :error="importError" @import="importOutfit" />
+          <HabboFigureImport v-model="importText" :error="importError" @import="importOutfit" />
+        </div>
+        <div v-else class="flex flex-col gap-3 order-2 xl:order-1">
+          <PenguinCatalog
+            v-model:active-type="activeFigureTypeNumber"
+            v-model:search="search"
+            v-model:selected-by-type="selectedByType"
+            :items="wearableItems"
+            :categories="clothingCategories"
+          />
         </div>
 
         <aside class="order-1 flex content-start flex-col gap-3 sm:gap-4" aria-label="Avatar preview and controls">
-          <AvatarPreview
-            v-model:direction="previewDirection"
-            v-model:action="previewAction"
-            :preview-url="previewUrl"
-            :gender="gender"
-            :outfit-count="outfitCount"
-            :save-state="saveState"
-            :can-save="Boolean(user?.twitchLogin)"
-            @randomize="randomizeOutfit"
-            @reset="resetOutfit"
-            @save="saveAvatar"
-          />
+          <template v-if="avatarType === 'habbo'">
+            <HabboPreview
+              v-model:direction="previewDirection"
+              v-model:action="previewAction"
+              :preview-url="previewUrl"
+              :gender="gender"
+              :outfit-count="outfitCount"
+              :save-state="saveState"
+              :can-save="Boolean(user?.twitchLogin)"
+              @randomize="randomizeOutfit"
+              @reset="resetOutfit"
+              @save="saveAvatar"
+            />
 
-          <AvatarLookup
-            v-model:hotel="lookupHotel"
-            v-model:username="lookupUsername"
-            :state="lookupState"
-            :name="lookupName"
-            :error="lookupError"
-            :queue-message="lookupQueueMessage"
-            @lookup="lookupHabboFigure"
+            <HabboLookup
+              v-model:hotel="lookupHotel"
+              v-model:username="lookupUsername"
+              :state="lookupState"
+              :name="lookupName"
+              :error="lookupError"
+              :queue-message="lookupQueueMessage"
+              @lookup="lookupHabboFigure"
+            />
+          </template>
+          <PenguinPreview
+            v-else
+            v-model:color="penguinColor"
+            v-model:direction="penguinDirection"
+            v-model:action="penguinAction"
+            :selected-parts="penguinAppearance"
+            :outfit-count="penguinOutfitCount"
+            :save-state="penguinSaveState"
+            :save-error="penguinSaveError"
+            :can-save="Boolean(user?.twitchLogin)"
+            @randomize="randomizePenguinOutfit"
+            @reset="resetPenguinOutfit"
+            @save="savePenguinAvatar"
           />
         </aside>
       </div>
@@ -366,17 +579,28 @@ useHead({ title: "Avatar | Bobbatars" });
         }"
       >
         <UButton
+          v-if="avatarType === 'habbo'"
           color="neutral"
           variant="solid"
           class="fixed bottom-5 right-4 z-40 size-20 overflow-hidden rounded-full border-2 border-primary bg-neutral-950 p-0 shadow-lg xl:hidden"
           aria-label="Show avatar preview"
         >
-          <AvatarPreviewImage :src="previewUrl" />
+          <HabboPreviewImage :src="previewUrl" />
+        </UButton>
+        <UButton
+          v-else
+          color="neutral"
+          variant="solid"
+          class="fixed bottom-5 right-4 z-40 size-20 overflow-hidden rounded-full border-2 border-primary bg-neutral-950 p-0 shadow-lg xl:hidden"
+          aria-label="Show avatar preview"
+        >
+          <PenguinAvatarCanvas :appearance="penguinAppearance" :direction="penguinDirection" :action="penguinAction" :scale="0.55" animate />
         </UButton>
 
         <template #content>
           <div class="grid aspect-4/5 place-items-center overflow-hidden bg-neutral-950 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-size-[24px_24px] p-3">
-            <AvatarPreviewImage :src="previewUrl" />
+            <HabboPreviewImage v-if="avatarType === 'habbo'" :src="previewUrl" />
+            <PenguinAvatarCanvas v-else :appearance="penguinAppearance" :direction="penguinDirection" :action="penguinAction" :scale="2" animate />
           </div>
         </template>
       </UModal>

@@ -1,4 +1,4 @@
-import { DEFAULT_OUTFIT_FIGURES } from "../data/avatar-generator/default-outfit";
+import { DEFAULT_OUTFIT_FIGURES } from "../data/avatar-generator/habbo-default-outfit";
 
 export const avatarImagingUrl = "https://habbohistory.com/habbo-imaging/avatarimage.webp";
 

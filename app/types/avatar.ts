@@ -1,3 +1,5 @@
+export type AvatarType = "habbo" | "penguin";
+export type DefaultAvatarType = AvatarType | "random";
 export type AvatarGender = "M" | "F";
 export type AvatarDanceAction = "dance1" | "dance2" | "dance3" | "dance4";
 export type AvatarPreviewAction = "std" | "sit" | AvatarDanceAction;
@@ -56,6 +58,7 @@ export interface AvatarCommand {
 export type AvatarChatCommand
   = | { type: "dance", action: AvatarDanceAction | null }
     | { type: "sit" | "stand" }
+    | { type: "snowball", target: string | null }
     | { type: "refresh-avatar", target: string | null };
 
 export interface AvatarChatCommandDefinition {

@@ -21,6 +21,13 @@ export const avatarChatCommandRegistry: AvatarChatCommandDefinition[] = [
     parse: () => ({ type: "stand" })
   },
   {
+    pattern: /^!snowball(?:\s+@?([\da-z_]+))?$/i,
+    parse: match => ({
+      type: "snowball",
+      target: match[1]?.toLowerCase() ?? null
+    })
+  },
+  {
     pattern: /^!(?:refresh|update)?avatar(?:\s+@?([\da-z_]+))?$/i,
     parse: match => ({
       type: "refresh-avatar",

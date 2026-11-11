@@ -41,6 +41,13 @@ export default defineNuxtConfig({
     }
   },
 
+  runtimeConfig: {
+    mediaSourceUrl: "https://media.cplegacy.com/assets/media",
+    public: {
+      mediaCdnUrl: "https://penguin-assets.ahmedrangel.com"
+    }
+  },
+
   features: {
     inlineStyles: false
   },

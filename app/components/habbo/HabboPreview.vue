@@ -54,7 +54,7 @@ watch(previewUrl, () => {
     </template>
 
     <div class="relative grid min-h-56 place-items-center overflow-hidden rounded-md bg-neutral-950 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-size-[32px_32px] p-2 sm:min-h-72 sm:p-4">
-      <AvatarPreviewImage
+      <HabboPreviewImage
         v-if="!previewFailed"
         :key="previewUrl"
         class="relative z-10 h-60 sm:h-60"

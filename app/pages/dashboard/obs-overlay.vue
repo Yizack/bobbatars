@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useClipboard } from "@vueuse/core";
 import { withQuery } from "ufo";
+import type { DefaultAvatarType } from "~/types/avatar";
 import SceneOverlay from "~/components/SceneOverlay.vue";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
@@ -11,7 +12,14 @@ const requestUrl = useRequestURL();
 const tiles = ref(OVERLAY_DEFAULTS.tiles);
 const chat = ref(OVERLAY_DEFAULTS.chat);
 const maxAvatars = ref(OVERLAY_DEFAULTS.maxAvatars);
+const inactiveTimeoutMinutes = ref(OVERLAY_DEFAULTS.inactiveTimeoutMinutes);
+const defaultAvatarType = ref<DefaultAvatarType>(OVERLAY_DEFAULTS.defaultAvatarType);
 const roomHeight = ref(OVERLAY_DEFAULTS.roomHeight);
+const defaultAvatarTypeOptions: { label: string, value: DefaultAvatarType }[] = [
+  { label: "Habbo", value: "habbo" },
+  { label: "Club Penguin", value: "penguin" },
+  { label: "Random", value: "random" }
+];
 const backgroundSettings = useHexColor(OVERLAY_DEFAULTS.backgroundHex);
 const { color: backgroundColor, opacity: backgroundOpacity, field: backgroundHexField, error: backgroundHexError } = backgroundSettings;
 const backgroundWithOpacity = computed(() => backgroundOpacity.value === 0 ? undefined : backgroundSettings.value.value);
@@ -24,7 +32,9 @@ const overlayUrl = computed(() => withQuery(
     tileColor: tilesColorValue.value?.slice(1) === OVERLAY_DEFAULTS.tileColor ? undefined : tilesColorValue.value?.slice(1),
     chat: chat.value === OVERLAY_DEFAULTS.chat ? undefined : String(chat.value),
     maxAvatars: maxAvatars.value === OVERLAY_DEFAULTS.maxAvatars ? undefined : String(maxAvatars.value),
+    inactiveTimeoutMinutes: inactiveTimeoutMinutes.value === OVERLAY_DEFAULTS.inactiveTimeoutMinutes ? undefined : String(inactiveTimeoutMinutes.value),
     roomHeight: roomHeight.value === OVERLAY_DEFAULTS.roomHeight ? undefined : String(roomHeight.value),
+    defaultAvatarType: defaultAvatarType.value === OVERLAY_DEFAULTS.defaultAvatarType ? undefined : defaultAvatarType.value,
     backgroundColor: backgroundWithOpacity.value?.slice(1)
   }
 ));
@@ -61,7 +71,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
             <div class="flex items-center justify-between gap-3">
               <div>
                 <p class="text-[10px] max-sm:text-[9px] font-semibold tracking-widest text-primary">LIVE PREVIEW</p>
-                <h2 class="mt-1 text-lg max-sm:text-base font-semibold text-highlighted">Habbo chat room</h2>
+                <h2 class="mt-1 text-lg max-sm:text-base font-semibold text-highlighted">Avatar chat room</h2>
               </div>
               <UBadge class="max-sm:text-[11px]" color="primary" variant="subtle" size="sm">PREVIEW</UBadge>
             </div>
@@ -80,6 +90,8 @@ useHead({ title: "OBS Overlay | Bobbatars" });
               :tile-color="tilesColorValue"
               :chat="chat"
               :max-avatars="maxAvatars"
+              :inactive-timeout-minutes="inactiveTimeoutMinutes"
+              :default-avatar-type="defaultAvatarType"
               :room-height="roomHeight"
               embedded
             />
@@ -87,7 +99,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
           </div>
 
           <template #footer>
-            <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Avatars appear as people chat in this Twitch channel. The background is transparent by default.</p>
+            <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Habbo and Club Penguin avatars appear as people chat in this Twitch channel. Penguins move around the same room and tiles as Habbos.</p>
           </template>
         </UCard>
 
@@ -342,6 +354,57 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                     <p class="text-xs max-sm:text-[11px] leading-5 text-muted">Show chat messages above avatars.</p>
                   </label>
                   <USwitch id="obs-chat-bubbles" v-model="chat" aria-label="Enable chat bubbles" />
+                </div>
+
+                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <UFormField
+                    label="Default avatar type"
+                    description="Set the default avatar type for unregistered chatters."
+                    class="grid gap-1"
+                    :ui="{ description: 'text-xs max-sm:text-[11px] leading-5 text-muted' }"
+                  >
+                    <USelect
+                      v-model="defaultAvatarType"
+                      :items="defaultAvatarTypeOptions"
+                      value-key="value"
+                      label-key="label"
+                      aria-label="Default avatar"
+                      class="w-full"
+                    />
+                  </UFormField>
+                </div>
+
+                <div class="grid gap-3 rounded-md border border-default px-3 py-3 hover:border-primary/25">
+                  <UFormField
+                    label="Chatter inactivity (minutes)"
+                    description="Remove inactive chatters. The channel owner stays visible."
+                    class="grid gap-1"
+                    :ui="{
+                      wrapper: 'grid gap-1',
+                      label: 'text-sm max-sm:text-xs font-medium text-highlighted',
+                      description: 'text-xs max-sm:text-[11px] leading-5 text-muted',
+                    }"
+                  >
+                    <div class="flex items-center gap-2">
+                      <UInputNumber
+                        v-model="inactiveTimeoutMinutes"
+                        class="min-w-0 flex-1"
+                        :min="OVERLAY_LIMITS.inactiveTimeoutMinutes.min"
+                        :max="OVERLAY_LIMITS.inactiveTimeoutMinutes.max"
+                      />
+                      <UButton
+                        type="button"
+                        class="max-sm:text-xs"
+                        color="neutral"
+                        variant="outline"
+                        :disabled="inactiveTimeoutMinutes === OVERLAY_DEFAULTS.inactiveTimeoutMinutes"
+                        aria-label="Reset chatter inactivity timeout"
+                        @click="inactiveTimeoutMinutes = OVERLAY_DEFAULTS.inactiveTimeoutMinutes"
+                      >
+                        Default
+                      </UButton>
+                    </div>
+                  </UFormField>
                 </div>
               </div>
             </div>

@@ -3,7 +3,7 @@ import type { TableColumn } from "@nuxt/ui";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
-const commands: AvatarCommand[] = [
+const habboCommands: AvatarCommand[] = [
   {
     command: "!avatar",
     description: "Refresh your saved Habbo outfit. To refresh another viewer's avatar, add @username.",
@@ -11,31 +11,75 @@ const commands: AvatarCommand[] = [
   },
   {
     command: "!dance",
-    description: "Make your avatar do the basic dance.",
+    description: "Make your habbo do the basic dance.",
     alias: ["!dance 1"]
   },
   {
     command: "!dance 2",
-    description: "Make your avatar do the Pogo Mogo dance."
+    description: "Make your habbo do the Pogo Mogo dance."
   },
   {
     command: "!dance 3",
-    description: "Make your avatar do the Duck Funk dance."
+    description: "Make your habbo do the Duck Funk dance."
   },
   {
     command: "!dance 4",
-    description: "Make your avatar do the Rollie dance."
+    description: "Make your habbo do the Rollie dance."
   },
   {
     command: "!dance stop",
-    description: "Stop your avatar from dancing."
+    description: "Stop your habbo from dancing."
   },
   {
     command: "!sit",
-    description: "Make your avatar sit down and stop any current dance." },
+    description: "Make your habbo sit down and stop any current dance."
+  },
   {
     command: "!up",
-    description: "Make your avatar stand up and stop any current dance." }
+    description: "Make your habbo stand up and stop any current dance."
+  }
+];
+
+const penguinCommands: AvatarCommand[] = [
+  {
+    command: "!avatar",
+    description: "Refresh your saved Penguin appearance. To refresh another viewer's avatar, add @username.",
+    alias: ["!refreshavatar", "!updateavatar"]
+  },
+  {
+    command: "!snowball",
+    description: "Throw a snowball toward @username. Without a target, throw in a random direction."
+  },
+  {
+    command: "!dance",
+    description: "Make your penguin do its dance.",
+    alias: ["!dance 1"]
+  },
+  {
+    command: "!dance stop",
+    description: "Stop your penguin from dancing."
+  },
+  {
+    command: "!sit",
+    description: "Make your penguin sit down and stop any current dance."
+  },
+  {
+    command: "!up",
+    description: "Make your penguin stand up and stop any current dance."
+  }
+];
+
+const commandGroups = [
+  {
+    id: "habbo",
+    title: "Habbo",
+    commands: habboCommands
+  },
+  {
+    id: "penguin",
+    title: "Penguin",
+    commands: penguinCommands
+  }
 ];
 
 const columns: TableColumn<AvatarCommand>[] = [
@@ -58,14 +102,22 @@ const columns: TableColumn<AvatarCommand>[] = [
       <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
         <div class="max-w-2xl">
           <h1 id="page-title" class="mt-3 text-3xl font-semibold tracking-normal text-highlighted sm:text-4xl">Chat commands</h1>
-          <p class="mt-2 text-sm leading-6 text-muted">Send these commands in the streamer's Twitch chat to control your Habbo avatar.</p>
+          <p class="mt-2 text-sm leading-6 text-muted">Send these commands in the streamer's Twitch chat to control your avatar. Available commands depend on your avatar type.</p>
         </div>
       </section>
 
-      <section aria-label="Habbo avatar chat commands">
+      <section
+        v-for="group in commandGroups"
+        :key="group.id"
+        class="grid gap-3"
+        :aria-labelledby="`${group.id}-commands-title`"
+      >
+        <h2 :id="`${group.id}-commands-title`" class="text-xl font-semibold text-highlighted">
+          {{ group.title }} commands
+        </h2>
         <UCard :ui="{ body: 'p-0 sm:p-0' }">
           <UTable
-            :data="commands"
+            :data="group.commands"
             :columns="columns"
           >
             <template #command-cell="{ row }">

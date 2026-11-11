@@ -18,6 +18,20 @@ const maxAvatars = computed(() => {
   if (!Number.isInteger(parsedValue)) return OVERLAY_DEFAULTS.maxAvatars;
   return Math.min(OVERLAY_LIMITS.maxAvatars.max, Math.max(OVERLAY_LIMITS.maxAvatars.min, parsedValue));
 });
+const inactiveTimeoutMinutes = computed(() => {
+  const queryValue = route.query.inactiveTimeoutMinutes;
+  const parsedValue = typeof queryValue === "string" ? Number(queryValue) : OVERLAY_DEFAULTS.inactiveTimeoutMinutes;
+  if (!Number.isInteger(parsedValue)) return OVERLAY_DEFAULTS.inactiveTimeoutMinutes;
+  return Math.min(
+    OVERLAY_LIMITS.inactiveTimeoutMinutes.max,
+    Math.max(OVERLAY_LIMITS.inactiveTimeoutMinutes.min, parsedValue)
+  );
+});
+const defaultAvatarType = computed(() => {
+  const queryValue = route.query.defaultAvatarType;
+  if (queryValue === "habbo" || queryValue === "penguin" || queryValue === "random") return queryValue;
+  return OVERLAY_DEFAULTS.defaultAvatarType;
+});
 const roomHeight = computed(() => {
   const queryValue = route.query.roomHeight;
   const parsedValue = typeof queryValue === "string" ? Number(queryValue) : OVERLAY_DEFAULTS.roomHeight;
@@ -44,6 +58,8 @@ useHead({
       :tile-color="tileColor"
       :chat="chat"
       :max-avatars="maxAvatars"
+      :inactive-timeout-minutes="inactiveTimeoutMinutes"
+      :default-avatar-type="defaultAvatarType"
       :room-height="roomHeight"
     />
   </main>

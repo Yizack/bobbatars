@@ -1,6 +1,11 @@
 export default [
   "pixelarticons:home",
+  "pixelarticons:crown",
+  "pixelarticons:sunglasses",
+  "pixelarticons:heart",
   "pixelarticons:shirt",
+  "pixelarticons:hand",
+  "pixelarticons:arrow-down",
   "pixelarticons:monitor",
   "pixelarticons:logout",
   "pixelarticons:search",
