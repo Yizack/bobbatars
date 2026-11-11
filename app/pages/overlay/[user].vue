@@ -18,13 +18,13 @@ const maxAvatars = computed(() => {
   if (!Number.isInteger(parsedValue)) return OVERLAY_DEFAULTS.maxAvatars;
   return Math.min(OVERLAY_LIMITS.maxAvatars.max, Math.max(OVERLAY_LIMITS.maxAvatars.min, parsedValue));
 });
-const inactiveTimeoutMinutes = computed(() => {
-  const queryValue = route.query.inactiveTimeoutMinutes;
-  const parsedValue = typeof queryValue === "string" ? Number(queryValue) : OVERLAY_DEFAULTS.inactiveTimeoutMinutes;
-  if (!Number.isInteger(parsedValue)) return OVERLAY_DEFAULTS.inactiveTimeoutMinutes;
+const timeout = computed(() => {
+  const queryValue = route.query.timeout;
+  const parsedValue = typeof queryValue === "string" ? Number(queryValue) : OVERLAY_DEFAULTS.timeout;
+  if (!Number.isInteger(parsedValue)) return OVERLAY_DEFAULTS.timeout;
   return Math.min(
-    OVERLAY_LIMITS.inactiveTimeoutMinutes.max,
-    Math.max(OVERLAY_LIMITS.inactiveTimeoutMinutes.min, parsedValue)
+    OVERLAY_LIMITS.timeout.max,
+    Math.max(OVERLAY_LIMITS.timeout.min, parsedValue)
   );
 });
 const defaultAvatarType = computed(() => {
@@ -58,7 +58,7 @@ useHead({
       :tile-color="tileColor"
       :chat="chat"
       :max-avatars="maxAvatars"
-      :inactive-timeout-minutes="inactiveTimeoutMinutes"
+      :inactive-timeout-minutes="timeout"
       :default-avatar-type="defaultAvatarType"
       :room-height="roomHeight"
     />

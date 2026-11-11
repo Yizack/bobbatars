@@ -12,7 +12,7 @@ const requestUrl = useRequestURL();
 const tiles = ref(OVERLAY_DEFAULTS.tiles);
 const chat = ref(OVERLAY_DEFAULTS.chat);
 const maxAvatars = ref(OVERLAY_DEFAULTS.maxAvatars);
-const inactiveTimeoutMinutes = ref(OVERLAY_DEFAULTS.inactiveTimeoutMinutes);
+const timeout = ref(OVERLAY_DEFAULTS.timeout);
 const defaultAvatarType = ref<DefaultAvatarType>(OVERLAY_DEFAULTS.defaultAvatarType);
 const roomHeight = ref(OVERLAY_DEFAULTS.roomHeight);
 const defaultAvatarTypeOptions: { label: string, value: DefaultAvatarType }[] = [
@@ -32,7 +32,7 @@ const overlayUrl = computed(() => withQuery(
     tileColor: tilesColorValue.value?.slice(1) === OVERLAY_DEFAULTS.tileColor ? undefined : tilesColorValue.value?.slice(1),
     chat: chat.value === OVERLAY_DEFAULTS.chat ? undefined : String(chat.value),
     maxAvatars: maxAvatars.value === OVERLAY_DEFAULTS.maxAvatars ? undefined : String(maxAvatars.value),
-    inactiveTimeoutMinutes: inactiveTimeoutMinutes.value === OVERLAY_DEFAULTS.inactiveTimeoutMinutes ? undefined : String(inactiveTimeoutMinutes.value),
+    timeout: timeout.value === OVERLAY_DEFAULTS.timeout ? undefined : String(timeout.value),
     roomHeight: roomHeight.value === OVERLAY_DEFAULTS.roomHeight ? undefined : String(roomHeight.value),
     defaultAvatarType: defaultAvatarType.value === OVERLAY_DEFAULTS.defaultAvatarType ? undefined : defaultAvatarType.value,
     backgroundColor: backgroundWithOpacity.value?.slice(1)
@@ -90,7 +90,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
               :tile-color="tilesColorValue"
               :chat="chat"
               :max-avatars="maxAvatars"
-              :inactive-timeout-minutes="inactiveTimeoutMinutes"
+              :inactive-timeout-minutes="timeout"
               :default-avatar-type="defaultAvatarType"
               :room-height="roomHeight"
               embedded
@@ -387,19 +387,19 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                   >
                     <div class="flex items-center gap-2">
                       <UInputNumber
-                        v-model="inactiveTimeoutMinutes"
+                        v-model="timeout"
                         class="min-w-0 flex-1"
-                        :min="OVERLAY_LIMITS.inactiveTimeoutMinutes.min"
-                        :max="OVERLAY_LIMITS.inactiveTimeoutMinutes.max"
+                        :min="OVERLAY_LIMITS.timeout.min"
+                        :max="OVERLAY_LIMITS.timeout.max"
                       />
                       <UButton
                         type="button"
                         class="max-sm:text-xs"
                         color="neutral"
                         variant="outline"
-                        :disabled="inactiveTimeoutMinutes === OVERLAY_DEFAULTS.inactiveTimeoutMinutes"
+                        :disabled="timeout === OVERLAY_DEFAULTS.timeout"
                         aria-label="Reset chatter inactivity timeout"
-                        @click="inactiveTimeoutMinutes = OVERLAY_DEFAULTS.inactiveTimeoutMinutes"
+                        @click="timeout = OVERLAY_DEFAULTS.timeout"
                       >
                         Default
                       </UButton>

@@ -19,7 +19,7 @@ const props = withDefaults(defineProps<{
   tileColor?: string;
   chat?: boolean;
   maxAvatars?: number;
-  inactiveTimeoutMinutes?: number;
+  timeout?: number;
   defaultAvatarType?: DefaultAvatarType;
   roomHeight?: number;
   embedded?: boolean;
@@ -28,7 +28,7 @@ const props = withDefaults(defineProps<{
   chat: OVERLAY_DEFAULTS.chat,
   tileColor: OVERLAY_DEFAULTS.tileColor,
   maxAvatars: OVERLAY_DEFAULTS.maxAvatars,
-  inactiveTimeoutMinutes: OVERLAY_DEFAULTS.inactiveTimeoutMinutes,
+  timeout: OVERLAY_DEFAULTS.timeout,
   defaultAvatarType: OVERLAY_DEFAULTS.defaultAvatarType,
   roomHeight: OVERLAY_DEFAULTS.roomHeight,
   embedded: false
@@ -40,12 +40,12 @@ const roomHeightSetting = computed(() => {
   return Math.min(OVERLAY_LIMITS.roomHeight.max, Math.max(OVERLAY_LIMITS.roomHeight.min, props.roomHeight));
 });
 const inactiveTimeoutMs = computed(() => {
-  if (!Number.isInteger(props.inactiveTimeoutMinutes)) {
-    return OVERLAY_DEFAULTS.inactiveTimeoutMinutes * 60 * 1000;
+  if (!Number.isInteger(props.timeout)) {
+    return OVERLAY_DEFAULTS.timeout * 60 * 1000;
   }
   const minutes = Math.min(
-    OVERLAY_LIMITS.inactiveTimeoutMinutes.max,
-    Math.max(OVERLAY_LIMITS.inactiveTimeoutMinutes.min, props.inactiveTimeoutMinutes)
+    OVERLAY_LIMITS.timeout.max,
+    Math.max(OVERLAY_LIMITS.timeout.min, props.timeout)
   );
   return minutes * 60 * 1000;
 });
