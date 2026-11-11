@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
-import { useIntervalFn, useResizeObserver, useTimeoutFn } from "@vueuse/core";
+import { useResizeObserver, useTimeoutFn } from "@vueuse/core";
 import { ChatClient } from "@twurple/chat";
 import { withQuery } from "ufo";
 import { EMPTY_CLOTHING_PARTS } from "#shared/clothing";
@@ -274,6 +274,7 @@ let chatConnected = false;
 let isUnmounting = false;
 let animationFrame: number | null = null;
 let lastAnimationFrameAt = 0;
+let inactiveUserTimer: number | null = null;
 
 function imageUrl (
   direction: number,
@@ -927,6 +928,24 @@ function removeAvatarState (avatar: AvatarState) {
   if (index >= 0) avatars.value.splice(index, 1);
 }
 
+function scheduleInactiveUserExpiration () {
+  if (inactiveUserTimer !== null) window.clearTimeout(inactiveUserTimer);
+  inactiveUserTimer = null;
+
+  let nextExpiration: number | null = null;
+  for (const user of activeUsers.values()) {
+    if (user.isStreamer) continue;
+    const expiresAt = user.lastActivity + inactiveTimeoutMs.value;
+    if (nextExpiration === null || expiresAt < nextExpiration) nextExpiration = expiresAt;
+  }
+  if (nextExpiration === null) return;
+
+  inactiveUserTimer = window.setTimeout(() => {
+    inactiveUserTimer = null;
+    reconcileActiveAvatars();
+  }, Math.max(0, nextExpiration - Date.now()));
+}
+
 function reconcileActiveAvatars () {
   const now = Date.now();
   for (const [login, user] of activeUsers) {
@@ -992,6 +1011,7 @@ function reconcileActiveAvatars () {
       else if (avatar.avatarFigureReady) resolvePendingSnowball(avatar);
     }
   }
+  scheduleInactiveUserExpiration();
 }
 
 function setAvatarDance (avatar: AvatarState, danceAction: AvatarDanceAction | null) {
@@ -1688,19 +1708,12 @@ function ensureStreamerActive () {
   });
 }
 
-const avatarReconcileInterval = useIntervalFn(reconcileActiveAvatars, 5000, {
-  immediate: false
-});
-const avatarDataRefreshInterval = useIntervalFn(() => {
-  for (const avatar of avatars.value) {
-    void refreshAvatarFigure(avatar)
-      .catch(error => reportAvatarFetchError(avatar, error));
-  }
-}, 30_000, { immediate: false });
 const {
   start: scheduleReconciliation,
   stop: stopReconciliation
 } = useTimeoutFn(reconcileActiveAvatars, 250, { immediate: false });
+
+watch(inactiveTimeoutMs, scheduleReconciliation);
 
 useResizeObserver(roomFrame, () => updateRoomLayout());
 
@@ -1708,16 +1721,14 @@ onMounted(() => {
   updateRoomLayout();
   ensureStreamerActive();
   reconcileActiveAvatars();
-  avatarReconcileInterval.resume();
-  avatarDataRefreshInterval.resume();
   void connectToChat();
 });
 
 onBeforeUnmount(() => {
   isUnmounting = true;
-  avatarReconcileInterval.pause();
-  avatarDataRefreshInterval.pause();
   stopReconciliation();
+  if (inactiveUserTimer !== null) window.clearTimeout(inactiveUserTimer);
+  inactiveUserTimer = null;
   chatClient?.quit();
   chatClient = null;
 
