@@ -1,4 +1,4 @@
-import { orderedClothingParts } from "#shared/clothing";
+import { type ClothingPartKey, orderedClothingParts } from "#shared/clothing";
 import { resolveMediaAssetPath } from "#shared/mediaAssets";
 import type { AvatarDanceAction } from "../types/avatar";
 import type { PenguinAction, PenguinAppearance, PenguinDirection } from "../types/penguin";
@@ -51,6 +51,7 @@ export interface SpriteLayer {
 
 export interface LoadedClothingLayer {
   id: number;
+  key: ClothingPartKey;
   placement: "back" | "front";
   layer: SpriteLayer;
 }
@@ -58,6 +59,7 @@ export interface LoadedClothingLayer {
 export interface PenguinRenderResources {
   body: SpriteLayer;
   base: SpriteLayer;
+  cleanBodyAction?: SpriteLayer;
   clothing: LoadedClothingLayer[];
   failedClothingIds: number[];
 }
@@ -72,6 +74,10 @@ export interface SpriteBounds {
 export interface PenguinFrameBounds extends SpriteBounds {
   content: SpriteBounds;
 }
+
+export const PENGUIN_CLEAN_HAND_ITEM_ID = 5084;
+export const PENGUIN_CLEAN_ITEM_ANIMATION_SPRITE_ID = 71;
+export const PENGUIN_CLEAN_BODY_ACTION_ID = 71;
 
 interface StaticRenderInfo {
   baseEntry: SpriteEntry;
@@ -310,7 +316,7 @@ export function loadPenguinRenderResources (
       body,
       base,
       clothing: results.flatMap(({ part, layer }) =>
-        layer ? [{ id: part.id, placement: part.placement, layer }] : []
+        layer ? [{ id: part.id, key: part.key, placement: part.placement, layer }] : []
       ),
       failedClothingIds: results.flatMap(({ part, layer }) => layer ? [] : [part.id])
     };
@@ -430,8 +436,14 @@ export function spriteSequenceForPose (
   action: PenguinPoseAction
 ): string[] {
   const spriteId = penguinSpriteForPose(direction, action);
-  const sequence = groupsForLayer(body)[String(spriteId)];
-  if (!sequence?.length) throw new Error(`Penguin sprite ${spriteId} is missing from the atlas.`);
+  return spriteSequenceForGroup(body, spriteId);
+}
+
+export function spriteSequenceForGroup (layer: SpriteLayer, spriteId: number): string[] {
+  const sequence = groupsForLayer(layer)[String(spriteId)];
+  if (!sequence?.length) {
+    throw new Error(`Penguin sprite group ${spriteId} is missing from layer "${layer.name}".`);
+  }
   return sequence;
 }
 
@@ -458,8 +470,22 @@ function staticRenderInfo (resources: PenguinRenderResources): StaticRenderInfo 
       return (spriteId >= 1 && spriteId <= 24) || danceSpriteIds.has(spriteId);
     })
     .flatMap(([, names]) => names);
+  const cleanItemEntries = resources.clothing
+    .filter(({ id }) => id === PENGUIN_CLEAN_HAND_ITEM_ID)
+    .flatMap(({ layer }) => {
+      const animationFrames = groupsForLayer(layer)[String(PENGUIN_CLEAN_ITEM_ANIMATION_SPRITE_ID)] ?? [];
+      return animationFrames.flatMap(name => framesFor(layer, name));
+    });
+  let cleanBodyActionEntries: SpriteEntry[] = [];
+  if (resources.cleanBodyAction) {
+    const cleanBodyAction = resources.cleanBodyAction;
+    cleanBodyActionEntries = spriteSequenceForGroup(cleanBodyAction, PENGUIN_CLEAN_BODY_ACTION_ID)
+      .flatMap(name => framesFor(cleanBodyAction, name));
+  }
   const boundEntries = [
     ...allFrameNames.flatMap(name => framesFor(resources.body, name)),
+    ...cleanBodyActionEntries,
+    ...cleanItemEntries,
     baseEntry
   ];
   const contentBounds = boundsForEntries(boundEntries);
@@ -483,21 +509,58 @@ export function drawPenguinFrame (
   appearance: PenguinAppearance,
   direction: PenguinDirection,
   action: PenguinPoseAction,
-  frameIndex = 0
+  frameIndex = 0,
+  cleanItemFrameIndex: number | null = null
 ): PenguinFrameBounds {
   const { baseEntry, bounds } = staticRenderInfo(resources);
 
-  const sequence = spriteSequenceForPose(resources.body, direction, action);
+  const cleanBodyLayer = cleanItemFrameIndex === null ? undefined : resources.cleanBodyAction;
+  if (cleanItemFrameIndex !== null && !cleanBodyLayer) {
+    throw new Error("The penguin clean body action is missing from the sprite resources.");
+  }
+  let sequence: string[];
+  if (cleanBodyLayer) {
+    sequence = spriteSequenceForGroup(cleanBodyLayer, PENGUIN_CLEAN_BODY_ACTION_ID);
+  }
+  else {
+    sequence = spriteSequenceForPose(resources.body, direction, action);
+  }
   const frameName = sequence[frameIndex % sequence.length];
   if (!frameName) throw new Error("The penguin animation has no current frame.");
-  const bodyEntries = framesFor(resources.body, frameName);
+  let cleanFallbackFrameName: string | null = null;
+  if (cleanBodyLayer) {
+    cleanFallbackFrameName = spriteSequenceForPose(resources.body, direction, "std")[0] ?? null;
+  }
+  let cleanItemLayer: SpriteLayer | undefined;
+  if (cleanItemFrameIndex !== null) {
+    cleanItemLayer = resources.clothing.find(({ id }) => id === PENGUIN_CLEAN_HAND_ITEM_ID)?.layer;
+  }
+  let cleanItemSequence: string[] = [];
+  if (cleanItemLayer) {
+    cleanItemSequence = spriteSequenceForGroup(cleanItemLayer, PENGUIN_CLEAN_ITEM_ANIMATION_SPRITE_ID);
+  }
+  let cleanItemFrameName: string | null = null;
+  if (cleanItemFrameIndex !== null && cleanItemSequence.length > 0) {
+    cleanItemFrameName = cleanItemSequence[cleanItemFrameIndex % cleanItemSequence.length] ?? null;
+  }
+  const clothingEntries = (id: number, layer: SpriteLayer) => {
+    if (cleanItemFrameIndex !== null && id === PENGUIN_CLEAN_HAND_ITEM_ID) {
+      return cleanItemFrameName ? framesFor(layer, cleanItemFrameName) : [];
+    }
+    const actionEntries = framesFor(layer, frameName);
+    if (actionEntries.length || !cleanFallbackFrameName) return actionEntries;
+    return framesFor(layer, cleanFallbackFrameName);
+  };
+  const bodyEntries = framesFor(cleanBodyLayer ?? resources.body, frameName);
+  const bodyLayer = cleanBodyLayer ?? resources.body;
   if (!bodyEntries.length) throw new Error(`Penguin sprite frame "${frameName}" is missing.`);
-  const backFrames = resources.clothing
+  const clothing = resources.clothing.filter(({ key }) => cleanItemFrameIndex === null || key !== "body");
+  const backFrames = clothing
     .filter(({ placement }) => placement === "back")
-    .map(({ layer }) => ({ layer, entries: framesFor(layer, frameName) }));
-  const frontFrames = resources.clothing
+    .map(({ id, layer }) => ({ layer, entries: clothingEntries(id, layer) }));
+  const frontFrames = clothing
     .filter(({ placement }) => placement === "front")
-    .map(({ layer }) => ({ layer, entries: framesFor(layer, frameName) }));
+    .map(({ id, layer }) => ({ layer, entries: clothingEntries(id, layer) }));
   const contentBounds = boundsForEntries([
     baseEntry,
     ...backFrames.flatMap(({ entries }) => entries),
@@ -516,8 +579,8 @@ export function drawPenguinFrame (
   drawFrame(context, resources.base.img, baseEntry);
   backFrames.forEach(({ layer, entries }) => entries.forEach(entry => drawFrame(context, layer.img, entry)));
   bodyEntries.forEach((entry) => {
-    if (isPenguinBodyFrame(entry)) drawTintedFrame(context, resources.body.img, entry, appearance.color);
-    else drawFrame(context, resources.body.img, entry);
+    if (isPenguinBodyFrame(entry)) drawTintedFrame(context, bodyLayer.img, entry, appearance.color);
+    else drawFrame(context, bodyLayer.img, entry);
   });
   frontFrames.forEach(({ layer, entries }) => entries.forEach(entry => drawFrame(context, layer.img, entry)));
   context.restore();

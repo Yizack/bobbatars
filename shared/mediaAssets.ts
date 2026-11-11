@@ -2,7 +2,9 @@ const FIXED_MEDIA_ASSETS: Record<string, string> = {
   "penguin/body.json": "penguin/penguin.json",
   "penguin/body.webp": "penguin/penguin-0.webp",
   "penguin/base.json": "penguin/penguin_base.json",
-  "penguin/base.webp": "penguin/penguin_base-0.webp"
+  "penguin/base.webp": "penguin/penguin_base-0.webp",
+  "penguin/actions/71.json": "penguin/actions/71.json",
+  "penguin/actions/71.webp": "penguin/actions/71-0.webp"
 };
 
 export function resolveMediaAssetPath (asset: string): string | undefined {

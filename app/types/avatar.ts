@@ -59,6 +59,7 @@ export type AvatarChatCommand
   = | { type: "dance", action: AvatarDanceAction | null }
     | { type: "sit" | "stand" }
     | { type: "snowball", target: string | null }
+    | { type: "clean", action: "start" | "stop" }
     | { type: "refresh-avatar", target: string | null };
 
 export interface AvatarChatCommandDefinition {

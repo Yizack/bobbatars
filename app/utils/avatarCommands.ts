@@ -28,6 +28,18 @@ export const avatarChatCommandRegistry: AvatarChatCommandDefinition[] = [
     })
   },
   {
+    pattern: /^!clean\s+stop$/i,
+    parse: () => ({ type: "clean", action: "stop" })
+  },
+  {
+    pattern: /^!cleanstop$/i,
+    parse: () => ({ type: "clean", action: "stop" })
+  },
+  {
+    pattern: /^!clean$/i,
+    parse: () => ({ type: "clean", action: "start" })
+  },
+  {
     pattern: /^!(?:refresh|update)?avatar(?:\s+@?([\da-z_]+))?$/i,
     parse: match => ({
       type: "refresh-avatar",

@@ -60,6 +60,15 @@ const penguinCommands: AvatarCommand[] = [
     description: "Stop your penguin from dancing."
   },
   {
+    command: "!clean",
+    description: "Make your penguin clean with the Mop and Bucket until another action."
+  },
+  {
+    command: "!clean stop",
+    description: "Stop your penguin's cleaning animation.",
+    alias: ["!cleanstop"]
+  },
+  {
     command: "!sit",
     description: "Make your penguin sit down and stop any current dance."
   },
