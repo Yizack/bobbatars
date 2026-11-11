@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, toRefs, watch } from "vue";
 import { useInfiniteScroll } from "@vueuse/core";
 import { withQuery } from "ufo";
-import type { AvatarCatalog as AvatarCatalogData, AvatarGender, OutfitPart } from "../../types/avatar";
-import { avatarImagingUrl, colorsForType, figureForParts, paletteForType } from "../../utils/avatar";
 
 const props = defineProps<{
-  catalog: AvatarCatalogData;
+  catalog: AvatarCatalog;
   gender: AvatarGender;
   savedParts: Record<string, OutfitPart>;
 }>();
+
 const { catalog, gender, savedParts } = toRefs(props);
 const activeType = defineModel<string>("activeType", { required: true });
 const search = defineModel<string>("search", { required: true });

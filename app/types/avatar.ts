@@ -1,6 +1,5 @@
-import type { AvatarDanceAction } from "../utils/avatarCommands";
-
 export type AvatarGender = "M" | "F";
+export type AvatarDanceAction = "dance1" | "dance2" | "dance3" | "dance4";
 export type AvatarPreviewAction = "std" | "sit" | AvatarDanceAction;
 export type AvatarSaveState = "idle" | "saving" | "saved" | "error";
 export type HabboHotel = "com" | "es";
@@ -46,4 +45,20 @@ export interface AvatarCatalog {
 export interface OutfitPart {
   setId: string;
   colorIds: string[];
+}
+
+export interface AvatarCommand {
+  command: string;
+  description: string;
+  alias?: string[];
+}
+
+export type AvatarChatCommand
+  = | { type: "dance", action: AvatarDanceAction | null }
+    | { type: "sit" | "stand" }
+    | { type: "refresh-avatar", target: string | null };
+
+export interface AvatarChatCommandDefinition {
+  pattern: RegExp;
+  parse: (match: RegExpMatchArray) => AvatarChatCommand;
 }

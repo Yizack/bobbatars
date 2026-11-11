@@ -3,12 +3,6 @@ import type { TableColumn } from "@nuxt/ui";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
-interface AvatarCommand {
-  command: string;
-  description: string;
-  alias?: string[];
-}
-
 const commands: AvatarCommand[] = [
   {
     command: "!avatar",

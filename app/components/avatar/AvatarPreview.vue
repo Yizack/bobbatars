@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { ref, toRefs, watch } from "vue";
-import { avatarDanceActions } from "../../utils/avatarCommands";
-import type { AvatarGender, AvatarPreviewAction, AvatarSaveState } from "../../types/avatar";
-
 const props = defineProps<{
   previewUrl: string;
   gender: AvatarGender;
@@ -10,6 +6,7 @@ const props = defineProps<{
   saveState: AvatarSaveState;
   canSave: boolean;
 }>();
+
 const { canSave, gender, outfitCount, previewUrl, saveState } = toRefs(props);
 const previewDirection = defineModel<number>("direction", { required: true });
 const previewAction = defineModel<AvatarPreviewAction>("action", { required: true });

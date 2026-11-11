@@ -1,17 +1,6 @@
-export type AvatarDanceAction = "dance1" | "dance2" | "dance3" | "dance4";
-export const avatarDanceActions: readonly AvatarDanceAction[] = ["dance1", "dance2", "dance3", "dance4"];
+export const avatarDanceActions: AvatarDanceAction[] = ["dance1", "dance2", "dance3", "dance4"];
 
-export type AvatarChatCommand
-  = | { type: "dance", action: AvatarDanceAction | null }
-    | { type: "sit" | "stand" }
-    | { type: "refresh-avatar", target: string | null };
-
-export interface AvatarChatCommandDefinition {
-  pattern: RegExp;
-  parse: (match: RegExpMatchArray) => AvatarChatCommand;
-}
-
-export const avatarChatCommandRegistry: readonly AvatarChatCommandDefinition[] = [
+export const avatarChatCommandRegistry: AvatarChatCommandDefinition[] = [
   {
     pattern: /^!dance(?:\s*([1-4]))?$/i,
     parse: match => ({

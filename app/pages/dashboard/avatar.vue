@@ -2,8 +2,6 @@
 import { withQuery } from "ufo";
 import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
 import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
-import type { AvatarCatalog as AvatarCatalogData, AvatarLookupState, AvatarPreviewAction, AvatarSaveState, AvatarGender as Gender, HabboHotel, OutfitPart } from "../../types/avatar";
-import { avatarImagingUrl, colorsForType, copyOutfitParts, figureForParts, paletteForType, parseFigureString } from "../../utils/avatar";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 
@@ -15,8 +13,8 @@ interface HabboFigureLookup {
   figureString?: string | null;
 }
 
-const catalog = avatarCatalogJson as unknown as AvatarCatalogData;
-const genderIcons: Record<Gender, string> = { M: "male.png", F: "female.png" };
+const catalog = avatarCatalogJson as unknown as AvatarCatalog;
+const genderIcons: Record<AvatarGender, string> = { M: "male.png", F: "female.png" };
 const previewDanceHeadDirectionOverrides: Partial<Record<number, number>> = {
   3: 2,
   4: 5,
@@ -42,7 +40,7 @@ const { data: avatar } = await useFetch(`/api/avatars/${user.value.twitchLogin}`
   })
 });
 
-const gender = ref<Gender>(avatar.value.gender);
+const gender = ref<AvatarGender>(avatar.value.gender);
 const selectedEffect = ref<number | null>(avatar.value.effect);
 const activeType = ref("hr");
 const selectedParts = ref<Record<string, OutfitPart>>({});
@@ -73,7 +71,7 @@ const figureTypes = catalog.categories;
 const figureTypeByCode = new Map(figureTypes.map(type => [type.type, type]));
 const outfitCount = computed(() => Object.keys(selectedParts.value).length);
 
-function defaultOutfit (forGender: Gender): Record<string, OutfitPart> {
+function defaultOutfit (forGender: AvatarGender): Record<string, OutfitPart> {
   return parseFigureString(DEFAULT_OUTFIT_FIGURES[forGender]);
 }
 
@@ -108,7 +106,7 @@ watch([figure, gender, selectedEffect], () => {
   if (saveState.value !== "saving") saveState.value = "idle";
 });
 
-function changeGender (value: Gender) {
+function changeGender (value: AvatarGender) {
   if (gender.value === value) return;
   gender.value = value;
   selectedParts.value = defaultOutfit(value);
@@ -280,7 +278,7 @@ async function saveAvatar () {
   }
 }
 
-function genderIcon (value: Gender): string {
+function genderIcon (value: AvatarGender): string {
   return `/avatar-generator/icons/${genderIcons[value]}`;
 }
 

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { ComponentPublicInstance } from "vue";
-
 const props = defineProps<{
   src: string;
   alt?: string;

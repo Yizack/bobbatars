@@ -3,7 +3,6 @@ import type { DropdownMenuItem } from "@nuxt/ui";
 import { useIntervalFn, useResizeObserver, useTimeoutFn } from "@vueuse/core";
 import { ChatClient } from "@twurple/chat";
 import { withQuery } from "ufo";
-import { type AvatarDanceAction, avatarDanceActions, parseAvatarChatCommand } from "../utils/avatarCommands";
 
 const props = withDefaults(defineProps<{
   user: string;

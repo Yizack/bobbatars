@@ -2,7 +2,6 @@
 import { withQuery } from "ufo";
 import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/default-outfit";
 import avatarCatalogJson from "../../data/avatar-generator/catalog.json";
-import { avatarImagingUrl } from "../../utils/avatar";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 

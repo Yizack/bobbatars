@@ -13,7 +13,7 @@
     "lint:fix": "pnpm lint:eslint --fix",
     "lint:eslint": "eslint",
     "lint:eslint:inspect": "pnpx @eslint/config-inspector",
-    "typecheck": "vue-tsc --noEmit -p .nuxt/tsconfig.json"
+    "test:types": "vue-tsc -b --noEmit"
   },
   "dependencies": {
     "@nuxt/ui": "4.12.0",

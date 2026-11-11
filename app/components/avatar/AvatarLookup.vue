@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { toRefs } from "vue";
-import type { AvatarLookupState, HabboHotel } from "../../types/avatar";
-
 const props = defineProps<{
   state: AvatarLookupState;
   name: string;
   error: string;
   queueMessage: string;
 }>();
+
 const { error, name, queueMessage, state } = toRefs(props);
 const hotel = defineModel<HabboHotel>("hotel", { required: true });
 const username = defineModel<string>("username", { required: true });
