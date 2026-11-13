@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from "vue";
 import { useIntersectionObserver } from "@vueuse/core";
-import { buildGroups, drawAt, loadClothingLayer, penguinSpriteForPose } from "~/utils/penguinSprites";
+import { buildGroups, drawAt, loadClothingLayer, penguinSpriteForPose, prepareSpriteCanvas } from "~/utils/penguinSprites";
 
 const props = defineProps<{
   itemId: number;
@@ -46,12 +46,7 @@ async function loadThumbnail (): Promise<void> {
 
     const width = entry.rotated ? entry.frame.h : entry.frame.w;
     const height = entry.rotated ? entry.frame.w : entry.frame.h;
-    element.width = width;
-    element.height = height;
-    const context = element.getContext("2d");
-    if (!context) throw new Error("This browser does not support canvas rendering.");
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
+    const context = prepareSpriteCanvas(element, width, height);
     drawAt(context, layer.img, entry, 0, 0);
     canvasStyle.value = {
       width: `${width * 3}px`,

@@ -127,7 +127,6 @@ const spriteStarts: Record<Exclude<PenguinPoseAction, "snowball">, number> = {
   dance4: danceSpriteId
 };
 let tintCanvas: HTMLCanvasElement | undefined;
-let tintContext: CanvasRenderingContext2D | null = null;
 
 function normalizeFrames (json: AtlasJson): Record<string, AtlasFrame> {
   const frames: Record<string, AtlasFrame> = {};
@@ -393,6 +392,21 @@ export function drawAt (
   context.restore();
 }
 
+export function prepareSpriteCanvas (
+  canvas: HTMLCanvasElement,
+  width: number,
+  height: number
+): CanvasRenderingContext2D {
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("This browser does not support canvas rendering.");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.clearRect(0, 0, width, height);
+  return context;
+}
+
 export function drawFrame (context: CanvasRenderingContext2D, img: HTMLImageElement, entry: SpriteEntry): void {
   drawAt(context, img, entry, entry.off.x, entry.off.y);
 }
@@ -427,15 +441,9 @@ function drawTintedFrame (
   entry: SpriteEntry,
   color: string
 ): void {
-  if (!tintCanvas) {
-    tintCanvas = document.createElement("canvas");
-    tintContext = tintCanvas.getContext("2d");
-  }
-  if (!tintContext) throw new Error("This browser does not support penguin color rendering.");
-  if (tintCanvas.width !== entry.size.w) tintCanvas.width = entry.size.w;
-  if (tintCanvas.height !== entry.size.h) tintCanvas.height = entry.size.h;
+  if (!tintCanvas) tintCanvas = document.createElement("canvas");
+  const tintContext = prepareSpriteCanvas(tintCanvas, entry.size.w, entry.size.h);
   tintContext.globalCompositeOperation = "source-over";
-  tintContext.clearRect(0, 0, tintCanvas.width, tintCanvas.height);
   drawFrame(tintContext, img, entry);
   tintContext.globalCompositeOperation = "multiply";
   tintContext.fillStyle = color;
@@ -584,13 +592,7 @@ export function drawPenguinFrame (
     ...frontFrames.flatMap(({ entries }) => entries)
   ]);
 
-  if (canvas.width !== bounds.width) canvas.width = bounds.width;
-  if (canvas.height !== bounds.height) canvas.height = bounds.height;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("This browser does not support canvas rendering.");
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = "high";
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  const context = prepareSpriteCanvas(canvas, bounds.width, bounds.height);
   context.save();
   context.translate(-bounds.x, -bounds.y);
   drawFrame(context, resources.base.img, baseEntry);
