@@ -170,7 +170,7 @@ function removeActivePart () {
 }
 
 function effectPreviewUrl (effectId: string | null): string {
-  return withQuery(avatarImagingUrl, {
+  return withQuery(habboImagingUrl, {
     figure: figureForParts(selectedParts.value),
     gender: gender.value,
     size: "m",
@@ -208,7 +208,7 @@ function itemPreviewUrl (type: string, setId: string): string {
   }
   previewParts[type] = { setId, colorIds: catalogPreviewColors(type, setId) };
 
-  return withQuery(avatarImagingUrl, {
+  return withQuery(habboImagingUrl, {
     figure: figureForParts(previewParts),
     gender: gender.value,
     size: "m",

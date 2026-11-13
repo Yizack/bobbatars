@@ -7,8 +7,6 @@ const props = defineProps<{
   itemId: number;
   label: string;
 }>();
-const penguinMediaCDN = useRuntimeConfig().public.penguinMediaCDN;
-
 const container = ref<HTMLSpanElement | null>(null);
 const canvas = ref<HTMLCanvasElement | null>(null);
 const visible = ref(false);
@@ -34,7 +32,7 @@ async function loadThumbnail (): Promise<void> {
   loading.value = true;
 
   try {
-    const layer = await loadClothingLayer(props.itemId, penguinMediaCDN);
+    const layer = await loadClothingLayer(props.itemId);
     if (isUnmounted) return;
     const element = canvas.value;
     const spriteId = penguinSpriteForPose(2, "std");

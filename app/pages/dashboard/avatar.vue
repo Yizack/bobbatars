@@ -143,7 +143,7 @@ const previewUrl = computed(() => {
     headDirection = previewDanceHeadDirectionOverrides[previewDirection.value] ?? previewDirection.value;
   }
 
-  return withQuery(avatarImagingUrl, {
+  return withQuery(habboImagingUrl, {
     head_direction: String(headDirection),
     direction: String(previewDirection.value),
     size: "fl",

@@ -19,7 +19,6 @@ const props = withDefaults(defineProps<{
   scale: 3,
   animate: false
 });
-const penguinMediaCDN = useRuntimeConfig().public.penguinMediaCDN;
 const emit = defineEmits<{
   error: [message: string];
 }>();
@@ -68,7 +67,7 @@ function updateAnimationLoop (): void {
 async function loadAppearance (): Promise<void> {
   const request = ++requestVersion;
   try {
-    const loaded = await loadPenguinRenderResources(props.appearance, penguinMediaCDN);
+    const loaded = await loadPenguinRenderResources(props.appearance);
     if (isUnmounted || request !== requestVersion) return;
     resources = loaded;
     if (loaded.failedClothingIds.length) {

@@ -35,7 +35,7 @@ const { data: avatar } = await useFetch<AvatarPreviewState>(`/api/avatars/${user
 
 const twitchLogin = computed(() => user.value?.twitchLogin || "");
 const displayName = computed(() => user.value?.twitchDisplay || twitchLogin.value || "Twitch user");
-const previewUrl = computed(() => avatar.value.avatarType === "habbo" ? withQuery(avatarImagingUrl, {
+const previewUrl = computed(() => avatar.value.avatarType === "habbo" ? withQuery(habboImagingUrl, {
   head_direction: "4",
   direction: "4",
   size: "fl",

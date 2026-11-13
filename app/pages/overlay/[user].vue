@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SceneOverlay from "~/components/scene/SceneOverlay.vue";
+
 const route = useRoute("overlay-user") as {
   params: { user: string };
   query: Record<string, string | undefined>;

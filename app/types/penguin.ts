@@ -1,4 +1,6 @@
-export type PenguinDirection = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+import type { AvatarDirection } from "./avatar";
+
+export type PenguinDirection = AvatarDirection;
 export type PenguinAction = "std" | "wlk" | "snowball";
 
 export interface PenguinAppearance {

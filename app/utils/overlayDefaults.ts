@@ -15,3 +15,35 @@ export const OVERLAY_LIMITS = {
   timeout: { min: 1, max: 1440 },
   roomHeight: { min: 38, max: 500, sliderMax: 494, step: 38 }
 } as const;
+
+export const OVERLAY_SCENE = {
+  tileWidth: 76,
+  tileHeight: 76 / 2,
+  avatarStepDuration: 320,
+  animationFrameInterval: 1000 / 30
+} as const;
+
+export const KNOWN_CHAT_BOTS = new Set([
+  "ankhbot",
+  "blerp",
+  "botisimo",
+  "botrix",
+  "coebot",
+  "commanderroot",
+  "deepbot",
+  "fossabot",
+  "mixitup",
+  "moobot",
+  "nightbot",
+  "phantombot",
+  "pretzel_rocks",
+  "sery_bot",
+  "soundalerts",
+  "streamcaptain",
+  "streamcord",
+  "streamelements",
+  "streamlabs",
+  "streamlabscharity",
+  "twitchat",
+  "wizebot"
+]);

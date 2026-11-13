@@ -1,3 +1,5 @@
+import type { AvatarChatCommand, AvatarChatCommandDefinition, AvatarDanceAction } from "../types/avatar";
+
 export const avatarDanceActions: AvatarDanceAction[] = ["dance1", "dance2", "dance3", "dance4"];
 
 export const avatarChatCommandRegistry: AvatarChatCommandDefinition[] = [

@@ -4,6 +4,8 @@ import { resolveMediaAssetPath } from "#shared/mediaAssets";
 import type { AvatarDanceAction } from "../types/avatar";
 import type { PenguinAction, PenguinAppearance, PenguinCatalogItem, PenguinDirection } from "../types/penguin";
 
+const penguinMediaCDN = () => useRuntimeConfig().public.penguinMediaCDN;
+
 interface SpriteRect {
   x?: number;
   y?: number;
@@ -192,12 +194,12 @@ function loadImage (url: string): Promise<HTMLImageElement> {
   });
 }
 
-function mediaAssetUrls (path: string, extension: "json" | "webp", penguinMediaCDN: string) {
+function mediaAssetUrls (path: string, extension: "json" | "webp") {
   const apiUrl = `${path}.${extension}`;
   const asset = path.replace(/^\/api\/media\//, "");
   const cdnAssetPath = resolveMediaAssetPath(`${asset}.${extension}`);
   if (!cdnAssetPath) throw new Error(`Unsupported sprite asset path: ${apiUrl}`);
-  const cdnBaseUrl = `${penguinMediaCDN.replace(/\/+$/, "")}/`;
+  const cdnBaseUrl = `${penguinMediaCDN().replace(/\/+$/, "")}/`;
   return { cdnUrl: new URL(cdnAssetPath, cdnBaseUrl).toString(), apiUrl };
 }
 
@@ -222,7 +224,7 @@ async function loadWithFallback<T> (
   }
 }
 
-export function loadLayer (spec: { name: string, path: string }, penguinMediaCDN: string): Promise<SpriteLayer> {
+export function loadLayer (spec: { name: string, path: string }): Promise<SpriteLayer> {
   const cached = layerRequests.get(spec.path);
   if (cached) {
     layerRequests.delete(spec.path);
@@ -231,8 +233,8 @@ export function loadLayer (spec: { name: string, path: string }, penguinMediaCDN
   }
 
   const request = (async () => {
-    const jsonUrls = mediaAssetUrls(spec.path, "json", penguinMediaCDN);
-    const imageUrls = mediaAssetUrls(spec.path, "webp", penguinMediaCDN);
+    const jsonUrls = mediaAssetUrls(spec.path, "json");
+    const imageUrls = mediaAssetUrls(spec.path, "webp");
     const json = await loadWithFallback(jsonUrls.cdnUrl, jsonUrls.apiUrl, async (url) => {
       const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
       if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}.`);
@@ -263,7 +265,7 @@ export function loadLayer (spec: { name: string, path: string }, penguinMediaCDN
   return request;
 }
 
-export function loadClothingLayer (id: number, penguinMediaCDN: string): Promise<SpriteLayer> {
+export function loadClothingLayer (id: number): Promise<SpriteLayer> {
   if (!Number.isSafeInteger(id) || id < 1) {
     return Promise.reject(new Error(`Invalid clothing sprite ID: ${id}`));
   }
@@ -276,7 +278,7 @@ export function loadClothingLayer (id: number, penguinMediaCDN: string): Promise
   const request = loadLayer({
     name: `clothing-${id}`,
     path: `/api/media/clothing/sprites/${id}`
-  }, penguinMediaCDN).catch((error: unknown) => {
+  }).catch((error: unknown) => {
     clothingLayerRequests.delete(id);
     throw error;
   });
@@ -292,13 +294,12 @@ export function loadClothingLayer (id: number, penguinMediaCDN: string): Promise
 }
 
 export function loadPenguinRenderResources (
-  appearance: PenguinAppearance,
-  penguinMediaCDN: string
+  appearance: PenguinAppearance
 ): Promise<PenguinRenderResources> {
   if (!renderResourcesRequest) {
     renderResourcesRequest = Promise.all([
-      loadLayer({ name: "body", path: "/api/media/penguin/body" }, penguinMediaCDN),
-      loadLayer({ name: "base", path: "/api/media/penguin/base" }, penguinMediaCDN)
+      loadLayer({ name: "body", path: "/api/media/penguin/body" }),
+      loadLayer({ name: "base", path: "/api/media/penguin/base" })
     ]).then(([body, base]) => ({ body, base })).catch((error: unknown) => {
       renderResourcesRequest = undefined;
       throw error;
@@ -320,7 +321,7 @@ export function loadPenguinRenderResources (
       );
     const results = await Promise.all(clothing.map(async (part) => {
       try {
-        return { part, layer: await loadClothingLayer(part.id, penguinMediaCDN) };
+        return { part, layer: await loadClothingLayer(part.id) };
       }
       catch (error) {
         console.info(`Could not load penguin clothing sprite ${part.id}.`, error);
