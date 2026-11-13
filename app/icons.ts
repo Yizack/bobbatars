@@ -39,5 +39,6 @@ export default [
   "pixelarticons:plus",
   "pixelarticons:minus",
   "simple-icons:twitch",
-  "pixelarticons:message-text"
+  "pixelarticons:message-text",
+  "pixelarticons:brush"
 ];

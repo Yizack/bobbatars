@@ -1476,13 +1476,6 @@ function avatarMenuItems (avatar: AvatarState): DropdownMenuItem[] {
   const items: DropdownMenuItem[] = [];
   if (avatar.avatarType === "penguin") {
     items.push({
-      label: "Clean",
-      onSelect: () => {
-        startPenguinCleaning(avatar);
-        updateAvatarMenuVisibility(avatar, false);
-      }
-    });
-    items.push({
       label: "Dance",
       icon: "pixelarticons:music",
       onSelect: () => setAvatarDanceFromMenu(avatar, "dance1")
@@ -1512,6 +1505,26 @@ function avatarMenuItems (avatar: AvatarState): DropdownMenuItem[] {
     icon: "pixelarticons:sofa",
     onSelect: () => toggleAvatarSittingFromMenu(avatar)
   });
+  if (avatar.avatarType === "penguin") {
+    items.push({
+      label: "Clean",
+      icon: "pixelarticons:brush",
+      onSelect: () => {
+        startPenguinCleaning(avatar);
+        updateAvatarMenuVisibility(avatar, false);
+      }
+    });
+    if (avatar.cleaning) {
+      items.push({
+        label: "Stop Clean",
+        icon: "pixelarticons:square",
+        onSelect: () => {
+          stopPenguinCleaning(avatar);
+          updateAvatarMenuVisibility(avatar, false);
+        }
+      });
+    }
+  }
   items.push({
     label: "Refresh Avatar",
     icon: "pixelarticons:reload",
