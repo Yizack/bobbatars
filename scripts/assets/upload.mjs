@@ -39,6 +39,7 @@ const r2Storage = createStorage({
 const catalogPath = new URL("../../app/data/avatar-generator/penguin-catalog.json", import.meta.url);
 const catalog = JSON.parse(await readFile(fileURLToPath(catalogPath), "utf8"));
 const itemIds = [...new Set(catalog
+  .filter(item => item.type !== 1)
   .map(item => item.paper_item_id)
   .filter(id => Number.isSafeInteger(id) && id > 0))];
 const assets = [
