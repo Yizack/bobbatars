@@ -441,7 +441,7 @@ useHead({ title: "Avatar | Bobbatars" });
 <template>
   <main>
     <div class="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-8 sm:py-8">
-      <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between" aria-labelledby="page-title">
+      <section class="flex flex-col gap-5" aria-labelledby="page-title">
         <div class="max-w-2xl">
           <h1 id="page-title" class="mt-3 text-3xl max-sm:text-2xl font-semibold tracking-normal text-highlighted sm:text-4xl">My Avatar</h1>
           <p class="mt-2 text-sm max-sm:text-xs leading-6 text-muted">Choose your avatar type and customize it with items from the matching catalog.</p>
