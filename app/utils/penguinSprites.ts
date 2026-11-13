@@ -570,7 +570,7 @@ export function drawPenguinFrame (
   const bodyEntries = framesFor(cleanBodyLayer ?? resources.body, frameName);
   const bodyLayer = cleanBodyLayer ?? resources.body;
   if (!bodyEntries.length) throw new Error(`Penguin sprite frame "${frameName}" is missing.`);
-  const clothing = resources.clothing.filter(({ key }) => cleanItemFrameIndex === null || key !== "body");
+  const clothing = resources.clothing.filter(({ id }) => cleanItemFrameIndex === null || id == PENGUIN_CLEAN_HAND_ITEM_ID);
   const backFrames = clothing
     .filter(({ catalogLayer }) => catalogLayer < PENGUIN_BODY_RENDER_LAYER)
     .map(({ id, layer }) => ({ layer, entries: clothingEntries(id, layer) }));
