@@ -1,7 +1,8 @@
-import { type ClothingPartKey, orderedClothingParts } from "#shared/clothing";
+import { CLOTHING_RENDER_ORDER, type ClothingPartKey, orderedClothingParts } from "#shared/clothing";
+import penguinCatalogJson from "../data/avatar-generator/penguin-catalog.json";
 import { resolveMediaAssetPath } from "#shared/mediaAssets";
 import type { AvatarDanceAction } from "../types/avatar";
-import type { PenguinAction, PenguinAppearance, PenguinDirection } from "../types/penguin";
+import type { PenguinAction, PenguinAppearance, PenguinCatalogItem, PenguinDirection } from "../types/penguin";
 
 interface SpriteRect {
   x?: number;
@@ -52,7 +53,7 @@ export interface SpriteLayer {
 export interface LoadedClothingLayer {
   id: number;
   key: ClothingPartKey;
-  placement: "back" | "front";
+  catalogLayer: number;
   layer: SpriteLayer;
 }
 
@@ -88,6 +89,10 @@ interface StaticRenderInfo {
 type PenguinPoseAction = PenguinAction | AvatarDanceAction | "sit";
 
 const danceSpriteId = 26;
+const PENGUIN_BODY_RENDER_LAYER = 2000;
+const penguinCatalogLayerByItemId = new Map<number, number>(
+  (penguinCatalogJson as PenguinCatalogItem[]).map(item => [item.paper_item_id, item.layer] as const)
+);
 // The atlas has throw poses for directions 0, 2, 4 and 6; odd directions use the next pose.
 const snowballSpriteByDirection: Record<PenguinDirection, number> = {
   0: 28,
@@ -302,7 +307,18 @@ export function loadPenguinRenderResources (
   }
 
   return renderResourcesRequest.then(async ({ body, base }) => {
-    const clothing = orderedClothingParts(appearance);
+    const clothing = orderedClothingParts(appearance)
+      .map((part) => {
+        const catalogLayer = penguinCatalogLayerByItemId.get(part.id);
+        if (catalogLayer === undefined) {
+          throw new Error(`Penguin catalog layer is missing for clothing item ${part.id}.`);
+        }
+        return { ...part, catalogLayer };
+      })
+      .sort((first, second) =>
+        first.catalogLayer - second.catalogLayer
+        || CLOTHING_RENDER_ORDER.indexOf(first.key) - CLOTHING_RENDER_ORDER.indexOf(second.key)
+      );
     const results = await Promise.all(clothing.map(async (part) => {
       try {
         return { part, layer: await loadClothingLayer(part.id, penguinMediaCDN) };
@@ -316,7 +332,7 @@ export function loadPenguinRenderResources (
       body,
       base,
       clothing: results.flatMap(({ part, layer }) =>
-        layer ? [{ id: part.id, key: part.key, placement: part.placement, layer }] : []
+        layer ? [{ id: part.id, key: part.key, catalogLayer: part.catalogLayer, layer }] : []
       ),
       failedClothingIds: results.flatMap(({ part, layer }) => layer ? [] : [part.id])
     };
@@ -556,10 +572,10 @@ export function drawPenguinFrame (
   if (!bodyEntries.length) throw new Error(`Penguin sprite frame "${frameName}" is missing.`);
   const clothing = resources.clothing.filter(({ key }) => cleanItemFrameIndex === null || key !== "body");
   const backFrames = clothing
-    .filter(({ placement }) => placement === "back")
+    .filter(({ catalogLayer }) => catalogLayer < PENGUIN_BODY_RENDER_LAYER)
     .map(({ id, layer }) => ({ layer, entries: clothingEntries(id, layer) }));
   const frontFrames = clothing
-    .filter(({ placement }) => placement === "front")
+    .filter(({ catalogLayer }) => catalogLayer >= PENGUIN_BODY_RENDER_LAYER)
     .map(({ id, layer }) => ({ layer, entries: clothingEntries(id, layer) }));
   const contentBounds = boundsForEntries([
     baseEntry,

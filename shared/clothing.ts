@@ -28,23 +28,16 @@ export const EMPTY_CLOTHING_PARTS: ClothingParts = {
   feet: null
 };
 
-const behindPenguinItemIds = new Set([3164, 10289]);
-
 export interface OrderedClothingPart {
   key: ClothingPartKey;
   id: number;
-  placement: "back" | "front";
 }
 
 export function orderedClothingParts (parts: ClothingParts): OrderedClothingPart[] {
   return CLOTHING_RENDER_ORDER.flatMap((key) => {
     const id = parts[key];
     if (id === null) return [];
-    return [{
-      key,
-      id,
-      placement: behindPenguinItemIds.has(id) ? "back" as const : "front" as const
-    }];
+    return [{ key, id }];
   });
 }
 
