@@ -1,6 +1,6 @@
 import { loadEnvFile } from "node:process";
 import { Buffer } from "node:buffer";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { createStorage } from "unstorage";
 import s3Driver from "unstorage/drivers/s3";
@@ -10,6 +10,9 @@ loadEnvFile();
 const MAX_MEDIA_BYTES = 10 * 1024 * 1024;
 const CONCURRENCY = 4;
 const MAX_ATTEMPTS = 4;
+const AVERAGE_DAYS_PER_MONTH = 365.25 / 12;
+const CACHE_MAX_AGE_MONTHS = 6;
+const CACHE_MAX_AGE_SECONDS = CACHE_MAX_AGE_MONTHS * AVERAGE_DAYS_PER_MONTH * 24 * 60 * 60;
 const mediaSourceUrl = (process.env.NUXT_MEDIA_SOURCE_URL || "https://media.cplegacy.com/assets/media").replace(/\/+$/, "");
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
 const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
@@ -33,7 +36,7 @@ const r2Storage = createStorage({
   })
 });
 
-const catalogPath = new URL("../app/data/avatar-generator/penguin-catalog.json", import.meta.url);
+const catalogPath = new URL("../../app/data/avatar-generator/penguin-catalog.json", import.meta.url);
 const catalog = JSON.parse(await readFile(fileURLToPath(catalogPath), "utf8"));
 const itemIds = [...new Set(catalog
   .map(item => item.paper_item_id)
@@ -65,6 +68,7 @@ const assets = [
   },
   ...itemIds.map(id => ({
     label: `catalog item ${id}`,
+    itemId: id,
     files: [
       { path: `clothing/sprites/${id}.json`, source: `clothing/sprites/${id}.json`, type: "application/json" },
       { path: `clothing/sprites/${id}-0.webp`, source: `clothing/sprites/${id}-0.webp`, type: "image/webp" }
@@ -111,7 +115,9 @@ async function existsInR2 (path) {
 }
 
 async function uploadToR2 (path, data, contentType) {
-  await r2Storage.setItemRaw(path, new Blob([data], { type: contentType }));
+  await r2Storage.setItemRaw(path, new Blob([data], { type: contentType }), {
+    headers: { "Cache-Control": `public, max-age=${CACHE_MAX_AGE_SECONDS}, s-maxage=${CACHE_MAX_AGE_SECONDS}` }
+  });
 }
 
 async function syncAssetGroup (assetGroup) {
@@ -160,6 +166,7 @@ let completed = 0;
 let uploadedCount = 0;
 let skippedCount = 0;
 let missingCount = 0;
+const unavailableItemIds = [];
 const failures = [];
 
 await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
@@ -170,6 +177,7 @@ await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
       uploadedCount += result.uploaded;
       skippedCount += result.skipped;
       missingCount += result.missing;
+      if (result.missing && current.itemId) unavailableItemIds.push(current.itemId);
     }
     catch (error) {
       failures.push({ label: current.label, message: error instanceof Error ? error.message : String(error) });
@@ -181,6 +189,14 @@ await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
   }
 }));
 
+const unavailableItemIdsPath = new URL("../../.data/unavailable-penguin-catalog-items.txt", import.meta.url);
+await mkdir(new URL("../../.data/", import.meta.url), { recursive: true });
+await writeFile(
+  unavailableItemIdsPath,
+  `${[...new Set(unavailableItemIds)].sort((a, b) => a - b).join("\n")}${unavailableItemIds.length ? "\n" : ""}`,
+  "utf8"
+);
+console.info("Saved unavailable catalog item IDs to .data/unavailable-penguin-catalog-items.txt.");
 console.info(`Uploaded ${uploadedCount} files; skipped ${skippedCount} existing groups; unavailable catalog items ${missingCount}; failed groups ${failures.length}.`);
 if (failures.length) {
   failures.slice(0, 20).forEach(failure => console.warn(`${failure.label}: ${failure.message}`));

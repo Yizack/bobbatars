@@ -13,7 +13,8 @@
     "lint:fix": "pnpm lint:eslint --fix",
     "lint:eslint": "eslint",
     "lint:eslint:inspect": "pnpx @eslint/config-inspector",
-    "test:types": "vue-tsc -b --noEmit"
+    "test:types": "vue-tsc -b --noEmit",
+    "assets:upload": "node scripts/assets/upload.mjs"
   },
   "dependencies": {
     "@nuxt/ui": "4.12.0",
