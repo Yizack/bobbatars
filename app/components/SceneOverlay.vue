@@ -1994,7 +1994,7 @@ onBeforeUnmount(() => {
           <canvas
             v-else-if="avatar.avatarType === 'penguin' && avatar.currentImage"
             :ref="avatar.imageRef"
-            class="pointer-events-none absolute left-0 top-19 z-[2] max-w-full select-none [image-rendering:pixelated]"
+            class="pointer-events-none absolute left-0 top-19 z-[2] max-w-full select-none"
             :aria-label="`Avatar de ${avatar.displayName}`"
             aria-hidden="true"
           />

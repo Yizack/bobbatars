@@ -38,12 +38,15 @@ function draw (now = performance.now()): void {
   if (!element || !resources) return;
   const sequence = spriteSequenceForPose(resources.body, props.direction, props.action);
   const frameIndex = props.animate && props.action === "wlk" ? Math.floor(Math.max(0, now - animationStartedAt) / (320 / sequence.length)) % sequence.length : 0;
+  const context = element.getContext("2d");
+  if (!context) throw new Error("This browser does not support canvas rendering.");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
   bounds = drawPenguinFrame(element, resources, props.appearance, props.direction, props.action, frameIndex);
   canvasStyle.value = {
     width: `${(bounds.width * props.scale) / 2}px`,
     height: `${(bounds.height * props.scale) / 2}px`,
     maxWidth: "100%",
-    imageRendering: "pixelated",
     scale: "1.2"
   };
 }
@@ -120,7 +123,7 @@ onBeforeUnmount(() => {
   <canvas
     ref="canvas"
     :style="canvasStyle"
-    class="max-w-full object-contain [image-rendering:pixelated]"
+    class="max-w-full object-contain"
     role="img"
     aria-label="Club Penguin avatar preview"
   />

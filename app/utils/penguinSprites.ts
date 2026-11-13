@@ -588,7 +588,8 @@ export function drawPenguinFrame (
   if (canvas.height !== bounds.height) canvas.height = bounds.height;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("This browser does not support canvas rendering.");
-  context.imageSmoothingEnabled = false;
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.save();
   context.translate(-bounds.x, -bounds.y);

@@ -118,7 +118,7 @@ const penguinCategoryCount = CLOTHING_PARTS.length;
           </template>
 
           <div class="relative grid min-h-88 place-items-center overflow-hidden bg-neutral-950 p-6 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-size-[32px_32px]">
-            <HabboPreviewImage v-if="avatar.avatarType === 'habbo' && !previewUnavailable" class="relative z-10 [image-rendering:pixelated]" :src="previewUrl" @error="previewUnavailable = true" />
+            <HabboPreviewImage v-if="avatar.avatarType === 'habbo' && !previewUnavailable" class="relative z-10" :src="previewUrl" @error="previewUnavailable = true" />
             <PenguinAvatarCanvas v-else-if="avatar.avatarType === 'penguin'" class="relative z-10" :appearance="avatar" :direction="4" action="std" :scale="3" />
             <UAlert v-else class="relative z-10 max-w-sm" color="warning" variant="subtle" title="Preview unavailable" description="Your saved avatar is still available in the editor." icon="pixelarticons:image-broken" :ui="{ title: 'max-sm:text-xs', description: 'max-sm:text-[11px]' }" />
           </div>

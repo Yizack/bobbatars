@@ -50,7 +50,8 @@ async function loadThumbnail (): Promise<void> {
     element.height = height;
     const context = element.getContext("2d");
     if (!context) throw new Error("This browser does not support canvas rendering.");
-    context.imageSmoothingEnabled = false;
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
     drawAt(context, layer.img, entry, 0, 0);
     canvasStyle.value = {
       width: `${width * 3}px`,
@@ -83,7 +84,7 @@ onBeforeUnmount(() => {
       v-show="loaded && !unavailable"
       ref="canvas"
       :style="canvasStyle"
-      class="max-h-24 max-w-full object-contain [image-rendering:pixelated]"
+      class="max-h-24 max-w-full object-contain"
       role="img"
       :aria-label="`${label} preview without penguin body`"
     />
