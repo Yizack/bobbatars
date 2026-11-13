@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<{
   chat?: boolean;
   maxAvatars?: number;
   timeout?: number;
-  defaultAvatarType?: DefaultAvatarType;
+  defaultAvatar?: DefaultAvatarType;
   roomHeight?: number;
   embedded?: boolean;
 }>(), {
@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<{
   tileColor: OVERLAY_DEFAULTS.tileColor,
   maxAvatars: OVERLAY_DEFAULTS.maxAvatars,
   timeout: OVERLAY_DEFAULTS.timeout,
-  defaultAvatarType: OVERLAY_DEFAULTS.defaultAvatarType,
+  defaultAvatar: OVERLAY_DEFAULTS.defaultAvatar,
   roomHeight: OVERLAY_DEFAULTS.roomHeight,
   embedded: false
 });
@@ -236,9 +236,9 @@ function randomSitDirection (): PenguinDirection {
   return Math.random() < 0.5 ? 2 : 4;
 }
 
-function resolveDefaultAvatarType (defaultAvatarType: DefaultAvatarType): AvatarType {
-  if (defaultAvatarType === "random") return Math.random() < 0.5 ? "habbo" : "penguin";
-  return defaultAvatarType;
+function resolveDefaultAvatarType (defaultAvatar: DefaultAvatarType): AvatarType {
+  if (defaultAvatar === "random") return Math.random() < 0.5 ? "habbo" : "penguin";
+  return defaultAvatar;
 }
 
 function fallbackAvatarResponse (avatarType: AvatarType): AvatarFigureResponse {
@@ -891,7 +891,7 @@ function createAvatarState (user: ActiveUser): AvatarState | null {
     activity: user.activity,
     avatarType: "habbo",
     profileStatus: "pending",
-    fallbackAvatarType: resolveDefaultAvatarType(props.defaultAvatarType),
+    fallbackAvatarType: resolveDefaultAvatarType(props.defaultAvatar),
     figure: defaultFigure,
     effect: null,
     penguinAppearance: { ...defaultPenguinAppearance },
@@ -1269,9 +1269,9 @@ async function applyAvatarFigureResponse (avatar: AvatarState, response: AvatarF
   if (!avatar.removed && activeUser?.cleaning) startPenguinCleaning(avatar);
 }
 
-watch(() => props.defaultAvatarType, (defaultAvatarType) => {
+watch(() => props.defaultAvatar, (defaultAvatar) => {
   for (const avatar of avatars.value) {
-    avatar.fallbackAvatarType = resolveDefaultAvatarType(defaultAvatarType);
+    avatar.fallbackAvatarType = resolveDefaultAvatarType(defaultAvatar);
     if (avatar.profileStatus !== "unregistered") continue;
     if (avatar.cleaning) stopPenguinCleaning(avatar);
     const requestVersion = ++avatar.figureRequestVersion;

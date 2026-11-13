@@ -27,10 +27,10 @@ const timeout = computed(() => {
     Math.max(OVERLAY_LIMITS.timeout.min, parsedValue)
   );
 });
-const defaultAvatarType = computed(() => {
-  const queryValue = route.query.defaultAvatarType;
+const defaultAvatar = computed(() => {
+  const queryValue = route.query.defaultAvatar;
   if (queryValue === "habbo" || queryValue === "penguin" || queryValue === "random") return queryValue;
-  return OVERLAY_DEFAULTS.defaultAvatarType;
+  return OVERLAY_DEFAULTS.defaultAvatar;
 });
 const roomHeight = computed(() => {
   const queryValue = route.query.roomHeight;
@@ -59,7 +59,7 @@ useHead({
       :chat="chat"
       :max-avatars="maxAvatars"
       :inactive-timeout-minutes="timeout"
-      :default-avatar-type="defaultAvatarType"
+      :default-avatar="defaultAvatar"
       :room-height="roomHeight"
     />
   </main>

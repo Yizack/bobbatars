@@ -13,7 +13,7 @@ const tiles = ref(OVERLAY_DEFAULTS.tiles);
 const chat = ref(OVERLAY_DEFAULTS.chat);
 const maxAvatars = ref(OVERLAY_DEFAULTS.maxAvatars);
 const timeout = ref(OVERLAY_DEFAULTS.timeout);
-const defaultAvatarType = ref<DefaultAvatarType>(OVERLAY_DEFAULTS.defaultAvatarType);
+const defaultAvatar = ref<DefaultAvatarType>(OVERLAY_DEFAULTS.defaultAvatar);
 const roomHeight = ref(OVERLAY_DEFAULTS.roomHeight);
 const defaultAvatarTypeOptions: { label: string, value: DefaultAvatarType }[] = [
   { label: "Habbo", value: "habbo" },
@@ -34,7 +34,7 @@ const overlayUrl = computed(() => withQuery(
     maxAvatars: maxAvatars.value === OVERLAY_DEFAULTS.maxAvatars ? undefined : String(maxAvatars.value),
     timeout: timeout.value === OVERLAY_DEFAULTS.timeout ? undefined : String(timeout.value),
     roomHeight: roomHeight.value === OVERLAY_DEFAULTS.roomHeight ? undefined : String(roomHeight.value),
-    defaultAvatarType: defaultAvatarType.value === OVERLAY_DEFAULTS.defaultAvatarType ? undefined : defaultAvatarType.value,
+    defaultAvatar: defaultAvatar.value === OVERLAY_DEFAULTS.defaultAvatar ? undefined : defaultAvatar.value,
     backgroundColor: backgroundWithOpacity.value?.slice(1)
   }
 ));
@@ -91,7 +91,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
               :chat="chat"
               :max-avatars="maxAvatars"
               :inactive-timeout-minutes="timeout"
-              :default-avatar-type="defaultAvatarType"
+              :default-avatar="defaultAvatar"
               :room-height="roomHeight"
               embedded
             />
@@ -364,7 +364,7 @@ useHead({ title: "OBS Overlay | Bobbatars" });
                     :ui="{ description: 'text-xs max-sm:text-[11px] leading-5 text-muted' }"
                   >
                     <USelect
-                      v-model="defaultAvatarType"
+                      v-model="defaultAvatar"
                       :items="defaultAvatarTypeOptions"
                       value-key="value"
                       label-key="label"

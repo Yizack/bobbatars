@@ -7,7 +7,7 @@ export const OVERLAY_DEFAULTS = {
   maxAvatars: 50,
   timeout: 15,
   roomHeight: 266,
-  defaultAvatarType: "habbo"
+  defaultAvatar: "random"
 } as const;
 
 export const OVERLAY_LIMITS = {
