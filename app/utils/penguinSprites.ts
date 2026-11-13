@@ -392,6 +392,11 @@ export function drawAt (
   context.restore();
 }
 
+export function spriteEntryDimensions (entry: SpriteEntry): { width: number, height: number } {
+  if (entry.rotated) return { width: entry.frame.h, height: entry.frame.w };
+  return { width: entry.frame.w, height: entry.frame.h };
+}
+
 export function prepareSpriteCanvas (
   canvas: HTMLCanvasElement,
   width: number,
@@ -418,8 +423,7 @@ function boundsForEntries (entries: SpriteEntry[]): SpriteBounds {
   let right = Number.NEGATIVE_INFINITY;
   let bottom = Number.NEGATIVE_INFINITY;
   for (const entry of entries) {
-    const width = entry.rotated ? entry.frame.h : entry.frame.w;
-    const height = entry.rotated ? entry.frame.w : entry.frame.h;
+    const { width, height } = spriteEntryDimensions(entry);
     left = Math.min(left, entry.off.x);
     top = Math.min(top, entry.off.y);
     right = Math.max(right, entry.off.x + width);

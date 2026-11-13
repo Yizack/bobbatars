@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from "vue";
 import { useIntersectionObserver } from "@vueuse/core";
-import { buildGroups, drawAt, loadClothingLayer, penguinSpriteForPose, prepareSpriteCanvas } from "~/utils/penguinSprites";
+import { buildGroups, drawAt, loadClothingLayer, penguinSpriteForPose, prepareSpriteCanvas, spriteEntryDimensions } from "~/utils/penguinSprites";
 
 const props = defineProps<{
   itemId: number;
@@ -44,8 +44,7 @@ async function loadThumbnail (): Promise<void> {
       throw new Error(`Clothing sprite ${props.itemId} does not contain a standing preview.`);
     }
 
-    const width = entry.rotated ? entry.frame.h : entry.frame.w;
-    const height = entry.rotated ? entry.frame.w : entry.frame.h;
+    const { width, height } = spriteEntryDimensions(entry);
     const context = prepareSpriteCanvas(element, width, height);
     drawAt(context, layer.img, entry, 0, 0);
     canvasStyle.value = {
