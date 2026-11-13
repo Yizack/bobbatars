@@ -1506,20 +1506,22 @@ function avatarMenuItems (avatar: AvatarState): DropdownMenuItem[] {
     onSelect: () => toggleAvatarSittingFromMenu(avatar)
   });
   if (avatar.avatarType === "penguin") {
-    items.push({
-      label: "Clean",
-      icon: "pixelarticons:brush",
-      onSelect: () => {
-        startPenguinCleaning(avatar);
-        updateAvatarMenuVisibility(avatar, false);
-      }
-    });
     if (avatar.cleaning) {
       items.push({
         label: "Stop Clean",
         icon: "pixelarticons:square",
         onSelect: () => {
           stopPenguinCleaning(avatar);
+          updateAvatarMenuVisibility(avatar, false);
+        }
+      });
+    }
+    else {
+      items.push({
+        label: "Clean",
+        icon: "pixelarticons:brush",
+        onSelect: () => {
+          startPenguinCleaning(avatar);
           updateAvatarMenuVisibility(avatar, false);
         }
       });
