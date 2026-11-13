@@ -44,7 +44,7 @@ function draw (now = performance.now()): void {
     height: `${(bounds.height * props.scale) / 2}px`,
     maxWidth: "100%",
     imageRendering: "pixelated",
-    scale: "1.5"
+    scale: "1.2"
   };
 }
 
