@@ -1,12 +1,3 @@
-import type { Ref } from "vue";
-import type { AvatarDirection } from "../../types/avatar";
-import type { AvatarAction, AvatarState, RoomTile, Tile } from "../../types/sceneAvatar";
-import type { PreloadedImage } from "../../utils/habboAvatar";
-import { preloadHabboAvatar } from "../../utils/habboAvatar";
-import { directionForTileDelta } from "../../utils/sceneAvatar";
-import { OVERLAY_SCENE } from "../../utils/overlayDefaults";
-import { type SceneGeometry, isTileInScene } from "./sceneGeometry";
-
 interface SceneMovementOptions {
   avatars: Ref<AvatarState[]>;
   roomTiles: Ref<RoomTile[]>;

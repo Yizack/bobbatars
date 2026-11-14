@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, toRefs, watch } from "vue";
 import { useInfiniteScroll } from "@vueuse/core";
-import type { PenguinCatalogItem, PenguinClothingCategory } from "~/types/penguin";
 
 const props = defineProps<{
   items: PenguinCatalogItem[];

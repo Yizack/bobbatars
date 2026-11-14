@@ -1,31 +1,5 @@
 <script setup lang="ts">
 import { useResizeObserver, useTimeoutFn } from "@vueuse/core";
-import SceneAvatar from "./SceneAvatar.vue";
-import { createSceneAvatarControls } from "./createSceneAvatarControls";
-import { createSceneAvatarRenderer } from "./createSceneAvatarRenderer";
-import { createSceneMovement } from "./createSceneMovement";
-import { createSceneAvatarRegistry } from "./createSceneAvatarRegistry";
-import { createSceneAvatarProfiles } from "./createSceneAvatarProfiles";
-import { createSceneChat } from "./useSceneChat";
-import {
-  createRoomTiles,
-  createSceneGeometry,
-  roomTilePoints
-} from "./sceneGeometry";
-import type { DefaultAvatarType } from "../../types/avatar";
-import type {
-  ActiveUser,
-  AvatarElements,
-  AvatarState,
-  RoomTile
-} from "../../types/sceneAvatar";
-import {
-  type PenguinRenderResources,
-  loadPenguinRenderResources
-} from "../../utils/penguinSprites";
-import { randomSitDirection } from "../../utils/sceneAvatar";
-import type { PreloadedImage } from "../../utils/habboAvatar";
-import { createPenguinSceneActions } from "../../utils/penguinAction";
 
 const props = withDefaults(defineProps<{
   user: string;

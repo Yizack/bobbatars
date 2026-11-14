@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from "@nuxt/ui";
-import type { ComponentPublicInstance } from "vue";
-import { avatarDanceActions } from "../../utils/avatarCommands";
-import type { AvatarDanceAction, AvatarMenuAction, AvatarType } from "../../types/avatar";
 
 type AvatarElementRef = Element | ComponentPublicInstance | null;
 

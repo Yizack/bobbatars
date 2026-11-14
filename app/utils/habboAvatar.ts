@@ -1,12 +1,5 @@
 import { withQuery } from "ufo";
 import { DEFAULT_OUTFIT_FIGURES } from "../data/avatar-generator/habbo-default-outfit";
-import type { AvatarAction } from "../types/sceneAvatar";
-import type {
-  AvatarColor,
-  AvatarGender,
-  FigureSetType,
-  OutfitPart
-} from "../types/habboAvatar";
 
 export const habboImagingUrl = "https://habbohistory.com/habbo-imaging/avatarimage.webp";
 export const DEFAULT_HABBO_FIGURE = "hd-180-1.hr-100-61.ch-210-66.lg-270-82.sh-290-80";

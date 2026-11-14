@@ -1,16 +1,3 @@
-import type { ActiveUser, AvatarAction, AvatarState } from "../types/sceneAvatar";
-import type { PenguinDirection } from "../types/penguin";
-import {
-  PENGUIN_CLEAN_BODY_ACTION_ID,
-  PENGUIN_CLEAN_HAND_ITEM_ID,
-  PENGUIN_CLEAN_ITEM_ANIMATION_SPRITE_ID,
-  type PenguinRenderResources,
-  loadLayer,
-  loadPenguinRenderResources,
-  spriteSequenceForGroup
-} from "./penguinSprites";
-import { PENGUIN_DANCE_FRAME_INTERVAL, PENGUIN_SNOWBALL_FRAME_COUNT } from "./penguinAvatar";
-
 interface PenguinSceneActionOptions {
   activeUsers: Map<string, ActiveUser>;
   animatingPenguins: Set<AvatarState>;

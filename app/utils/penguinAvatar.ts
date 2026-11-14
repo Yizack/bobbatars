@@ -1,17 +1,4 @@
 import { EMPTY_CLOTHING_PARTS } from "#shared/clothing";
-import type { AvatarState } from "../types/sceneAvatar";
-import type { PenguinAppearance, PenguinDirection } from "../types/penguin";
-import {
-  PENGUIN_CLEAN_BODY_ACTION_ID,
-  PENGUIN_CLEAN_HAND_ITEM_ID,
-  PENGUIN_CLEAN_ITEM_ANIMATION_SPRITE_ID,
-  type PenguinRenderResources,
-  type SpriteLayer,
-  drawPenguinFrame,
-  spriteSequenceForGroup,
-  spriteSequenceForPose
-} from "./penguinSprites";
-import { OVERLAY_SCENE } from "./overlayDefaults";
 
 export const DEFAULT_PENGUIN_APPEARANCE: PenguinAppearance = {
   ...EMPTY_CLOTHING_PARTS,

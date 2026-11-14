@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { useClipboard } from "@vueuse/core";
 import { withQuery } from "ufo";
-import type { DefaultAvatarType } from "~/types/avatar";
-import SceneOverlay from "~/components/scene/SceneOverlay.vue";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 

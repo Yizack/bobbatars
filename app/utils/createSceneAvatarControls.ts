@@ -1,7 +1,3 @@
-import type { Ref } from "vue";
-import type { AvatarDanceAction, AvatarDirection, AvatarMenuAction } from "../../types/avatar";
-import type { ActiveUser, AvatarState } from "../../types/sceneAvatar";
-
 interface SceneAvatarControlsOptions {
   activeUsers: Map<string, ActiveUser>;
   avatars: Ref<AvatarState[]>;

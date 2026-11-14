@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { PenguinAction, PenguinAppearance, PenguinDirection } from "~/types/penguin";
-
 const props = defineProps<{
   selectedParts: PenguinAppearance;
   outfitCount: number;

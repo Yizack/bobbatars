@@ -1,11 +1,3 @@
-import { type Ref, nextTick, reactive } from "vue";
-import type { AvatarDirection, DefaultAvatarType } from "../../types/avatar";
-import type { ActiveUser, AvatarAction, AvatarElementRef, AvatarElements, AvatarPart, AvatarState, Tile } from "../../types/sceneAvatar";
-import { DEFAULT_HABBO_FIGURE } from "../../utils/habboAvatar";
-import { DEFAULT_PENGUIN_APPEARANCE } from "../../utils/penguinAvatar";
-import type { PenguinRenderResources } from "../../utils/penguinSprites";
-import { randomSitDirection, resolveDefaultAvatarType } from "../../utils/sceneAvatar";
-
 interface SceneAvatarRegistryOptions {
   activeUsers: Map<string, ActiveUser>;
   avatars: Ref<AvatarState[]>;

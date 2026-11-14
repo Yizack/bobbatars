@@ -1,6 +1,3 @@
-import type { RoomTile, Tile } from "../../types/sceneAvatar";
-import { OVERLAY_SCENE } from "../../utils/overlayDefaults";
-
 export interface SceneGeometry {
   roomWidth: number;
   roomHeight: number;

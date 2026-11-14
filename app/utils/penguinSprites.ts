@@ -1,8 +1,6 @@
 import { CLOTHING_RENDER_ORDER, type ClothingPartKey, orderedClothingParts } from "#shared/clothing";
 import penguinCatalogJson from "../data/avatar-generator/penguin-catalog.json";
 import { resolveMediaAssetPath } from "#shared/mediaAssets";
-import type { AvatarDanceAction } from "../types/avatar";
-import type { PenguinAction, PenguinAppearance, PenguinCatalogItem, PenguinDirection } from "../types/penguin";
 
 const penguinMediaCDN = () => useRuntimeConfig().public.penguinMediaCDN;
 

@@ -1,8 +1,4 @@
 import { ChatClient } from "@twurple/chat";
-import type { AvatarDanceAction } from "../../types/avatar";
-import type { ActiveUser, AvatarState } from "../../types/sceneAvatar";
-import { KNOWN_CHAT_BOTS } from "../../utils/overlayDefaults";
-import { parseAvatarChatCommand } from "../../utils/avatarCommands";
 
 interface SceneChatOptions {
   channel: string;

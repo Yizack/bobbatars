@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from "vue";
 import { useIntersectionObserver } from "@vueuse/core";
-import { buildGroups, drawAt, loadClothingLayer, penguinSpriteForPose, prepareSpriteCanvas, spriteEntryDimensions } from "~/utils/penguinSprites";
 
 const props = defineProps<{
   itemId: number;

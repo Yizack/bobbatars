@@ -1,5 +1,3 @@
-import type { AvatarDirection, AvatarType, DefaultAvatarType } from "../types/avatar";
-
 export function randomSitDirection (): AvatarDirection {
   return Math.random() < 0.5 ? 2 : 4;
 }

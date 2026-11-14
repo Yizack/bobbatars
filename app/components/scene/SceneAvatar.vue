@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import SceneAvatarActionsMenu from "./SceneAvatarActionsMenu.vue";
-import type { AvatarElementRef, AvatarState } from "../../types/sceneAvatar";
-import type { AvatarMenuAction } from "../../types/avatar";
-
 const props = defineProps<{
   avatar: AvatarState;
   user: string;

@@ -1,14 +1,4 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { PenguinAction, PenguinAppearance, PenguinDirection } from "~/types/penguin";
-import {
-  type PenguinRenderResources,
-  type SpriteBounds,
-  drawPenguinFrame,
-  loadPenguinRenderResources,
-  spriteSequenceForPose
-} from "~/utils/penguinSprites";
-
 const props = withDefaults(defineProps<{
   appearance: PenguinAppearance;
   direction: PenguinDirection;

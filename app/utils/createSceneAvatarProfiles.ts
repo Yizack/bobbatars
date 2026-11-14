@@ -1,13 +1,3 @@
-import { type Ref, watch } from "vue";
-import type { AvatarType, DefaultAvatarType } from "../../types/avatar";
-import type { ActiveUser, AvatarFigureResponse, AvatarState } from "../../types/sceneAvatar";
-import type { PenguinAppearance } from "../../types/penguin";
-import { DEFAULT_HABBO_FIGURE } from "../../utils/habboAvatar";
-import {
-  DEFAULT_PENGUIN_APPEARANCE
-} from "../../utils/penguinAvatar";
-import type { PenguinRenderResources } from "../../utils/penguinSprites";
-
 interface SceneAvatarProfilesOptions {
   avatars: Ref<AvatarState[]>;
   activeUsers: Map<string, ActiveUser>;

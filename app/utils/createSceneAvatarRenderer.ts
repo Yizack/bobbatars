@@ -1,13 +1,3 @@
-import { nextTick } from "vue";
-import type { AvatarDirection } from "../../types/avatar";
-import type { AvatarElementRef, AvatarElements, AvatarPart, AvatarState } from "../../types/sceneAvatar";
-import { OVERLAY_SCENE } from "../../utils/overlayDefaults";
-import type { PenguinRenderResources } from "../../utils/penguinSprites";
-import { type PreloadedImage, habboImageUrl, preloadHabboAvatar } from "../../utils/habboAvatar";
-import { renderPenguinAvatar } from "../../utils/penguinAvatar";
-import type { SceneGeometry } from "./sceneGeometry";
-import { positionForTile } from "./sceneGeometry";
-
 interface SceneAvatarRendererOptions {
   avatarsByUser: Map<string, AvatarState>;
   avatarElements: Map<string, AvatarElements>;
