@@ -57,6 +57,10 @@ export function createSceneMovement (options: SceneMovementOptions) {
     ));
   }
 
+  function isPenguinDancing (avatar: AvatarState) {
+    return avatar.avatarType === "penguin" && avatar.danceAction !== null;
+  }
+
   function scheduleAvatarAnimation () {
     if (animationFrame === null) {
       animationFrame = window.requestAnimationFrame(animateAvatarSteps);
@@ -74,7 +78,7 @@ export function createSceneMovement (options: SceneMovementOptions) {
   }
 
   function moveNextStep (avatar: AvatarState) {
-    if (avatar.removed || avatar.movementPaused || avatar.isSitting || avatar.danceAction !== null || avatar.cleaning || !avatar.current || !avatar.destination) return;
+    if (avatar.removed || avatar.movementPaused || avatar.isSitting || isPenguinDancing(avatar) || avatar.cleaning || !avatar.current || !avatar.destination) return;
     const movementVersion = avatar.movementVersion;
     const reportError = (error: unknown) => {
       if (movementVersion === avatar.movementVersion) {
@@ -236,7 +240,7 @@ export function createSceneMovement (options: SceneMovementOptions) {
       avatar.removed
       || avatar.movementPaused
       || avatar.isSitting
-      || avatar.danceAction !== null
+      || isPenguinDancing(avatar)
       || avatar.cleaning
       || avatar.action === "snowball"
       || !avatar.current
@@ -247,7 +251,7 @@ export function createSceneMovement (options: SceneMovementOptions) {
         avatar.removed
         || avatar.movementPaused
         || avatar.isSitting
-        || avatar.danceAction !== null
+        || isPenguinDancing(avatar)
         || avatar.cleaning
         || avatar.action === "snowball"
         || !avatar.current
@@ -288,7 +292,7 @@ export function createSceneMovement (options: SceneMovementOptions) {
   function walk (avatar: AvatarState) {
     if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
     avatar.randomTimer = null;
-    if (avatar.removed || avatar.movementPaused || avatar.isSitting || avatar.danceAction !== null || avatar.cleaning || avatar.isWalking) return;
+    if (avatar.removed || avatar.movementPaused || avatar.isSitting || isPenguinDancing(avatar) || avatar.cleaning || avatar.isWalking) return;
     avatar.isWalking = true;
     void moveNextStep(avatar);
   }
