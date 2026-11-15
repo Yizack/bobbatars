@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { fillTextPositions, parseEmotePositions } from "@twurple/chat";
+import { getTwitchEmoteImagesById } from "streamer-emotes";
 
 const props = withDefaults(defineProps<{
   text: string;
@@ -25,7 +26,7 @@ const parsedParts = computed(() => {
     if (part.type === "emote") {
       return [{
         token: part.name,
-        url: `https://static-cdn.jtvnw.net/emoticons/v2/${part.id}/default/dark/1.0`
+        url: getTwitchEmoteImagesById(part.id)?.[0]?.url ?? null
       }];
     }
 
