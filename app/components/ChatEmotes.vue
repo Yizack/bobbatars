@@ -24,10 +24,10 @@ const parsedParts = computed(() => {
   ).filter(part => part.type !== "cheer");
   return messageParts.flatMap((part) => {
     if (part.type === "emote") {
-      return [{
+      return {
         token: part.name,
         url: getTwitchEmoteImagesById(part.id)?.[0]?.url ?? null
-      }];
+      };
     }
 
     return part.text.split(" ").map(token => ({
