@@ -80,7 +80,6 @@ const penguinResourcesByLogin = new Map<string, PenguinRenderResources>();
 const pendingSnowballs = new Map<string, string | null>();
 
 let roomGeometry = createSceneGeometry(0, 0);
-let chatConnected = false;
 
 const avatarRenderer = createSceneAvatarRenderer({
   avatarsByUser,
@@ -150,7 +149,7 @@ function updateRoomLayout () {
 }
 
 function updateChatStatus () {
-  const connection = chatConnected ? `Conectado a #${chatChannel}` : `Conectando a #${chatChannel}`;
+  const connection = chatConnected.value ? `Conectado a #${chatChannel}` : `Conectando a #${chatChannel}`;
   status.value = `${connection} · ${avatars.value.length}/${maxAvatars.value} avatares activos`;
 }
 
@@ -158,44 +157,6 @@ function reportAvatarFetchError (avatar: AvatarState, error: unknown) {
   if (avatar.removed) return;
   status.value = `No se pudo obtener el avatar de ${avatar.login}.`;
   console.info(error);
-}
-
-async function showChatMessage (avatar: AvatarState, message: string, emoteOffsets: Map<string, string[]>) {
-  if (avatar.removed || !message.trim()) return;
-
-  avatar.bubbleMessage = message;
-  avatar.bubbleEmoteOffsets = emoteOffsets;
-  avatar.bubbleVisible = true;
-  window.clearTimeout(avatar.bubbleTimer ?? undefined);
-  avatar.bubbleTimer = window.setTimeout(() => {
-    if (avatar.removed) return;
-    avatar.bubbleVisible = false;
-    avatar.bubbleTimer = null;
-  }, 5000);
-
-  window.clearTimeout(avatar.gestureTimer ?? undefined);
-  const speechVersion = ++avatar.speechVersion;
-  avatar.gesture = "spk";
-  await nextTick();
-  if (avatar.removed) return;
-  placeAvatar(avatar);
-
-  try {
-    await updateAvatar(avatar, avatar.direction, avatar.action, "spk");
-  }
-  catch (error) {
-    reportAvatarLoadError(avatar, error);
-    return;
-  }
-  if (avatar.removed || speechVersion !== avatar.speechVersion) return;
-
-  avatar.gestureTimer = window.setTimeout(() => {
-    avatar.gestureTimer = null;
-    if (avatar.removed || speechVersion !== avatar.speechVersion) return;
-    avatar.gesture = "std";
-    void updateAvatar(avatar, avatar.direction, avatar.action, "std")
-      .catch(error => reportAvatarLoadError(avatar, error));
-  }, 5000);
 }
 
 function reportAvatarLoadError (avatar: AvatarState | null, error: unknown) {
@@ -318,7 +279,6 @@ const avatarRegistry = createSceneAvatarRegistry({
   refreshAvatarFigure,
   scheduleRandomMove,
   stopAvatarAnimation,
-  showChatMessage,
   resolvePendingSnowball,
   reportAvatarFetchError,
   reportAvatarLoadError,
@@ -334,11 +294,7 @@ const {
   stop: stopReconciliation
 } = useTimeoutFn(reconcileActiveAvatars, 250, { immediate: false });
 
-const {
-  connectToChat,
-  disconnectFromChat,
-  ensureStreamerActive
-} = createSceneChat({
+const sceneChat = createSceneChat({
   channel: chatChannel,
   streamerDisplayName: props.user,
   activeUsers,
@@ -346,24 +302,15 @@ const {
   pendingSnowballs,
   inactiveTimeoutMs: () => inactiveTimeoutMs.value,
   scheduleReconciliation,
-  showChatMessage,
   startPenguinCleaning,
   stopPenguinCleaning,
   setAvatarDance,
   setAvatarSitting,
   throwPenguinSnowball,
   refreshAvatarFigure,
-  reportAvatarFetchError,
-  onConnectionChange: (connected) => {
-    chatConnected = connected;
-    updateChatStatus();
-  },
-  onConnectionError: (error) => {
-    status.value = `No se pudo conectar al chat #${chatChannel}.`;
-    console.info(error);
-  }
+  reportAvatarFetchError
 });
-
+const { ensureStreamerActive } = sceneChat;
 watch(inactiveTimeoutMs, scheduleReconciliation);
 
 useResizeObserver(roomFrame, () => updateRoomLayout());
@@ -372,13 +319,20 @@ onMounted(() => {
   updateRoomLayout();
   ensureStreamerActive();
   reconcileActiveAvatars();
-  void connectToChat();
+});
+
+const { connected: chatConnected } = useTwitchChat(chatChannel, {
+  onMessage: sceneChat.handleMessage,
+  onConnectionChange: () => updateChatStatus(),
+  onConnectionError: (error) => {
+    status.value = `No se pudo conectar al chat #${chatChannel}.`;
+    console.info(error);
+  }
 });
 
 onBeforeUnmount(() => {
   stopReconciliation();
   disposeAvatarRegistry();
-  disconnectFromChat();
 
   for (const avatar of [...avatars.value]) removeAvatarState(avatar);
   avatarElements.clear();

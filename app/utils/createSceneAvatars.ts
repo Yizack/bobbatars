@@ -1,3 +1,183 @@
+interface SceneAvatarDependencies {
+  setAvatarElement: (login: string, part: AvatarPart, value: AvatarElementRef) => void;
+  updateAvatar: (
+    avatar: AvatarState,
+    direction: AvatarDirection,
+    action: AvatarAction,
+    gesture?: AvatarState["gesture"]
+  ) => Promise<void>;
+  placeAvatar: (avatar: AvatarState) => void;
+  reportAvatarLoadError: (avatar: AvatarState, error: unknown) => void;
+}
+
+export class SceneAvatar implements AvatarState {
+  declare login: string;
+  declare displayName: string;
+  declare activity: number;
+  declare avatarType: AvatarType;
+  declare profileStatus: "pending" | "registered" | "unregistered";
+  declare fallbackAvatarType: AvatarType;
+  declare figure: string;
+  declare effect: number | null;
+  declare penguinAppearance: PenguinAppearance;
+  declare figureRequestVersion: number;
+  declare avatarFigureReady: boolean;
+  declare cleaning: boolean;
+  declare cleanVersion: number;
+  declare cleanOriginalHand: number | null;
+  declare cleanOriginalResources: PenguinRenderResources | null;
+  declare menuVisible: boolean;
+  declare movementPaused: boolean;
+  declare isSitting: boolean;
+  declare current: Tile | null;
+  declare visual: Tile | null;
+  declare destination: Tile | null;
+  declare direction: AvatarDirection;
+  declare action: AvatarAction;
+  declare danceAction: AvatarDanceAction | null;
+  declare gesture: "std" | "spk";
+  declare currentImage: string;
+  declare imageWidth: number;
+  declare imageHeight: number;
+  declare bubbleMessage: string;
+  declare bubbleEmoteOffsets: Map<string, string[]>;
+  declare bubbleVisible: boolean;
+  declare shadowRef: AvatarState["shadowRef"];
+  declare imageRef: AvatarState["imageRef"];
+  declare clickTargetRef: AvatarState["clickTargetRef"];
+  declare labelRef: AvatarState["labelRef"];
+  declare popoverAnchorRef: AvatarState["popoverAnchorRef"];
+  declare menuAnchorRef: AvatarState["menuAnchorRef"];
+  declare isWalking: boolean;
+  declare nextStep: Tile | null;
+  declare animationStartedAt: number | null;
+  declare movementVersion: number;
+  declare randomTimer: number | null;
+  declare waitTimer: number | null;
+  declare snowballTimer: number | null;
+  declare bubbleTimer: number | null;
+  declare gestureTimer: number | null;
+  declare speechVersion: number;
+  declare removed: boolean;
+
+  private readonly dependencies: SceneAvatarDependencies;
+
+  constructor (
+    user: ActiveUser,
+    spawn: Tile,
+    fallbackAvatarType: AvatarType,
+    dependencies: SceneAvatarDependencies
+  ) {
+    this.dependencies = dependencies;
+    Object.assign(this, {
+      login: user.login,
+      displayName: user.displayName,
+      activity: user.activity,
+      avatarType: "habbo",
+      profileStatus: "pending",
+      fallbackAvatarType,
+      figure: DEFAULT_HABBO_FIGURE,
+      effect: null,
+      penguinAppearance: { ...DEFAULT_PENGUIN_APPEARANCE },
+      figureRequestVersion: 0,
+      avatarFigureReady: false,
+      cleaning: false,
+      cleanVersion: 0,
+      cleanOriginalHand: null,
+      cleanOriginalResources: null,
+      menuVisible: false,
+      movementPaused: false,
+      isSitting: user.isSitting,
+      current: { ...spawn },
+      visual: { ...spawn },
+      destination: { ...spawn },
+      direction: user.isSitting ? randomSitDirection() : 2,
+      action: user.isSitting ? "sit" : "std",
+      danceAction: user.danceAction,
+      gesture: "std",
+      currentImage: "",
+      imageWidth: 0,
+      imageHeight: 0,
+      bubbleMessage: "",
+      bubbleEmoteOffsets: new Map(),
+      bubbleVisible: false,
+      shadowRef: (element: AvatarElementRef) => dependencies.setAvatarElement(user.login, "shadow", element),
+      imageRef: (element: AvatarElementRef) => dependencies.setAvatarElement(user.login, "image", element),
+      clickTargetRef: (element: AvatarElementRef) => dependencies.setAvatarElement(user.login, "clickTarget", element),
+      labelRef: (element: AvatarElementRef) => dependencies.setAvatarElement(user.login, "label", element),
+      popoverAnchorRef: (element: AvatarElementRef) => dependencies.setAvatarElement(user.login, "popoverAnchor", element),
+      menuAnchorRef: (element: AvatarElementRef) => dependencies.setAvatarElement(user.login, "menuAnchor", element),
+      isWalking: false,
+      nextStep: null,
+      animationStartedAt: null,
+      movementVersion: 0,
+      randomTimer: null,
+      waitTimer: null,
+      snowballTimer: null,
+      bubbleTimer: null,
+      gestureTimer: null,
+      speechVersion: 0,
+      removed: false
+    });
+  }
+
+  clearTimers () {
+    if (this.randomTimer !== null) window.clearTimeout(this.randomTimer);
+    if (this.waitTimer !== null) window.clearTimeout(this.waitTimer);
+    if (this.snowballTimer !== null) window.clearTimeout(this.snowballTimer);
+    if (this.bubbleTimer !== null) window.clearTimeout(this.bubbleTimer);
+    if (this.gestureTimer !== null) window.clearTimeout(this.gestureTimer);
+    this.randomTimer = null;
+    this.waitTimer = null;
+    this.snowballTimer = null;
+    this.bubbleTimer = null;
+    this.gestureTimer = null;
+  }
+
+  markRemoved () {
+    this.removed = true;
+    this.movementVersion++;
+  }
+
+  async showChatMessage (message: string, emoteOffsets: Map<string, string[]>) {
+    if (this.removed || !message.trim()) return;
+
+    this.bubbleMessage = message;
+    this.bubbleEmoteOffsets = emoteOffsets;
+    this.bubbleVisible = true;
+    window.clearTimeout(this.bubbleTimer ?? undefined);
+    this.bubbleTimer = window.setTimeout(() => {
+      if (this.removed) return;
+      this.bubbleVisible = false;
+      this.bubbleTimer = null;
+    }, 5000);
+
+    window.clearTimeout(this.gestureTimer ?? undefined);
+    const speechVersion = ++this.speechVersion;
+    this.gesture = "spk";
+    await nextTick();
+    if (this.removed) return;
+    this.dependencies.placeAvatar(this);
+
+    try {
+      await this.dependencies.updateAvatar(this, this.direction, this.action, "spk");
+    }
+    catch (error) {
+      this.dependencies.reportAvatarLoadError(this, error);
+      return;
+    }
+    if (this.removed || speechVersion !== this.speechVersion) return;
+
+    this.gestureTimer = window.setTimeout(() => {
+      this.gestureTimer = null;
+      if (this.removed || speechVersion !== this.speechVersion) return;
+      this.gesture = "std";
+      void this.dependencies.updateAvatar(this, this.direction, this.action, "std")
+        .catch(error => this.dependencies.reportAvatarLoadError(this, error));
+    }, 5000);
+  }
+}
+
 interface SceneAvatarControlsOptions {
   activeUsers: Map<string, ActiveUser>;
   avatars: Ref<AvatarState[]>;
@@ -192,7 +372,6 @@ interface SceneAvatarRegistryOptions {
   refreshAvatarFigure: (avatar: AvatarState) => Promise<void>;
   scheduleRandomMove: (avatar: AvatarState) => void;
   stopAvatarAnimation: (avatar: AvatarState) => void;
-  showChatMessage: (avatar: AvatarState, message: string, emoteOffsets: Map<string, string[]>) => Promise<void>;
   resolvePendingSnowball: (avatar: AvatarState) => void;
   reportAvatarFetchError: (avatar: AvatarState, error: unknown) => void;
   reportAvatarLoadError: (avatar: AvatarState, error: unknown) => void;
@@ -206,56 +385,12 @@ export function createSceneAvatarRegistry (options: SceneAvatarRegistryOptions) 
     const spawn = options.findFreeTile();
     if (!spawn) return null;
 
-    const avatar = reactive<AvatarState>({
-      login: user.login,
-      displayName: user.displayName,
-      activity: user.activity,
-      avatarType: "habbo",
-      profileStatus: "pending",
-      fallbackAvatarType: resolveDefaultAvatarType(options.defaultAvatar()),
-      figure: DEFAULT_HABBO_FIGURE,
-      effect: null,
-      penguinAppearance: { ...DEFAULT_PENGUIN_APPEARANCE },
-      figureRequestVersion: 0,
-      avatarFigureReady: false,
-      cleaning: false,
-      cleanVersion: 0,
-      cleanOriginalHand: null,
-      cleanOriginalResources: null,
-      menuVisible: false,
-      movementPaused: false,
-      isSitting: user.isSitting,
-      current: { ...spawn },
-      visual: { ...spawn },
-      destination: { ...spawn },
-      direction: user.isSitting ? randomSitDirection() : 2,
-      action: user.isSitting ? "sit" : "std",
-      danceAction: user.danceAction,
-      gesture: "std",
-      currentImage: "",
-      imageWidth: 0,
-      imageHeight: 0,
-      bubbleMessage: "",
-      bubbleEmoteOffsets: new Map(),
-      bubbleVisible: false,
-      shadowRef: element => options.setAvatarElement(user.login, "shadow", element),
-      imageRef: element => options.setAvatarElement(user.login, "image", element),
-      clickTargetRef: element => options.setAvatarElement(user.login, "clickTarget", element),
-      labelRef: element => options.setAvatarElement(user.login, "label", element),
-      popoverAnchorRef: element => options.setAvatarElement(user.login, "popoverAnchor", element),
-      menuAnchorRef: element => options.setAvatarElement(user.login, "menuAnchor", element),
-      isWalking: false,
-      nextStep: null,
-      animationStartedAt: null,
-      movementVersion: 0,
-      randomTimer: null,
-      waitTimer: null,
-      snowballTimer: null,
-      bubbleTimer: null,
-      gestureTimer: null,
-      speechVersion: 0,
-      removed: false
-    });
+    const avatar = reactive<AvatarState>(new SceneAvatar(
+      user,
+      spawn,
+      resolveDefaultAvatarType(options.defaultAvatar()),
+      options
+    ));
 
     options.avatars.value.push(avatar);
     options.avatarsByUser.set(user.login, avatar);
@@ -270,26 +405,12 @@ export function createSceneAvatarRegistry (options: SceneAvatarRegistryOptions) 
     return avatar;
   }
 
-  function clearAvatarTimers (avatar: AvatarState) {
-    if (avatar.randomTimer !== null) window.clearTimeout(avatar.randomTimer);
-    if (avatar.waitTimer !== null) window.clearTimeout(avatar.waitTimer);
-    if (avatar.snowballTimer !== null) window.clearTimeout(avatar.snowballTimer);
-    if (avatar.bubbleTimer !== null) window.clearTimeout(avatar.bubbleTimer);
-    if (avatar.gestureTimer !== null) window.clearTimeout(avatar.gestureTimer);
-    avatar.randomTimer = null;
-    avatar.waitTimer = null;
-    avatar.snowballTimer = null;
-    avatar.bubbleTimer = null;
-    avatar.gestureTimer = null;
-  }
-
   function removeAvatarState (avatar: AvatarState) {
-    avatar.removed = true;
-    avatar.movementVersion++;
+    avatar.markRemoved();
     options.pendingSnowballs.delete(avatar.login);
     options.animatingPenguins.delete(avatar);
     options.stopAvatarAnimation(avatar);
-    clearAvatarTimers(avatar);
+    avatar.clearTimers();
     options.avatarElements.delete(avatar.login);
     options.penguinResourcesByLogin.delete(avatar.login);
     options.avatarsByUser.delete(avatar.login);
@@ -348,7 +469,7 @@ export function createSceneAvatarRegistry (options: SceneAvatarRegistryOptions) 
       if (!avatar) {
         const newAvatar = createAvatarState(user);
         if (newAvatar && user.lastMessage && Date.now() - user.lastMessageAt < 3000) {
-          void options.showChatMessage(newAvatar, user.lastMessage, user.lastMessageEmoteOffsets);
+          void newAvatar.showChatMessage(user.lastMessage, user.lastMessageEmoteOffsets);
         }
         continue;
       }

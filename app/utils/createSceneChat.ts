@@ -1,4 +1,4 @@
-import { ChatClient } from "@twurple/chat";
+import type { ChatMessage } from "@twurple/chat";
 
 interface SceneChatOptions {
   channel: string;
@@ -8,7 +8,6 @@ interface SceneChatOptions {
   pendingSnowballs: Map<string, string | null>;
   inactiveTimeoutMs: () => number;
   scheduleReconciliation: () => void;
-  showChatMessage: (avatar: AvatarState, message: string, emoteOffsets: Map<string, string[]>) => Promise<void>;
   startPenguinCleaning: (avatar: AvatarState) => void;
   stopPenguinCleaning: (avatar: AvatarState) => void;
   setAvatarDance: (avatar: AvatarState, danceAction: AvatarDanceAction | null) => void;
@@ -16,30 +15,22 @@ interface SceneChatOptions {
   throwPenguinSnowball: (avatar: AvatarState, targetLogin: string | null) => void;
   refreshAvatarFigure: (avatar: AvatarState) => Promise<void>;
   reportAvatarFetchError: (avatar: AvatarState, error: unknown) => void;
-  onConnectionChange: (connected: boolean) => void;
-  onConnectionError: (error: unknown) => void;
 }
 
 export function createSceneChat (options: SceneChatOptions) {
-  let chatClient: InstanceType<typeof ChatClient> | null = null;
-  let isUnmounting = false;
-
   function clearLastMessage (user: ActiveUser) {
     user.lastMessage = "";
     user.lastMessageEmoteOffsets = new Map();
     user.lastMessageAt = 0;
   }
 
-  function recordChatActivity (
-    username: string,
-    message: string,
-    twitchDisplayName: string,
-    emoteOffsets: Map<string, string[]>
-  ) {
-    const messageText = String(message || "");
+  function recordChatActivity (chatMessage: ChatMessage) {
+    const username = chatMessage.userInfo.userName;
+    const messageText = String(chatMessage.text || "");
     const login = String(username || "").trim().toLowerCase();
     if (!login || KNOWN_CHAT_BOTS.has(login)) return;
-    const displayName = String(twitchDisplayName || username).trim();
+    const displayName = String(chatMessage.userInfo.displayName || username).trim();
+    const emoteOffsets = chatMessage.emoteOffsets;
     const command = parseAvatarChatCommand(messageText);
     const stopCommand = (command?.type === "dance" && command.action === null)
       || command?.type === "stand"
@@ -146,41 +137,8 @@ export function createSceneChat (options: SceneChatOptions) {
     user.lastMessageAt = now;
 
     const avatar = options.avatarsByUser.get(login);
-    if (avatar && messageText.trim()) void options.showChatMessage(avatar, messageText, emoteOffsets);
+    if (avatar && messageText.trim()) void avatar.showChatMessage(messageText, emoteOffsets);
     options.scheduleReconciliation();
-  }
-
-  async function connectToChat () {
-    try {
-      chatClient = new ChatClient({
-        channels: [options.channel],
-        webSocket: true
-      });
-      chatClient.onConnect(() => {
-        if (isUnmounting) return;
-        options.onConnectionChange(true);
-      });
-      chatClient.onDisconnect(() => {
-        if (isUnmounting) return;
-        options.onConnectionChange(false);
-      });
-      chatClient.onMessage((channel, username, message, msg) => {
-        if (channel.replace(/^#/, "").toLowerCase() === options.channel) {
-          recordChatActivity(username, message, msg.userInfo.displayName ?? username, msg.emoteOffsets);
-        }
-      });
-      chatClient.connect();
-    }
-    catch (error) {
-      if (isUnmounting) return;
-      options.onConnectionError(error);
-    }
-  }
-
-  function disconnectFromChat () {
-    isUnmounting = true;
-    chatClient?.quit();
-    chatClient = null;
   }
 
   function ensureStreamerActive () {
@@ -202,8 +160,7 @@ export function createSceneChat (options: SceneChatOptions) {
   }
 
   return {
-    connectToChat,
-    disconnectFromChat,
+    handleMessage: recordChatActivity,
     ensureStreamerActive
   };
 }

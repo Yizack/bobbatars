@@ -95,4 +95,7 @@ export interface AvatarState {
   gestureTimer: number | null;
   speechVersion: number;
   removed: boolean;
+  clearTimers: () => void;
+  markRemoved: () => void;
+  showChatMessage: (message: string, emoteOffsets: Map<string, string[]>) => Promise<void>;
 }
