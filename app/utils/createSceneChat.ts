@@ -24,6 +24,12 @@ export function createSceneChat (options: SceneChatOptions) {
   let chatClient: InstanceType<typeof ChatClient> | null = null;
   let isUnmounting = false;
 
+  function clearLastMessage (user: ActiveUser) {
+    user.lastMessage = "";
+    user.lastMessageEmoteOffsets = new Map();
+    user.lastMessageAt = 0;
+  }
+
   function recordChatActivity (
     username: string,
     message: string,
@@ -70,9 +76,7 @@ export function createSceneChat (options: SceneChatOptions) {
     }
 
     if (command?.type === "clean") {
-      user.lastMessage = "";
-      user.lastMessageEmoteOffsets = new Map();
-      user.lastMessageAt = 0;
+      clearLastMessage(user);
       user.cleaning = command.action === "start";
       if (command.action === "start") {
         user.isSitting = false;
@@ -90,9 +94,7 @@ export function createSceneChat (options: SceneChatOptions) {
     }
 
     if (command?.type === "dance") {
-      user.lastMessage = "";
-      user.lastMessageEmoteOffsets = new Map();
-      user.lastMessageAt = 0;
+      clearLastMessage(user);
       user.danceAction = command.action;
       if (command.action !== null) user.isSitting = false;
       const avatar = options.avatarsByUser.get(login);
@@ -102,9 +104,7 @@ export function createSceneChat (options: SceneChatOptions) {
     }
 
     if (command?.type === "snowball") {
-      user.lastMessage = "";
-      user.lastMessageEmoteOffsets = new Map();
-      user.lastMessageAt = 0;
+      clearLastMessage(user);
       const avatar = options.avatarsByUser.get(login);
       if (
         avatar?.avatarFigureReady
@@ -118,9 +118,7 @@ export function createSceneChat (options: SceneChatOptions) {
     }
 
     if (command?.type === "sit" || command?.type === "stand") {
-      user.lastMessage = "";
-      user.lastMessageEmoteOffsets = new Map();
-      user.lastMessageAt = 0;
+      clearLastMessage(user);
       const isSitting = command.type === "sit";
       user.isSitting = isSitting;
       user.danceAction = null;
@@ -131,9 +129,7 @@ export function createSceneChat (options: SceneChatOptions) {
     }
 
     if (command?.type === "refresh-avatar") {
-      user.lastMessage = "";
-      user.lastMessageEmoteOffsets = new Map();
-      user.lastMessageAt = 0;
+      clearLastMessage(user);
       const targetLogin = command.target ?? login;
       const avatar = options.avatarsByUser.get(targetLogin);
       if (avatar) {
