@@ -1,35 +1,33 @@
-# Habbo Outfit Studio
+# Bobbatars
 
-Nuxt/Vue outfit editor adapted from AvatarGenerate. Nitro Renderer and PixiJS are not used. The
-editor uses the AvatarGenerate R63B figure catalog and produces the original Habbo outfit string
-format.
+Habbo and Club Penguin avatars for your Twitch community.
 
-## Local setup
+## Features
 
-Requires Node.js 22.22.3+, 24.15.0+, or 26+, plus pnpm.
+- **Habbo editor** with clothing, colors, and effects. Build an outfit, import a figure string, or
+  look up a player on the `.com` or `.es` hotel.
+- **Club Penguin editor** with a clothing catalog, custom colors, and an animated preview. Save a
+  look for each avatar type and choose which one appears on stream.
+- **OBS overlay** with chat bubbles and emotes from Twitch, BetterTTV, FrankerFaceZ, and 7TV. Set
+  the room height, tile and background colors, avatar limit, and inactivity timeout.
+- **Twitch chat commands** for different avatar actions like dancing, sitting, reloading saved
+  outfits, etc.
 
-```powershell
-pnpm install
-pnpm dev
-```
+## Use Bobbatars on stream
 
-Open `/dashboard/avatar` to choose gender, figure parts, and palette colors. Import
-accepts an existing figure string; the readonly output includes its `&gender=M` or `&gender=F`
-suffix. The preview uses the Habbo Imaging URL referenced by AvatarGenerate and does not require a
-hotel client.
+1. Open **My Avatar** in the dashboard, customize a Habbo or Club Penguin avatar, and save it.
+2. Open **OBS overlay** to preview your channel’s room, adjust its settings, and copy the URL into
+   an OBS **Browser Source**. Copy the URL again after changing settings so OBS picks them up.
+3. Send a message in your Twitch channel. Chatters with saved avatars appear in their outfits. The
+   overlay gives other chatters a default Habbo or penguin based on your settings. |
 
-## Catalog update
+See [Chat Commands](https://bobbatars.yizack.com/dashboard/commands) in the dashboard for aliases
+and details by avatar type.
 
-`pnpm sync:avatar-data` parses the embedded palette, set type, and default outfit literals from the
-pinned AvatarGenerate commit and writes the catalog under `app/data/avatar-generator/`. It also
-copies the upstream Apache-2.0 license into `LICENSES/` and the original category/gender PNG icons
-into `public/avatar-generator/icons/`.
+## Credits
 
-## Attribution and limitations
-
-Adapted from [synt4xy/avatargenerate](https://github.com/synt4xy/avatargenerate), Apache-2.0. See
-[docs/avatar-generator.md](docs/avatar-generator.md) and `LICENSES/AvatarGenerate-Apache-2.0.txt`.
-The embedded catalog is from 2016/R63B and may not match current Habbo inventories. The preview
-depends on Habbo Imaging and can be unavailable independently of the local outfit-string editor. The
-included PNGs are AvatarGenerate UI icons, not Habbo avatar/clothing sprites. This build does not
-include room rendering, Twitch, a backend, or a database.
+- The Habbo editor was adapted from
+  [synt4xy/AvatarGenerate](https://github.com/synt4xy/avatargenerate)
+- Habbo previews and player lookups use Habbo History. [HabboHistory](https://habbohistory.com/)
+- Penguin sprites and clothing assets use Club Penguin Legacy media.
+  [Club Penguin Legacy](https://cplegacy.com/)
