@@ -38,10 +38,6 @@ if (!user.value) {
   });
 }
 
-type AvatarPreviewState
-  = | { avatarType: "habbo", gender: AvatarGender, figure: string, effect: number | null }
-    | ({ avatarType: "penguin" } & PenguinAppearance);
-
 const defaultHabboAvatar: AvatarPreviewState = {
   avatarType: "habbo",
   gender: "M",
