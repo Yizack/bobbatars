@@ -1,8 +1,8 @@
 import type { ComponentPublicInstance } from "vue";
 import type { AvatarDanceAction, AvatarDirection, AvatarType } from "./avatar";
 import type { PenguinAppearance } from "./penguin";
-import type { HabboAvatarResponse } from "./habboAvatar";
-import type { PenguinRenderResources } from "../utils/penguinSprites";
+import type { HabboAvatarResponse } from "./habbo-avatar";
+import type { PenguinRenderResources } from "../utils/penguin-sprites";
 
 export interface Tile {
   column: number;

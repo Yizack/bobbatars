@@ -1,5 +1,4 @@
 import { Buffer } from "node:buffer";
-import { resolveMediaAssetPath } from "../../../shared/mediaAssets";
 
 const DAY_SECONDS = 24 * 60 * 60;
 const MAX_MEDIA_BYTES = 10 * 1024 * 1024;

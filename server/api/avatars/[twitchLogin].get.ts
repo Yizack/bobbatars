@@ -1,5 +1,4 @@
 import * as z from "zod";
-import { EMPTY_CLOTHING_PARTS } from "../../../shared/clothing";
 
 export default defineEventHandler(async (event) => {
   const params = await getValidatedRouterParams(event, z.object({

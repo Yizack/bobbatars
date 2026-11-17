@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { withQuery } from "ufo";
-import { CLOTHING_PARTS } from "#shared/clothing";
 import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/habbo-default-outfit";
 import avatarCatalogJson from "../../data/avatar-generator/habbo-catalog.json";
 import penguinCatalogJson from "../../data/avatar-generator/penguin-catalog.json";

@@ -1,4 +1,4 @@
-import type { AvatarGender } from "./habboAvatar";
+import type { AvatarGender } from "./habbo-avatar";
 import type { PenguinAppearance } from "./penguin";
 
 export type AvatarType = "habbo" | "penguin";

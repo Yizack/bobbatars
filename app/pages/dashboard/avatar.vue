@@ -3,7 +3,6 @@ import { withQuery } from "ufo";
 import habboCatalogJson from "../../data/avatar-generator/habbo-catalog.json";
 import penguinCatalogJson from "../../data/avatar-generator/penguin-catalog.json";
 import { DEFAULT_OUTFIT_FIGURES } from "../../data/avatar-generator/habbo-default-outfit";
-import { CLOTHING_PARTS, clothingPartsFromSelection, clothingSelectionFromParts, orderedClothingParts } from "#shared/clothing";
 
 definePageMeta({ layout: "dashboard", middleware: "authenticated" });
 

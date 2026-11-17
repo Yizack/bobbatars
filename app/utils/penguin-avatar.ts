@@ -1,5 +1,3 @@
-import { EMPTY_CLOTHING_PARTS } from "#shared/clothing";
-
 export const DEFAULT_PENGUIN_APPEARANCE: PenguinAppearance = {
   ...EMPTY_CLOTHING_PARTS,
   color: "#003366"
