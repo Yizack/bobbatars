@@ -130,6 +130,12 @@ function defaultOutfit (forGender: AvatarGender): Record<string, OutfitPart> {
 }
 
 const figure = computed(() => figureForParts(selectedParts.value));
+const presetOutfit = computed<AvatarPresetOutfit>(() => {
+  if (avatarType.value === "habbo") {
+    return { avatarType: "habbo", outfit: { figure: figure.value, gender: gender.value, effect: selectedEffect.value } };
+  }
+  return { avatarType: "penguin", outfit: penguinAppearance.value };
+});
 
 const previewUrl = computed(() => {
   let headDirection = previewDirection.value;
@@ -208,6 +214,19 @@ async function selectAvatarType (type: AvatarType): Promise<void> {
   }
   finally {
     typeLoading.value = false;
+  }
+}
+
+function loadPreset (preset: AvatarPreset) {
+  if (preset.avatarType === "habbo") {
+    selectedParts.value = parseFigureString(preset.outfit.figure);
+    gender.value = preset.outfit.gender;
+    selectedEffect.value = preset.outfit.effect;
+    importError.value = "";
+  }
+  else {
+    selectedByType.value = clothingSelectionFromParts(preset.outfit);
+    penguinColor.value = preset.outfit.color;
   }
 }
 
@@ -522,30 +541,19 @@ useHead({ title: "Avatar | Bobbatars" });
         </div>
 
         <aside class="order-1 flex content-start flex-col gap-3 sm:gap-4" aria-label="Avatar preview and controls">
-          <template v-if="avatarType === 'habbo'">
-            <HabboPreview
-              v-model:direction="previewDirection"
-              v-model:action="previewAction"
-              :preview-url="previewUrl"
-              :gender="gender"
-              :outfit-count="outfitCount"
-              :save-state="saveState"
-              :can-save="Boolean(user?.twitchLogin)"
-              @randomize="randomizeOutfit"
-              @reset="resetOutfit"
-              @save="saveAvatar"
-            />
-
-            <HabboLookup
-              v-model:hotel="lookupHotel"
-              v-model:username="lookupUsername"
-              :state="lookupState"
-              :name="lookupName"
-              :error="lookupError"
-              :queue-message="lookupQueueMessage"
-              @lookup="lookupHabboFigure"
-            />
-          </template>
+          <HabboPreview
+            v-if="avatarType === 'habbo'"
+            v-model:direction="previewDirection"
+            v-model:action="previewAction"
+            :preview-url="previewUrl"
+            :gender="gender"
+            :outfit-count="outfitCount"
+            :save-state="saveState"
+            :can-save="Boolean(user?.twitchLogin)"
+            @randomize="randomizeOutfit"
+            @reset="resetOutfit"
+            @save="saveAvatar"
+          />
           <PenguinPreview
             v-else
             v-model:color="penguinColor"
@@ -559,6 +567,25 @@ useHead({ title: "Avatar | Bobbatars" });
             @randomize="randomizePenguinOutfit"
             @reset="resetPenguinOutfit"
             @save="savePenguinAvatar"
+          />
+
+          <AvatarPresets
+            v-if="user"
+            :twitch-login="user.twitchLogin"
+            :outfit="presetOutfit"
+            :disabled="typeLoading || (avatarType === 'habbo' && lookupState === 'loading')"
+            @load="loadPreset"
+          />
+
+          <HabboLookup
+            v-if="avatarType === 'habbo'"
+            v-model:hotel="lookupHotel"
+            v-model:username="lookupUsername"
+            :state="lookupState"
+            :name="lookupName"
+            :error="lookupError"
+            :queue-message="lookupQueueMessage"
+            @lookup="lookupHabboFigure"
           />
         </aside>
       </div>

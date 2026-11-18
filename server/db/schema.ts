@@ -41,3 +41,12 @@ export const penguinAvatars = sqliteTable("penguin-avatars", {
 }, table => [
   index("penguin_avatars_user_id_idx").on(table.userId)
 ]);
+
+export const avatarPresets = sqliteTable("avatar-presets", {
+  id: integer().primaryKey({ autoIncrement: true }),
+  userId: integer().notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text().notNull(),
+  appearance: text({ mode: "json" }).$type<AvatarPresetOutfit>().notNull()
+}, table => [
+  index("avatar_presets_user_id_idx").on(table.userId)
+]);

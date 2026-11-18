@@ -1,23 +1,8 @@
 import * as z from "zod";
 
-const clothingIdSchema = z.number().int().min(1).max(9_999_999_999).nullable();
 const bodySchema = z.union([
-  z.object({
-    avatarType: z.literal("habbo").optional(),
-    figure: z.string(),
-    gender: z.enum(["M", "F"]),
-    effect: z.number().nullable()
-  }),
-  z.object({
-    avatarType: z.literal("penguin"),
-    head: clothingIdSchema,
-    face: clothingIdSchema,
-    neck: clothingIdSchema,
-    body: clothingIdSchema,
-    hand: clothingIdSchema,
-    feet: clothingIdSchema,
-    color: z.string().regex(/^#[\da-f]{6}$/i).transform(value => value.toUpperCase())
-  })
+  habboOutfitSchema.extend({ avatarType: z.literal("habbo").optional() }),
+  penguinOutfitSchema.extend({ avatarType: z.literal("penguin") })
 ]);
 
 export default defineEventHandler(async (event) => {

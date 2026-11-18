@@ -4,6 +4,7 @@ export default [
   "pixelarticons:sunglasses",
   "pixelarticons:heart",
   "pixelarticons:shirt",
+  "pixelarticons:bookmarks",
   "pixelarticons:hand",
   "pixelarticons:arrow-down",
   "pixelarticons:monitor",

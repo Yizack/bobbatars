@@ -33,6 +33,13 @@ const navigationItems = computed<NavigationMenuItem[][]>(() => [
       onSelect: closeSidebar
     },
     {
+      label: "Presets",
+      to: "/dashboard/presets",
+      icon: "pixelarticons:bookmarks",
+      class: "max-sm:text-xs",
+      onSelect: closeSidebar
+    },
+    {
       label: "Chat Commands",
       to: "/dashboard/commands",
       icon: "pixelarticons:message-text",

@@ -8,6 +8,8 @@ Habbo and Club Penguin avatars for your Twitch community.
   look up a player on the `.com` or `.es` hotel.
 - **Club Penguin editor** with a clothing catalog, custom colors, and an animated preview. Save a
   look for each avatar type and choose which one appears on stream.
+- **Outfit presets** for Habbo and Club Penguin. Name and save outfits in **My Avatar**, then load
+  them again any time. Select **Save avatar** after loading a preset to wear it on stream.
 - **OBS overlay** with chat bubbles and emotes from Twitch, BetterTTV, FrankerFaceZ, and 7TV. Set
   the room height, tile and background colors, avatar limit, and inactivity timeout.
 - **Twitch chat commands** for different avatar actions like dancing, sitting, reloading saved
